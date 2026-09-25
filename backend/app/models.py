@@ -40,6 +40,12 @@ class KnowledgeBaseEntry(Base):
     confirmed_by = Column(String, nullable=True)
     confirmed_at = Column(DateTime, nullable=True)
     superseded_by = Column(String, nullable=True)
+    # The reviewer's judgment of whether this pattern matters for security at
+    # all - distinct from `source`/confidence, which only record HOW a mapping
+    # was decided. Copied from the confirming ReviewQueueItem so it carries
+    # forward to every future Tier-1 match of this pattern.
+    is_security_relevant = Column(Boolean, nullable=True)
+    reviewer_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 
@@ -54,6 +60,9 @@ class Device(Base):
     firmware_version = Column(String, nullable=True)
     source_file = Column(String, nullable=True)
     vendor = Column(String, nullable=True)
+    # Per-type COUNTS only ([{type, count}]) - never the secret values
+    # themselves, which exist only in memory for the duration of /ingest.
+    redaction_hits = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 
@@ -87,6 +96,10 @@ class Rule(Base):
     remediation_template_ref = Column(String, nullable=True)
     framework = Column(String, nullable=False)  # CIS|NIST|STIG|ISO
     title = Column(String, nullable=True)
+    # e.g. ["cisco_ios"] for a vendor-specific benchmark; null = applies to
+    # every vendor (NIST/ISO). Without this, a Cisco router was being scored
+    # against - and cited as failing - the CIS *pfSense* benchmark.
+    applies_to_vendors = Column(JSON, nullable=True)
 
 
 class Finding(Base):
@@ -124,5 +137,14 @@ class ReviewQueueItem(Base):
     langfuse_observation_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default="pending")  # pending|confirmed|rejected
     reviewer_id = Column(String, nullable=True)
+    # Why this item is here when it's NOT an ordinary low-confidence Tier-3
+    # miss. "sanity_gate" = blocked as a suspected prompt injection before any
+    # LLM call; null = the AI simply wasn't sure. Without this the two were
+    # indistinguishable in the queue - an active attack looked like any other
+    # pending line.
+    flag_type = Column(String, nullable=True)
+    flag_reason = Column(Text, nullable=True)
+    is_security_relevant = Column(Boolean, nullable=True)
+    reviewer_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)

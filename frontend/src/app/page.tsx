@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Database, Clock, ShieldCheck, ScanSearch, Download, Inbox } from "lucide-react";
+import { Database, Clock, ShieldCheck, ScanSearch, Download, Inbox, Lock, ShieldAlert } from "lucide-react";
 import { Stats, RecentConfig, getStats, getRecentConfigs, reportUrl } from "@/lib/api";
 import { Panel, PageHeader, SectionLabel, KpiTile, Button, Table, Thead, Th, Td, Tr, EmptyState } from "@/components/ui";
 
@@ -28,7 +28,7 @@ export default function OverviewPage() {
         setStats(s);
         setRecent(r);
         setError(null);
-      } catch (e) {
+      } catch {
         if (cancelled) return;
         if (attempt < MAX_ATTEMPTS) {
           setTimeout(() => load(attempt + 1), RETRY_DELAY_MS);
@@ -64,7 +64,7 @@ export default function OverviewPage() {
       {error && <Panel className="p-4 border-rose-300 bg-rose-50 text-rose-800 text-sm mb-6">{error}</Panel>}
 
       {stats && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <KpiTile icon={ScanSearch} value={stats.devices_analyzed} label="Devices analyzed" color="slate" />
           <KpiTile icon={Database} value={stats.kb_entries_total} label="Patterns learned" color="indigo" />
           <KpiTile icon={Clock} value={stats.review_queue_pending} label="Waiting for review" color="amber" />
@@ -73,6 +73,13 @@ export default function OverviewPage() {
             value={Object.values(stats.findings_by_tier).reduce((a, b) => a + b, 0)}
             label="Findings evaluated"
             color="emerald"
+          />
+          <KpiTile icon={Lock} value={stats.redactions_total ?? 0} label="Secrets hidden before AI" color="slate" />
+          <KpiTile
+            icon={ShieldAlert}
+            value={stats.sanity_gate_blocked_total ?? 0}
+            label="Injection attempts blocked"
+            color={(stats.sanity_gate_blocked_total ?? 0) > 0 ? "rose" : "slate"}
           />
         </div>
       )}

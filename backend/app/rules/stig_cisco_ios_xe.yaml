@@ -15,6 +15,7 @@
 
 framework: STIG
 standard_version: "Cisco IOS XE Router RTR STIG V3R5"
+applies_to_vendors: [cisco_ios]
 rules:
   - id: STIG-V-216662
     title: "Network traffic must be denied by default and allowed by exception"

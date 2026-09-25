@@ -10,6 +10,9 @@ export type IngestResult = {
   tier_counts: { tier1: number; tier2_accepted: number; tier3_pending: number };
   parse_coverage_pct: number;
   redaction_hits: { type: string; count: number }[];
+  redaction_examples: { type: string; unit: string }[];
+  sanity_gate_hits: { unit: string; reason: string; pattern: string }[];
+  hostname: string | null;
   fields: Record<string, unknown>;
   pending_review_ids: string[];
 };
@@ -27,6 +30,10 @@ export type ReviewQueueItem = {
   similar_kb_entries: { syntax_pattern: string; canonical_field: string; similarity: number }[] | null;
   confidence: number | null;
   status: string;
+  flag_type: "sanity_gate" | null;
+  flag_reason: string | null;
+  device_hostname: string | null;
+  device_vendor: string | null;
   created_at: string | null;
 };
 
@@ -36,6 +43,9 @@ export type Stats = {
   review_queue_pending: number;
   findings_by_tier: Record<string, number>;
   devices_analyzed: number;
+  sanity_gate_blocked_total: number;
+  redactions_total: number;
+  redactions_by_type: Record<string, number>;
 };
 
 async function handle<T>(res: Response): Promise<T> {
@@ -60,7 +70,15 @@ export async function listReviewQueue(status = "pending"): Promise<ReviewQueueIt
 
 export async function confirmReviewItem(
   id: string,
-  body: { canonical_field: string; value: unknown; reviewer_id: string; pattern_type: "exact" | "regex"; syntax_pattern?: string }
+  body: {
+    canonical_field: string;
+    value: unknown;
+    reviewer_id: string;
+    pattern_type: "exact" | "regex";
+    syntax_pattern?: string;
+    is_security_relevant?: boolean | null;
+    reviewer_notes?: string | null;
+  }
 ) {
   const res = await fetch(`${API_BASE}/review-queue/${id}/confirm`, {
     method: "POST",
@@ -70,7 +88,7 @@ export async function confirmReviewItem(
   return handle<{ kb_entry_id: string; review_queue_id: string; status: string }>(res);
 }
 
-export async function rejectReviewItem(id: string, body: { reviewer_id: string; reason?: string }) {
+export async function rejectReviewItem(id: string, body: { reviewer_id: string; reason?: string; reviewer_notes?: string | null }) {
   const res = await fetch(`${API_BASE}/review-queue/${id}/reject`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -84,7 +102,12 @@ export async function getStats(): Promise<Stats> {
   return handle<Stats>(res);
 }
 
-export type FieldMeta = { type: "scalar" | "list"; label: string; description: string };
+export type FieldMeta = {
+  type: "scalar" | "list";
+  value_kind?: "bool" | "number" | "string";
+  label: string;
+  description: string;
+};
 
 export async function getCanonicalFields(): Promise<Record<string, FieldMeta>> {
   const res = await fetch(`${API_BASE}/canonical-fields`);

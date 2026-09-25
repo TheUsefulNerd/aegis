@@ -23,6 +23,7 @@ def load_rule_files(db: Session) -> int:
             doc = yaml.safe_load(f)
         framework = doc["framework"]
         standard_version = doc["standard_version"]
+        applies_to_vendors = doc.get("applies_to_vendors")  # None = vendor-neutral
         for r in doc["rules"]:
             existing = (
                 db.query(Rule)
@@ -43,6 +44,7 @@ def load_rule_files(db: Session) -> int:
                 remediation_template_ref=r.get("remediation_template_ref"),
                 framework=framework,
                 title=r.get("title"),
+                applies_to_vendors=applies_to_vendors,
             )
             if existing:
                 for k, v in fields.items():

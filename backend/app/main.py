@@ -1,4 +1,5 @@
 import datetime as dt
+import re
 
 from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,6 +83,7 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
         # Prefer an actually-extracted firmware string (e.g. "15.2") over the
         # fingerprint's coarse vendor-family label (e.g. "ios").
         firmware_version=identity.firmware_version or fp["version_family"],
+        redaction_hits=redacted.hits,
     )
     db.add(device)
     db.commit()
@@ -115,7 +117,7 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
             # must never see flagged text, or the gate protects nothing.
             check = sanity_gate.scan(unit_text)
             if check.flagged:
-                sanity_gate_hits.append({"unit": unit_text, "reason": check.reason})
+                sanity_gate_hits.append({"unit": unit_text, "reason": check.reason, "pattern": check.pattern})
                 tier_counts["tier3_pending"] += 1
                 item = ReviewQueueItem(
                     tenant_id="default",
@@ -126,6 +128,8 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
                     similar_kb_entries=[],
                     confidence=None,
                     status="pending",
+                    flag_type="sanity_gate",
+                    flag_reason=check.reason,
                 )
                 db.add(item)
                 db.commit()
@@ -194,10 +198,35 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
         "tier_counts": tier_counts,
         "parse_coverage_pct": coverage_pct,
         "redaction_hits": redacted.hits,
+        "redaction_examples": _redaction_examples(unit_list),
         "sanity_gate_hits": sanity_gate_hits,
         "fields": fields,
         "pending_review_ids": pending_review_ids,
     }
+
+
+_REDACTED_MARKER = re.compile(r"\[REDACTED:(\w+)\]")
+_RESULT_ORDER = {"FAIL": 0, "NOT_EVALUATED": 1, "PASS": 2}
+_SEVERITY_ORDER = {"CAT_I": 0, "CAT_II": 1, "CAT_III": 2}
+
+
+def _redaction_examples(unit_list: list[str], limit: int = 5) -> list[dict]:
+    """A few already-redacted units, at most one per redaction type, so the
+    UI can show what a redacted line actually looks like in place. Safe to
+    return by construction: these come from the post-redaction text - the
+    original secret was never in `unit_list` to begin with, and `raw_text`
+    itself is never returned or stored."""
+    seen: set[str] = set()
+    out = []
+    for unit in unit_list:
+        m = _REDACTED_MARKER.search(unit)
+        if not m or m.group(1) in seen:
+            continue
+        seen.add(m.group(1))
+        out.append({"type": m.group(1), "unit": unit})
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None = None) -> dict:
@@ -212,7 +241,9 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
     query = db.query(Rule)
     if framework:
         query = query.filter(Rule.framework == framework)
-    rules = query.all()
+    # Vendor-specific benchmarks (CIS Cisco IOS XE, CIS pfSense, the Cisco
+    # STIG) only apply to their own vendor; NIST/ISO apply to everything.
+    rules = [r for r in query.all() if not r.applies_to_vendors or config.vendor in r.applies_to_vendors]
     counts = {"PASS": 0, "FAIL": 0, "NOT_EVALUATED": 0}
     # Stratified by severity, not just one aggregate number - a NOT_EVALUATED
     # rate concentrated in CAT_I is a very different report than one spread
@@ -266,6 +297,12 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
         })
 
     db.commit()
+    # Most urgent first, for a time-pressed reader of the UI or the PDF:
+    # failures before unknowns before passes, and CAT_I before CAT_III
+    # within each - not whatever order the rules happened to load in.
+    findings.sort(key=lambda f: (
+        _RESULT_ORDER.get(f["result"], 9), _SEVERITY_ORDER.get(f["severity"], 9), f["rule_id"],
+    ))
     return {
         "config_id": config.id,
         "device_id": config.device_id,
@@ -341,6 +378,14 @@ def canonical_fields():
 @app.get("/review-queue")
 def list_review_queue(status: str = "pending", db: Session = Depends(get_db)):
     items = db.query(ReviewQueueItem).filter(ReviewQueueItem.status == status).all()
+    # Flagged items (a blocked injection attempt) first - they're a different
+    # category of event from "the AI wasn't sure", not just another pending
+    # line - then oldest first within each group.
+    items.sort(key=lambda i: (i.flag_type is None, i.created_at or dt.datetime.min))
+    devices = {
+        d.id: d
+        for d in db.query(Device).filter(Device.id.in_({i.device_id for i in items if i.device_id})).all()
+    }
     return [
         {
             "id": i.id,
@@ -350,6 +395,10 @@ def list_review_queue(status: str = "pending", db: Session = Depends(get_db)):
             "similar_kb_entries": i.similar_kb_entries,
             "confidence": i.confidence,
             "status": i.status,
+            "flag_type": i.flag_type,
+            "flag_reason": i.flag_reason,
+            "device_hostname": devices[i.device_id].hostname if i.device_id in devices else None,
+            "device_vendor": devices[i.device_id].vendor if i.device_id in devices else None,
             "created_at": _iso_utc(i.created_at),
         }
         for i in items
@@ -379,11 +428,15 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depend
         confirmed_by=body.reviewer_id,
         confirmed_at=dt.datetime.utcnow(),
         langfuse_trace_id=item.langfuse_trace_id,
+        is_security_relevant=body.is_security_relevant,
+        reviewer_notes=body.reviewer_notes,
     )
     db.add(entry)
 
     item.status = "confirmed"
     item.reviewer_id = body.reviewer_id
+    item.is_security_relevant = body.is_security_relevant
+    item.reviewer_notes = body.reviewer_notes
     item.resolved_at = dt.datetime.utcnow()
     db.commit()
     db.refresh(entry)
@@ -412,6 +465,9 @@ def reject_review_item(item_id: str, body: RejectMapping, db: Session = Depends(
         raise HTTPException(404, "review queue item not found")
     item.status = "rejected"
     item.reviewer_id = body.reviewer_id
+    item.reviewer_notes = body.reviewer_notes
+    if body.reason == "not_applicable":
+        item.is_security_relevant = False
     item.resolved_at = dt.datetime.utcnow()
     db.commit()
 
@@ -443,12 +499,20 @@ def stats(db: Session = Depends(get_db)):
         if row[0] in findings_by_tier:
             findings_by_tier[row[0]] += 1
     devices_analyzed = db.query(CanonicalConfig).count()
+    sanity_gate_blocked = db.query(ReviewQueueItem).filter(ReviewQueueItem.flag_type == "sanity_gate").count()
+    redactions_by_type: dict[str, int] = {}
+    for (hits,) in db.query(Device.redaction_hits).all():
+        for h in hits or []:
+            redactions_by_type[h["type"]] = redactions_by_type.get(h["type"], 0) + h["count"]
     return {
         "kb_entries_total": total_kb,
         "kb_entries_by_source": by_source,
         "review_queue_pending": pending,
         "findings_by_tier": findings_by_tier,
         "devices_analyzed": devices_analyzed,
+        "sanity_gate_blocked_total": sanity_gate_blocked,
+        "redactions_total": sum(redactions_by_type.values()),
+        "redactions_by_type": redactions_by_type,
     }
 
 

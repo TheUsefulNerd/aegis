@@ -1,13 +1,17 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-pydantic
-sentence-transformers
-groq
-google-generativeai
-reportlab
-python-multipart
-langfuse
-python-dotenv
-pyyaml
-tzdata
+# Pinned to the versions this build was developed and verified against
+# (Python 3.11). Unpinned installs pull whatever is newest on the day, and
+# sentence-transformers / langfuse / google-generativeai change APIs often
+# enough that "works today" is not the same as "works next month".
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+sqlalchemy==2.0.53
+pydantic==2.13.5
+sentence-transformers==6.0.1
+groq==1.7.0
+google-generativeai==0.8.6
+reportlab==5.0.1
+python-multipart==0.0.32
+langfuse==4.15.2
+python-dotenv==1.2.3
+pyyaml==6.0.3
+tzdata==2026.4

@@ -138,6 +138,13 @@ def generate(
     story.append(Spacer(1, 0.3 * inch))
 
     counts = evaluation["counts"]
+    story.append(Paragraph("Executive Summary", heading_style))
+    story.append(Paragraph(
+        _executive_summary(device, evaluation, framework_label),
+        ParagraphStyle("exec", parent=styles["Normal"], fontSize=9.5, leading=14),
+    ))
+    story.append(Spacer(1, 0.25 * inch))
+
     story.append(Paragraph("Summary", heading_style))
     if framework_label:
         story.append(Paragraph(f"Framework: <b>{_escape(framework_label)}</b>", styles["Normal"]))
@@ -167,25 +174,26 @@ def generate(
         ("ROUNDEDCORNERS", [6, 6, 6, 6]),
     ]))
     story.append(stats_table)
-    story.append(Paragraph(
-        "A finding marked \"could not be evaluated\" means AEGIS did not have enough information to "
-        "determine compliance for that control &mdash; this is never treated the same as a pass.",
-        ParagraphStyle("note", parent=styles["Normal"], fontSize=7.5, textColor=_MUTED, spaceBefore=4),
-    ))
+    story.append(Spacer(1, 0.15 * inch))
+    story.append(_legend_table(styles))
     story.append(Spacer(1, 0.3 * inch))
 
     story.append(Paragraph("Compliance Findings", heading_style))
+    # Paragraphs ignore the table's FONTSIZE command and default to 10pt,
+    # which wrapped short labels like "AI-classified" mid-word in the narrow
+    # Source column - size them explicitly to match the rest of the table.
+    cell_style = ParagraphStyle("cell", parent=styles["BodyText"], fontSize=8, leading=10)
     header = ["Result", "Control", "Framework / ID", "Severity", "Source", "Remediation"]
     rows = [header]
     for f in evaluation["findings"]:
         rem = f.get("remediation") or ("no template available" if f["result"] == "FAIL" else "")
         rows.append([
             _RESULT_LABELS.get(f["result"], f["result"]),
-            Paragraph(_escape(f.get("title") or f["rule_id"]), styles["BodyText"]),
+            Paragraph(_escape(f.get("title") or f["rule_id"]), cell_style),
             # Same bare-string overflow bug as Source below - a long rule id
             # (e.g. "CIS / CIS-SUPPLEMENT-ACL-TELNET") doesn't wrap and spills
             # into the Severity/Source columns instead.
-            Paragraph(_escape(f"{f['framework']} / {f['rule_id']}"), styles["BodyText"]),
+            Paragraph(_escape(f"{f['framework']} / {f['rule_id']}"), cell_style),
             f["severity"],
             # Was a bare string - ReportLab only word-wraps Flowables
             # (Paragraph) inside a table cell, so a plain string never wraps
@@ -194,8 +202,8 @@ def generate(
             # Remediation cell's text whenever that row's Control text wrapped
             # to 3+ lines and made the row tall enough for the overflow to
             # become visible). Same fix as Control/Remediation - wrap it too.
-            Paragraph(_escape(_TIER_LABELS.get(f.get("confidence_tier"), "—")), styles["BodyText"]),
-            Paragraph(_escape(rem).replace("\n", "<br/>"), styles["BodyText"]),
+            Paragraph(_escape(_TIER_LABELS.get(f.get("confidence_tier"), "—")), cell_style),
+            Paragraph(_escape(rem).replace("\n", "<br/>"), cell_style),
         ])
 
     findings_table = Table(
@@ -235,6 +243,78 @@ def generate(
 
     doc.build(story, onFirstPage=_header_footer, onLaterPages=_header_footer)
     return buffer.getvalue()
+
+
+def _executive_summary(device: dict, evaluation: dict, framework_label: str | None) -> str:
+    """One plain-English paragraph for a reader who won't parse the tables
+    (a security manager, an auditor) - built only from counts already
+    computed for the stat boxes, so it can't say anything the tables don't."""
+    counts = evaluation["counts"]
+    total = counts["PASS"] + counts["FAIL"] + counts["NOT_EVALUATED"]
+    name = _escape(device.get("hostname") or "This device")
+    fw = _escape(framework_label or "the loaded frameworks")
+    if fw == "All loaded frameworks":
+        fw = "every loaded framework that applies to this vendor (CIS, NIST SP 800-53, DISA STIG, ISO/IEC 27001)"
+    if total == 0:
+        return (
+            f"No rules from {fw} apply to this device's vendor "
+            f"(<b>{_escape(device.get('vendor') or 'unknown')}</b>), so nothing was evaluated. "
+            f"Vendor-neutral frameworks (NIST SP 800-53, ISO/IEC 27001) apply to every device."
+        )
+    text = (
+        f"<b>{name}</b> was checked against <b>{total}</b> compliance rules from {fw}. "
+        f"<b>{counts['PASS']}</b> passed, <b>{counts['FAIL']}</b> failed, and "
+        f"<b>{counts['NOT_EVALUATED']}</b> could not be evaluated because the setting they check "
+        f"was never mentioned in the configuration. "
+    )
+    fails = [f for f in evaluation["findings"] if f["result"] == "FAIL"]
+    if not fails:
+        text += "No rule failed. "
+    else:
+        high = [f for f in fails if f["severity"] == "CAT_I"]
+        if high:
+            text += (
+                f"<b>{len(high)}</b> {'failure is' if len(high) == 1 else 'failures are'} "
+                f"high severity and should be fixed first: "
+            )
+            names = [_escape(f.get("title") or f["rule_id"]) for f in high[:3]]
+            text += "; ".join(names) + ("; and others" if len(high) > 3 else "") + ". "
+        else:
+            text += "None of the failures are high severity. "
+        text += "Every failure is listed below, most urgent first, with the commands to fix it where available."
+    return text
+
+
+def _legend_table(styles) -> Table:
+    """What the report's vocabulary means, once per report - especially
+    that "Unknown" is neither a failure nor a guess."""
+    cell = ParagraphStyle("legend", parent=styles["Normal"], fontSize=7.5, leading=10)
+    rows = [
+        [Paragraph("<b>How to read this report</b>", cell), ""],
+        [Paragraph("<b>Pass / Fail</b>", cell),
+         Paragraph("The device's setting was found and does / does not meet the rule.", cell)],
+        [Paragraph("<b>Unknown</b>", cell),
+         Paragraph("The setting this rule checks was never mentioned in the configuration. This is "
+                   "<b>not</b> a failure and <b>not</b> a guess &mdash; AEGIS reports what it cannot see "
+                   "instead of assuming it is compliant.", cell)],
+        [Paragraph("<b>Severity</b>", cell),
+         Paragraph("CAT_I = high (fix first), CAT_II = medium, CAT_III = low &mdash; DISA STIG's "
+                   "category scale, applied to every framework.", cell)],
+        [Paragraph("<b>Source</b>", cell),
+         Paragraph("How the setting was identified: <b>Instantly recognized</b> (matched a known pattern, no AI "
+                   "involved), <b>AI-classified</b> (identified by an AI model, schema-validated), or "
+                   "<b>Human-confirmed</b> (a reviewer confirmed it once; recognized instantly from then on).", cell)],
+    ]
+    t = Table(rows, colWidths=[1.1 * inch, 5.5 * inch])
+    t.setStyle(TableStyle([
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BOX", (0, 0), (-1, -1), 0.5, _BORDER),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    return t
 
 
 def _draw_shield(canvas, x, y, w, h, fill_color):
@@ -295,7 +375,7 @@ def _header_footer(canvas, doc):
     canvas.drawString(0.7 * inch, 0.42 * inch, "AEGIS — Automated Evaluation & Governance for Infrastructure Security")
     canvas.drawRightString(PAGE_W - 0.7 * inch, 0.42 * inch, f"Page {doc.page}")
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(0.7 * inch, 0.28 * inch, f"Report ID {_current_report_meta['report_id']} — verify against the AEGIS audit log before acting on findings")
+    canvas.drawString(0.7 * inch, 0.28 * inch, f"Report ID {_current_report_meta['report_id']} — verify remediation in a non-production environment before applying")
     canvas.restoreState()
 
 

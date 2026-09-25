@@ -11,6 +11,7 @@
 
 framework: CIS
 standard_version: "CIS pfSense Firewall Benchmark v1.1.0"
+applies_to_vendors: [pfsense]
 rules:
   - id: CIS-PF-1.8
     title: "Web management must use HTTPS"

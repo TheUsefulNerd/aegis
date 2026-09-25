@@ -14,11 +14,50 @@ export const CONFIDENCE_TIER_LABELS: Record<string, string> = {
   tier3_human_confirmed: "Human-confirmed",
 };
 
-export const REDACTION_TYPE_LABELS: Record<string, string> = {
-  TYPE7_PASSWORD: "an encoded password",
-  ENABLE_SECRET_HASH: "a hashed admin password",
-  SNMP_COMMUNITY: "an SNMP community string",
-  PRE_SHARED_KEY: "a VPN/IPsec pre-shared key",
-  AAA_KEY: "a RADIUS/TACACS+ shared secret",
-  GENERIC_SECRET_FIELD: "a secret-looking value",
+// Mirrors backend/app/canonical_schema.py's CONTROL_FAMILIES - the prefix of
+// every canonical field code ("AC.telnet_enabled" -> "AC").
+export const CONTROL_FAMILY_LABELS: Record<string, string> = {
+  AC: "Access Control",
+  AU: "Audit and Accountability",
+  IA: "Identification and Authentication",
+  SC: "System and Communications Protection",
+  CM: "Configuration Management",
 };
+
+// One entry per rule in backend/app/redaction.py's _RULES - keep in sync.
+// `label` is the short noun phrase; `explanation` is the one line a security
+// manager reads to understand what shape of thing gets caught.
+export const REDACTION_TYPE_INFO: Record<string, { label: string; explanation: string }> = {
+  TYPE7_PASSWORD: {
+    label: "Encoded password (Cisco type 7)",
+    explanation: "A 'password 7' value. Type 7 is reversible encoding, not encryption — anyone can decode it, so it's treated as a plain-text password.",
+  },
+  ENABLE_SECRET_HASH: {
+    label: "Admin password hash",
+    explanation: "The hash from an 'enable secret' line. The hash type digit stays visible (compliance rules need it); only the hash itself is removed.",
+  },
+  SNMP_COMMUNITY: {
+    label: "SNMP community string",
+    explanation: "Works like a password for SNMP monitoring. Defaults like 'public'/'private' are left visible on purpose so they can still be flagged as non-compliant.",
+  },
+  PRE_SHARED_KEY: {
+    label: "VPN / IPsec pre-shared key",
+    explanation: "The shared key that authenticates a VPN tunnel.",
+  },
+  AAA_KEY: {
+    label: "RADIUS / TACACS+ shared secret",
+    explanation: "The secret a device uses to talk to its central login server.",
+  },
+  GENERIC_SECRET_FIELD: {
+    label: "Secret-looking value",
+    explanation: "Any 'password=', 'secret:', 'psk=' or 'shared_key=' style value, in CLI or JSON-style configs.",
+  },
+  XML_ELEMENT_SECRET: {
+    label: "Secret inside an XML element",
+    explanation: "A value inside an XML tag whose name contains password, secret, psk or shared_key (e.g. <password>…</password>).",
+  },
+};
+
+export function redactionLabel(type: string): string {
+  return REDACTION_TYPE_INFO[type]?.label ?? type;
+}

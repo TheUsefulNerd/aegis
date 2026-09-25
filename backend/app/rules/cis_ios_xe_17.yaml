@@ -43,6 +43,10 @@
 
 framework: CIS
 standard_version: "CIS Cisco IOS XE 17.x Benchmark v2.2.1"
+# A vendor-specific benchmark: only evaluated against devices fingerprinted
+# as one of these vendors. Files without this key (NIST, ISO) are
+# vendor-neutral and apply to every device.
+applies_to_vendors: [cisco_ios]
 rules:
   - id: CIS-1.2.2
     title: "Set 'transport input ssh' for 'line vty' connections"

@@ -207,13 +207,14 @@ export function KpiTile({
   icon: typeof Cpu;
   value: string | number;
   label: string;
-  color?: "indigo" | "emerald" | "amber" | "slate";
+  color?: "indigo" | "emerald" | "amber" | "slate" | "rose";
 }) {
   const tint = {
     indigo: "text-indigo-600",
     emerald: "text-emerald-600",
     amber: "text-amber-600",
     slate: "text-slate-500",
+    rose: "text-rose-600",
   }[color];
   return (
     <Panel className="p-4">
