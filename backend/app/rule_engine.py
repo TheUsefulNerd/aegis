@@ -60,6 +60,10 @@ def _eval_range(predicate: dict, fields: dict) -> EvalResult:
     value, present = _get(fields, predicate["field"])
     if not present:
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"]})
+    if isinstance(value, bool):
+        # `float(True)` is 1.0 - a boolean reaching a numeric check is a
+        # classification error upstream, not the number 1.
+        return EvalResult(NOT_EVALUATED, {"field": predicate["field"], "reason": "not numeric", "actual": value})
     try:
         num = float(value)
     except (TypeError, ValueError):
@@ -67,6 +71,11 @@ def _eval_range(predicate: dict, fields: dict) -> EvalResult:
     lo = predicate.get("min", float("-inf"))
     hi = predicate.get("max", float("inf"))
     ok = lo <= num <= hi
+    # `exclusive_min` for values where the bound itself means "off" - e.g.
+    # `exec-timeout 0` is "never time out", which must not satisfy "<= 10
+    # minutes".
+    if "exclusive_min" in predicate and num <= predicate["exclusive_min"]:
+        ok = False
     return EvalResult(PASS if ok else FAIL, {"field": predicate["field"], "actual": value})
 
 
@@ -138,22 +147,35 @@ def _eval_set_membership(predicate: dict, fields: dict) -> EvalResult:
 # (e.g. SONiC's flattened ACL_RULE table entries) is the deferred §3.5
 # cross-reference-linking work - out of scope for this predicate today.
 
-_CISCO_ACL_RE = re.compile(
-    r"access-list\s+\d+\s+(?P<action>permit|deny)\s+(?P<proto>\w+)\s+"
-    r"(?P<src>\S+(?:\s+\S+)?)\s+(?P<dst>\S+(?:\s+\S+)?)"
-    r"(?:\s+eq\s+(?P<port>\d+))?",
-    re.IGNORECASE,
-)
+# `[access-list N] permit|deny <proto> <src...> <dst...> [eq <port>]`. The
+# address specs are deliberately not parsed: an earlier regex tried to, and
+# `\S+(?:\s+\S+)?` for each address was ambiguous - for `permit tcp any any
+# eq 22` it read the source as "any any" and the destination as "eq 22", so
+# the port was silently never parsed whenever both addresses were `any`
+# (the most common shape there is). Only action, protocol and destination
+# port matter to the evaluator; the destination port is the LAST `eq`.
+_ACL_HEAD_RE = re.compile(r"\b(?P<action>permit|deny)\s+(?P<proto>\w+)\b(?P<rest>.*)$", re.IGNORECASE)
+_ACL_EQ_RE = re.compile(r"\beq\s+(\S+)", re.IGNORECASE)
+_NAMED_PORTS = {"telnet": 23, "ssh": 22, "www": 80, "http": 80, "https": 443, "ftp": 21, "smtp": 25, "snmp": 161}
 
 
 def _parse_acl_line(line: str) -> Optional[dict]:
-    m = _CISCO_ACL_RE.search(line)
+    if not isinstance(line, str):
+        return None
+    m = _ACL_HEAD_RE.search(line)
     if not m:
         return None
+    ports = _ACL_EQ_RE.findall(m.group("rest"))
+    port = None
+    if ports:
+        token = ports[-1].lower()
+        port = int(token) if token.isdigit() else _NAMED_PORTS.get(token)
+        if port is None:
+            return None  # a named port we don't know - don't guess its number
     return {
         "action": m.group("action").lower(),
         "protocol": m.group("proto").lower(),
-        "port": int(m.group("port")) if m.group("port") else None,
+        "port": port,
         "raw": line,
     }
 
@@ -171,7 +193,15 @@ def _eval_ordered_first_match(predicate: dict, fields: dict) -> EvalResult:
         if p is None:
             continue
         proto_matches = p["protocol"] in ("ip", match["protocol"])
-        port_matches = match.get("port") is None or p["port"] is None or p["port"] == match["port"]
+        if match.get("port") is None:
+            # The question is "what happens to ARBITRARY traffic of this
+            # protocol" (e.g. deny-by-default) - only a rule covering every
+            # port answers that. Counting a port-specific line here let
+            # `[deny tcp any any eq 23, permit ip any any]` PASS a
+            # deny-by-default check although the ACL ends in permit-all.
+            port_matches = p["port"] is None
+        else:
+            port_matches = p["port"] is None or p["port"] == match["port"]
         if proto_matches and port_matches:
             # First matching rule in sequence - its action decides this,
             # regardless of any later rule that also happens to match.

@@ -80,10 +80,14 @@ def _tier1_exact_match(db: Session, unit_text: str, vendor: str, tenant_id: str)
 def _similar_kb_entries(db: Session, unit_text: str, vendor: str, tenant_id: str, top_k: int = 5) -> list:
     """Supporting signal only (not a gate) - ranked candidates shown to the
     LLM prompt and to a Tier-3 human reviewer."""
+    # Same vendor only: a pfSense or SONiC pattern shown as "similar" to a
+    # Cisco line is noise at best and misleading context for the LLM at
+    # worst (lead-claude-task-tracker.md §9).
     entries = (
         db.query(KnowledgeBaseEntry)
         .filter(
             KnowledgeBaseEntry.tenant_id == tenant_id,
+            KnowledgeBaseEntry.vendor == vendor,
             KnowledgeBaseEntry.embedding_vector.isnot(None),
             KnowledgeBaseEntry.superseded_by.is_(None),
         )

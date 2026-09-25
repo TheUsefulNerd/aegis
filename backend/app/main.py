@@ -324,7 +324,7 @@ def list_frameworks(db: Session = Depends(get_db)):
 
 @app.post("/configs/{config_id}/evaluate")
 def evaluate_config(config_id: str, framework: str | None = None, db: Session = Depends(get_db)):
-    config = db.query(CanonicalConfig).get(config_id)
+    config = db.get(CanonicalConfig, config_id)
     if config is None:
         raise HTTPException(404, "config not found")
     return _run_evaluation(config, db, framework=framework)
@@ -334,10 +334,10 @@ def evaluate_config(config_id: str, framework: str | None = None, db: Session = 
 def download_report(
     config_id: str, framework: str | None = None, tz: str | None = None, db: Session = Depends(get_db)
 ):
-    config = db.query(CanonicalConfig).get(config_id)
+    config = db.get(CanonicalConfig, config_id)
     if config is None:
         raise HTTPException(404, "config not found")
-    device = db.query(Device).get(config.device_id)
+    device = db.get(Device, config.device_id)
 
     evaluation = _run_evaluation(config, db, framework=framework)
     pdf_bytes = pdf_report.generate(
@@ -407,11 +407,11 @@ def list_review_queue(status: str = "pending", db: Session = Depends(get_db)):
 
 @app.post("/review-queue/{item_id}/confirm")
 def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depends(get_db)):
-    item = db.query(ReviewQueueItem).get(item_id)
+    item = db.get(ReviewQueueItem, item_id)
     if item is None:
         raise HTTPException(404, "review queue item not found")
 
-    device = db.query(Device).get(item.device_id) if item.device_id else None
+    device = db.get(Device, item.device_id) if item.device_id else None
     vendor = device.vendor if device else "unknown"
     pattern = body.syntax_pattern or item.raw_unit
 
@@ -460,7 +460,7 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depend
 
 @app.post("/review-queue/{item_id}/reject")
 def reject_review_item(item_id: str, body: RejectMapping, db: Session = Depends(get_db)):
-    item = db.query(ReviewQueueItem).get(item_id)
+    item = db.get(ReviewQueueItem, item_id)
     if item is None:
         raise HTTPException(404, "review queue item not found")
     item.status = "rejected"
@@ -530,7 +530,7 @@ def list_configs(limit: int = 10, db: Session = Depends(get_db)):
     )
     out = []
     for config in rows:
-        device = db.query(Device).get(config.device_id)
+        device = db.get(Device, config.device_id)
         out.append({
             "config_id": config.id,
             "device_id": config.device_id,

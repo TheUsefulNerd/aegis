@@ -36,6 +36,22 @@ export const REDACTION_TYPE_INFO: Record<string, { label: string; explanation: s
     label: "Admin password hash",
     explanation: "The hash from an 'enable secret' line. The hash type digit stays visible (compliance rules need it); only the hash itself is removed.",
   },
+  USER_SECRET_HASH: {
+    label: "Local user password hash",
+    explanation: "The hash from a 'username … secret' line (or EOS 'aaa root secret'). The hash type stays visible; the hash itself is removed.",
+  },
+  CLI_PASSWORD: {
+    label: "Plain or weakly-encoded password",
+    explanation: "A password typed directly into the config — 'enable password', 'username … password 0', a line password, FTP or BGP neighbor passwords.",
+  },
+  SNMPV3_SECRET: {
+    label: "SNMPv3 auth/privacy password",
+    explanation: "The authentication or encryption passphrase of an SNMPv3 user.",
+  },
+  ROUTING_AUTH_KEY: {
+    label: "Routing protocol key",
+    explanation: "A key that authenticates routing neighbors (key-chain key-string, OSPF authentication/message-digest keys).",
+  },
   SNMP_COMMUNITY: {
     label: "SNMP community string",
     explanation: "Works like a password for SNMP monitoring. Defaults like 'public'/'private' are left visible on purpose so they can still be flagged as non-compliant.",

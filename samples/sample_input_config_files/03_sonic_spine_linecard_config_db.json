@@ -1,0 +1,162 @@
+{
+  "DEVICE_METADATA": {
+    "localhost": {
+      "hostname": "Linecard1",
+      "hwsku": "Force10-S6000",
+      "platform": "x86_64-kvm_x86_64-r0",
+      "type": "Spine",
+      "bgp_asn": "65100"
+    }
+  },
+  "MGMT_PORT": {
+    "eth0": {
+      "alias": "eth0",
+      "admin_status": "up"
+    }
+  },
+  "MGMT_INTERFACE": {
+    "eth0|fec0::ffff:afa:10/64": {
+      "gwaddr": "fec0::1"
+    },
+    "eth0|10.250.0.120/24": {
+      "gwaddr": "10.250.0.1"
+    }
+  },
+  "SNMP": {
+    "LOCATION": {
+      "Location": "public"
+    }
+  },
+  "SNMP_COMMUNITY": {
+    "public": {
+      "TYPE": "RO"
+    }
+  },
+  "SYSLOG_SERVER": {
+    "10.11.0.5": {},
+    "10.11.0.6": {}
+  },
+  "NTP_SERVER": {
+    "10.11.0.2": {},
+    "10.11.0.1": {}
+  },
+  "TACPLUS_SERVER": {
+    "10.0.0.8": {
+      "priority": "1",
+      "tcp_port": "49"
+    },
+    "10.0.0.9": {
+      "priority": "1",
+      "tcp_port": "49"
+    }
+  },
+  "LOOPBACK_INTERFACE": {
+    "Loopback0": {},
+    "Loopback0|FC00:10::1/128": {},
+    "Loopback0|10.1.0.1/32": {}
+  },
+  "PORT": {
+    "Ethernet0": {
+      "alias": "fortyGigE0/0",
+      "description": "ARISTA01T3:Ethernet1",
+      "speed": "40000",
+      "mtu": "9100",
+      "admin_status": "up"
+    },
+    "Ethernet8": {
+      "alias": "fortyGigE0/8",
+      "description": "ARISTA03T3:Ethernet1",
+      "speed": "40000",
+      "mtu": "9100",
+      "admin_status": "up"
+    }
+  },
+  "PORTCHANNEL": {
+    "PortChannel0002": {
+      "members": [
+        "Ethernet0",
+        "Ethernet4"
+      ],
+      "min_links": "2",
+      "mtu": "9100",
+      "admin_status": "up"
+    }
+  },
+  "INTERFACE": {
+    "Ethernet8": {},
+    "Ethernet8|10.0.0.4/31": {},
+    "Ethernet8|FC00::9/126": {}
+  },
+  "BGP_NEIGHBOR": {
+    "10.0.0.1": {
+      "name": "ARISTA01T3",
+      "local_addr": "10.0.0.0",
+      "rrclient": "0",
+      "holdtime": "10",
+      "keepalive": "3",
+      "nhopself": "0",
+      "asn": "65200",
+      "admin_status": "up"
+    }
+  },
+  "ACL_TABLE": {
+    "SNMP_ACL": {
+      "policy_desc": "SNMP_ACL",
+      "type": "CTRLPLANE",
+      "stage": "ingress",
+      "services": [
+        "SNMP"
+      ]
+    },
+    "SSH_ONLY": {
+      "policy_desc": "SSH_ONLY",
+      "type": "CTRLPLANE",
+      "stage": "ingress",
+      "services": [
+        "SSH"
+      ]
+    },
+    "DATAACL": {
+      "policy_desc": "DATAACL",
+      "stage": "ingress",
+      "ports": [
+        "PortChannel0002",
+        "Ethernet8"
+      ],
+      "type": "L3"
+    }
+  },
+  "ACL_RULE": {
+    "DATAACL|RULE_1": {
+      "PRIORITY": "9999",
+      "PACKET_ACTION": "FORWARD",
+      "IP_TYPE": "IPV4ANY"
+    },
+    "DATAACL|RULE_2": {
+      "PRIORITY": "9998",
+      "PACKET_ACTION": "DROP",
+      "IP_TYPE": "IPV4",
+      "IP_PROTOCOL": "6",
+      "L4_DST_PORT": "23"
+    }
+  },
+  "RESTAPI": {
+    "config": {
+      "client_auth": "true",
+      "allow_insecure": "false",
+      "log_level": "trace"
+    }
+  },
+  "TELEMETRY": {
+    "gnmi": {
+      "client_auth": "true",
+      "port": "50051",
+      "log_level": "2"
+    }
+  },
+  "VERSIONS": {
+    "DATABASE": {
+      "VERSION": "version_2_0_0"
+    }
+  }
+}

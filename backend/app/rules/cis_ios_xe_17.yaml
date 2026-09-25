@@ -117,7 +117,8 @@ rules:
     title: "Set 'exec-timeout' to less than or equal to 10 minutes 'line vty'"
     control_family: AC
     check_type: range
-    predicate: { field: AC.session_idle_timeout_minutes, max: 10 }
+    # exclusive_min 0: `exec-timeout 0 0` disables the timeout entirely.
+    predicate: { field: AC.session_idle_timeout_minutes, max: 10, exclusive_min: 0 }
     severity: CAT_III
     remediation_template_ref: CIS-1.2.8
     # PDF: "Automated", Level 1.
