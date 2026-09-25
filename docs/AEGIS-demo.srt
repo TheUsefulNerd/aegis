@@ -1,116 +1,112 @@
 1
-00:00:00,500 --> 00:00:03,734
-AEGIS audits network devices from any vendor.
+00:00:00,500 --> 00:00:05,398
+Meet AEGIS. A compliance auditor for network devices, from any vendor.
 
 2
-00:00:03,734 --> 00:00:07,183
+00:00:05,698 --> 00:00:09,974
 The AI suggests, humans decide, and rules judge.
 
 3
-00:00:08,196 --> 00:00:14,925
-Three devices are already analyzed: pfSense, SONiC, and an Arista router AEGIS has never seen.
+00:00:10,955 --> 00:00:15,703
+Three devices are already here: a pfSense firewall, a SONiC switch,
 
 4
-00:00:14,912 --> 00:00:16,305
-Now a Cisco router.
+00:00:15,703 --> 00:00:18,578
+and an Arista router AEGIS has never seen before.
 
 5
-00:00:16,305 --> 00:00:20,190
-One unified parser handles any vendor and any format.
+00:00:18,928 --> 00:00:20,846
+Now, let's bring in a Cisco router.
 
 6
-00:00:20,540 --> 00:00:24,865
-Secrets are redacted and injection text is quarantined first.
+00:00:21,046 --> 00:00:24,730
+One unified parser handles any vendor, and any format.
 
 7
-00:00:24,865 --> 00:00:29,899
-Known lines match instantly, the rest go to the AI in parallel batches.
+00:00:25,080 --> 00:00:28,283
+Before anything else runs, secrets are redacted,
 
 8
-00:00:29,899 --> 00:00:31,388
-Seconds, not minutes.
+00:00:28,333 --> 00:00:31,895
+and any text that tries to talk to the AI is quarantined.
 
 9
-00:00:31,491 --> 00:00:36,230
-Six secrets were hidden before any AI saw the file, and they are never stored.
+00:00:32,195 --> 00:00:36,773
+Known lines match instantly; the rest go to the AI, in parallel batches.
 
 10
-00:00:36,544 --> 00:00:39,413
-Everything maps onto one vendor-neutral model.
+00:00:36,973 --> 00:00:38,685
+Seconds, not minutes.
 
 11
-00:00:39,726 --> 00:00:43,378
-Verdicts come only from thirty-nine cited rules.
+00:00:39,035 --> 00:00:43,756
+Six secrets, hidden before any AI saw the file. And never stored.
 
 12
-00:00:43,378 --> 00:00:44,975
-The AI plays no part.
+00:00:44,106 --> 00:00:46,663
+Everything maps onto one vendor-neutral model.
 
 13
-00:00:45,279 --> 00:00:47,732
-Each finding shows how it was decided.
+00:00:47,013 --> 00:00:52,449
+Now, the verdict. Pass or fail comes only from thirty-nine cited rules.
 
 14
-00:00:47,732 --> 00:00:52,122
-A setting the config never mentions is unknown, never a silent pass.
+00:00:52,599 --> 00:00:54,498
+The AI plays no part here.
 
 15
-00:00:52,472 --> 00:00:54,634
-Unsure lines go to a human.
+00:00:54,848 --> 00:00:59,530
+Every finding shows how it was decided. And if the config never mentions a setting,
 
 16
-00:00:54,634 --> 00:00:57,436
-Here is an undocumented policy tag.
+00:00:59,530 --> 00:01:02,695
+it's reported as unknown. Never a silent pass.
 
 17
-00:00:57,786 --> 00:01:01,730
-The reviewer maps it once: logging enabled, with a note.
+00:01:03,045 --> 00:01:08,495
+Anything the AI is unsure of goes to a human. Like this undocumented policy tag.
 
 18
-00:01:03,702 --> 00:01:07,825
-After an explicit check, it becomes a permanent pattern.
+00:01:08,845 --> 00:01:13,123
+The reviewer maps it once: logging enabled, with a note for the auditor.
 
 19
-00:01:07,825 --> 00:01:08,856
-No retraining.
+00:01:13,827 --> 00:01:19,654
+One explicit check, and it becomes a permanent pattern. No retraining. No redeploy.
 
 20
-00:01:09,206 --> 00:01:12,080
-Now a misconfigured router with the same line.
+00:01:20,004 --> 00:01:23,397
+Next, a misconfigured router, with the same line.
 
 21
-00:01:14,582 --> 00:01:18,166
-One interface description tells the AI to answer pass.
+00:01:24,531 --> 00:01:28,903
+But this one hides an attack: a description telling the AI to answer pass.
 
 22
-00:01:19,291 --> 00:01:22,350
-The sanity gate blocks it before any AI call.
+00:01:29,253 --> 00:01:32,344
+The sanity gate blocks it, before any AI call.
 
 23
-00:01:26,662 --> 00:01:30,800
-The taught line is now recognized instantly, so logging passes.
+00:01:32,694 --> 00:01:36,893
+The line we taught is now recognized instantly, so logging passes.
 
 24
-00:01:30,800 --> 00:01:34,807
-And the access list permits everything before denying telnet.
+00:01:37,293 --> 00:01:41,716
+And look at this access list: it permits everything before denying telnet.
 
 25
-00:01:34,807 --> 00:01:37,500
-AEGIS flags that dead rule, with the fix.
+00:01:41,916 --> 00:01:45,388
+AEGIS catches that dead rule, and gives the exact fix.
 
 26
-00:01:37,633 --> 00:01:40,222
-Every device gets a PDF report.
+00:01:46,665 --> 00:01:49,012
+Every device gets a clear PDF report.
 
 27
-00:01:40,449 --> 00:01:43,313
-Insights show how every finding was decided.
+00:01:49,542 --> 00:01:52,186
+And Insights show how every finding was decided.
 
 28
-00:01:43,513 --> 00:01:45,449
-AEGIS supports the auditor.
-
-29
-00:01:45,449 --> 00:01:47,457
-It never takes the decision.
+00:01:52,886 --> 00:01:56,616
+AEGIS supports the auditor. It never takes the decision.
 
