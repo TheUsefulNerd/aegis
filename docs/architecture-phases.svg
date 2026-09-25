@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 458" font-family="Segoe UI, Calibri, Arial, sans-serif">
-  <!-- AEGIS pipeline as built, in six labelled phases (2026-09-25). Laid out
-       for the idea-PPT "Technical Approach" slide: the top-right corner is
-       left empty for the slide's TECH STACK box, and the bottom 20 units for
-       its link line. -->
+  <!-- AEGIS pipeline as built, in six labelled phases, with the trust model
+       (2026-09-25). Same layout as architecture-slide.svg (idea PPT), with
+       the corner that slide keeps free for its TECH STACK box filled in. -->
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#374151"/></marker>
     <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C0504D"/></marker>
@@ -91,4 +90,14 @@
   <rect x="830" y="364" width="156" height="64" rx="8" fill="#9BBB59"/>
   <text class="t" x="908" y="388">Evidence trail</text><text class="s" x="908" y="404">source line + how decided:</text><text class="s" x="908" y="418">instant · AI · human</text>
   <path class="e" d="M634,396 H662"/><path class="e" d="M816,396 H828"/>
+
+  <!-- trust model -->
+  <rect x="594" y="4" width="402" height="176" rx="12" fill="#0F172A"/>
+  <text x="612" y="30" fill="#FFFFFF" font-size="15" font-weight="800">The trust model</text>
+  <text x="612" y="58" fill="#C7D2FE" font-size="12"><tspan font-weight="700" fill="#FFFFFF">AI suggests.</tspan> It proposes a field and value; schema</text>
+  <text x="612" y="74" fill="#C7D2FE" font-size="12">and type checks reject anything invented.</text>
+  <text x="612" y="100" fill="#C7D2FE" font-size="12"><tspan font-weight="700" fill="#BEF264">Humans decide.</tspan> Every unsure or blocked line goes</text>
+  <text x="612" y="116" fill="#C7D2FE" font-size="12">to a reviewer; one decision is reused everywhere.</text>
+  <text x="612" y="142" fill="#C7D2FE" font-size="12"><tspan font-weight="700" fill="#93C5FD">Rules judge.</tspan> PASS / FAIL comes only from cited,</text>
+  <text x="612" y="158" fill="#C7D2FE" font-size="12">deterministic rules. Nothing unseen is a silent PASS.</text>
 </svg>

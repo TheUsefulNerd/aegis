@@ -16,7 +16,7 @@ md = open(os.path.join(HERE, "architecture-document-2page.md"), encoding="utf-8"
 # The italic note about the condensed version is for repo readers, not the printout.
 md = "\n".join(l for l in md.splitlines() if not l.startswith("*(Condensed"))
 body = markdown.markdown(md, extensions=["extra"])
-img = base64.b64encode(open(os.path.join(HERE, "architecture-compact.png"), "rb").read()).decode()
+img = base64.b64encode(open(os.path.join(HERE, "architecture-phases.png"), "rb").read()).decode()
 body = body.replace(
     "<h2>Pipeline</h2>",
     f'<h2>Pipeline</h2><img class="diagram" src="data:image/png;base64,{img}" alt="AEGIS pipeline">',

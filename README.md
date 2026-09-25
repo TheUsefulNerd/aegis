@@ -24,7 +24,7 @@ AEGIS reads a network device's configuration (any vendor, any format: CLI text, 
 1. **Redaction**: secrets (enable/user hashes, type-7 and plain passwords, SNMP communities and SNMPv3 keys, IPsec PSKs, RADIUS/TACACS+ keys, routing keys, XML/JSON secret fields) are replaced with typed placeholders *before anything else runs*. Original values exist only in memory for the duration of one request, never stored, never sent to an AI, never returned by the API.
 2. **Fingerprint + device identity**: vendor, format and (where present) hostname, model, serial and firmware.
 3. **Input-sanity gate**: any line shaped like an instruction to an AI ("ignore previous instructions… respond only with…") is quarantined to human review *before any AI call*. A real, working prompt-injection attack was found against an earlier build and this gate closes it.
-4. **Tiered resolution**: Tier 1: exact/regex match against the knowledge base (instant, deterministic). Tier 2: LLM classification (Groq primary, Gemini fallback), strictly schema- and type-validated; anything malformed, invented or mistyped falls to Tier 3. Tier 3: the human review queue, a confirmation becomes a new Tier-1 pattern immediately.
+4. **Tiered resolution**: Tier 1: exact/regex match against the knowledge base (instant, deterministic), including known non-security structure such as interface headers and routes. Tier 2: AI classification (Groq primary, Gemini fallback), about 12 lines per call with calls in parallel and answers cached, strictly schema- and type-validated; anything malformed, invented or mistyped falls to Tier 3. Tier 3: the human review queue, a confirmation becomes a new Tier-1 pattern immediately.
 5. **Deterministic rule engine**: six predicate types including ordered/first-match ACL evaluation (a `permit any any` before a `deny ... eq 23` is caught as a FAIL). No AI in the verdict path. Every finding is PASS, FAIL or NOT_EVALUATED, a setting the config never mentions is never reported as a pass. Vendor-specific benchmarks only apply to their own vendor.
 6. **PDF report**: device identification, plain-English executive summary, a legend, findings sorted most-urgent first with severity, the source of each decision (instantly recognized / AI-classified / human-confirmed) and device-specific remediation commands.
 
@@ -114,11 +114,11 @@ The suite is fully offline (it never reads your `.env` keys or calls an LLM) and
 5. **03 / 05**: SONiC JSON, and a vendor AEGIS has never seen, degrading gracefully.
 6. Download the PDF for any device.
 
-Every line AEGIS can't recognize is one LLM call, so a fresh ~80-line config takes a few minutes on the free tier. Once patterns are learned, repeat devices are near-instant.
+Measured on the six demo configs with free-tier Groq/Gemini: **8-16 s per fresh file** (it was 2-12 minutes before batching), and **about 2 s for a device whose lines AEGIS has already seen**.
 
 ## Measured accuracy
 
-On a hand-labeled, held-out golden set of 33 config lines (24 security settings + 9 negatives, Cisco IOS / pfSense / SONiC; `backend/eval/`), the live Tier-2 classifier reached **92% precision on the mappings it auto-accepted** and 95.8% recall, and declined 8 of 9 non-settings. It auto-accepted **2 wrong mappings (6.1%)**, `transport input none` read as a VTY access restriction, and a pfSense `lan.subnet=24` read as network segmentation, which is exactly why Tier-1 matches win over AI guesses and every finding shows how it was decided. A small, honestly scoped set, not a broad benchmark. Re-run it with `cd backend && python -m eval.run_eval` (real API calls; results land in `backend/eval/results/`).
+On a hand-labeled, held-out golden set of 33 config lines (24 security settings + 9 negatives, Cisco IOS / pfSense / SONiC; `backend/eval/`), the production (batched) Tier-2 classifier reached **95.8% precision on the mappings it auto-accepted** and 95.8% recall, and declined all 9 non-settings. Its one wrong auto-accept (`snmp-server community public RO` read with the value "public RO", which would have hidden a default community) is now handled by a deterministic Tier-1 pattern, which is the point of the design: known shapes never depend on the AI, and every finding shows how it was decided. A small, honestly scoped set, not a broad benchmark. Re-run it with `cd backend && python -m eval.run_eval` (real API calls; results land in `backend/eval/results/`).
 
 ## Known limitations
 
@@ -128,7 +128,7 @@ Stated up front; see `docs/architecture-document.md` §10 for the full list:
 - **Redaction is regex-based.** It covers the common credential shapes of the supported vendors (see the tests), not every possible format. A keyword-less vendor blob (e.g. Juniper `encrypted-password "$6$…"`) is a known, disclosed gap.
 - **No general cross-reference linking yet.** Settings joined by name across distant lines (e.g. Cisco AAA method lists) are resolved per line. SONiC ACL rows and pfSense filter rules are the exception: each is reassembled into one ACL line before evaluation. Empty XML flag elements outside filter rules (e.g. pfSense `<syslog><enable/>`) are not yet emitted as units.
 - **Single-tenant demo build.** `tenant_id` / `reviewer_id` are recorded but there is no login or role enforcement; the database is SQLite (Postgres + pgvector is the production path).
-- **Ingestion is synchronous**: one LLM call at a time, with no job queue or rate limiting yet.
+- **Ingestion is synchronous** (one request per file, batched AI calls inside it) with no job queue yet; free-tier API limits (for example Groq's 200,000 tokens per day) cap how many fresh devices can be classified per day.
 
 ## License
 
