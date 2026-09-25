@@ -69,3 +69,14 @@ def test_similar_entries_come_from_the_same_vendor_only(db):
     similar = resolve._similar_kb_entries(db, "anything", "cisco_ios", "default")
     patterns = {s["syntax_pattern"] for s in similar}
     assert "cisco-pattern" in patterns and "pf-only-pattern" not in patterns
+
+
+def test_regex_seed_resolves_any_numbered_acl_line_with_the_line_as_value(db):
+    r = resolve.resolve_unit(db, "access-list 150 permit tcp any host 192.0.2.5 eq 443", "cisco_ios")
+    assert r.tier == "tier1" and r.canonical_field == "AC.acl_rules"
+    assert r.value == "access-list 150 permit tcp any host 192.0.2.5 eq 443"
+
+
+def test_reassembled_pfsense_rule_is_tier1(db):
+    r = resolve.resolve_unit(db, "access-list pfsense-wan deny tcp any wanip eq 23", "pfsense")
+    assert r.tier == "tier1" and r.value == "access-list pfsense-wan deny tcp any wanip eq 23"

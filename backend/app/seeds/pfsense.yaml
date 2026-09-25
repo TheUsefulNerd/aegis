@@ -11,3 +11,11 @@ entries:
   - syntax_pattern: "pfsense.syslog.remoteserver=10.0.0.5"
     canonical_field: AU.logging_host
     value: "10.0.0.5"
+
+  # pfSense filter rules, reassembled into one ACL-syntax line per rule by
+  # units.py (`access-list pfsense-<iface> <permit|deny> <proto> <src> <dst>
+  # [eq <port>]`), in rule order - resolved deterministically, never by
+  # classifying a rule's fields one at a time.
+  - syntax_pattern: '^access-list pfsense-\S+ (permit|deny) '
+    pattern_type: regex
+    canonical_field: AC.acl_rules

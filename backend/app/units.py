@@ -105,6 +105,60 @@ def _flatten_json(obj, prefix: str = "") -> list:
     return units
 
 
+_PF_ACTION = {"pass": "permit", "block": "deny", "reject": "deny"}
+
+
+def _pf_addr(elem) -> str:
+    """pfSense <source>/<destination>: <any/> (an EMPTY element - generic
+    flattening drops it entirely), <network>lan</network>, or
+    <address>198.51.100.7</address>, optionally negated with <not/>."""
+    if elem is None:
+        return "any"
+    neg = "not-" if elem.find("not") is not None else ""
+    if elem.find("any") is not None:
+        return neg + "any"
+    for tag in ("address", "network"):
+        v = (elem.findtext(tag) or "").strip()
+        if v:
+            return neg + v.replace(" ", "")
+    return neg + "any"
+
+
+def _pfsense_rule_units(rule, path: str) -> list:
+    """Reassemble one pfSense filter rule into ONE ACL-syntax line (the same
+    approach as SONiC's ACL_RULE table above). Flattened generically, a rule
+    becomes sibling units (`type=block`, `destination.port=23`, ...) that are
+    each classified alone - found live twice: a rule that BLOCKS telnet was
+    classified as telnet ENABLED from its `destination.port=23` unit, because
+    the `type=block` sibling wasn't visible (architecture-document.md §3.5).
+    Rule order is preserved: pfSense evaluates filter rules first-match too.
+    The description is still emitted as its own unit so the input-sanity gate
+    scans it (it's attacker-controllable free text)."""
+    units = []
+    descr = (rule.findtext("descr") or "").strip()
+    if descr:
+        units.append(f"{path}.descr={descr}")
+    action = _PF_ACTION.get((rule.findtext("type") or "").strip().lower())
+    if action is None or rule.find("disabled") is not None:
+        return units  # floating "match" rules and disabled rules decide nothing
+    proto = (rule.findtext("protocol") or "").strip().lower() or "ip"
+    if proto in ("any", "tcp/udp"):
+        proto = "ip" if proto == "any" else "tcp"
+    iface = (rule.findtext("interface") or "any").strip()
+    dst = rule.find("destination")
+    line = f"access-list pfsense-{iface} {action} {proto} {_pf_addr(rule.find('source'))} {_pf_addr(dst)}"
+    port = (dst.findtext("port") or "").strip() if dst is not None else ""
+    if port.isdigit():
+        line += f" eq {port}"
+    elif port:
+        a, _, b = port.replace("-", ":").partition(":")
+        line += f" range {a} {b or a}"
+    if rule.find("log") is not None:
+        line += " log"
+    units.append(line)
+    return units
+
+
 def _flatten_xml(raw_text: str) -> list:
     """Sibling elements sharing a tag (e.g. two <rule> entries under one
     <filter>) get an index suffix, same convention as JSON list flattening -
@@ -122,6 +176,15 @@ def _flatten_xml(raw_text: str) -> list:
         text = (elem.text or "").strip()
         if text and len(list(elem)) == 0:
             units.append(f"{path}={text}")
+
+        if path == "pfsense.filter":
+            rules = [c for c in elem if c.tag == "rule"]
+            for idx, rule in enumerate(rules):
+                units.extend(_pfsense_rule_units(rule, f"{path}.rule[{idx}]"))
+            for child in elem:
+                if child.tag != "rule":
+                    walk(child, f"{path}.{child.tag}")
+            return
 
         seen: dict = {}
         for child in elem:

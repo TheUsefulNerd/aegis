@@ -165,6 +165,10 @@ def _parse_acl_line(line: str) -> Optional[dict]:
     m = _ACL_HEAD_RE.search(line)
     if not m:
         return None
+    if re.search(r"\brange\s", m.group("rest")):
+        # A port range isn't modeled - skip the line rather than misread it
+        # as covering every port (which would change a first-match verdict).
+        return None
     ports = _ACL_EQ_RE.findall(m.group("rest"))
     port = None
     if ports:

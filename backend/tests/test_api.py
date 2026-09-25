@@ -141,3 +141,22 @@ def test_bulk_dismiss_only_touches_ai_not_security_items(client, monkeypatch):
     assert len(left) == len(queue) - unknown
     assert any(i["flag_type"] == "sanity_gate" for i in left)
     assert any("orgpolicy" in i["raw_unit"] for i in left)
+
+
+def test_ai_guess_never_overwrites_a_deterministic_value(client, monkeypatch):
+    # Real bug: Tier-1 `enable secret 9` -> secret_type_9 was overwritten by
+    # the AI's reading of a later `username ... secret 9` line.
+    from app import llm_client
+    from app.llm_client import LLMCandidate
+
+    def fake(unit, *a, **k):
+        if unit.startswith("username"):
+            return LLMCandidate("AC.privileged_password_type", "secret", 0.9, "r", "test", "test")
+        return None
+    monkeypatch.setattr(llm_client, "classify", fake)
+
+    body = _ingest(client, "01_cisco_ios_branch_router_hardened.txt")
+    assert body["fields"]["AC.privileged_password_type"] == "secret_type_9"
+    ev = client.post(f"/configs/{body['config_id']}/evaluate?framework=CIS").json()
+    cis_141 = next(f for f in ev["findings"] if f["rule_id"] == "CIS-1.4.1")
+    assert cis_141["result"] == "PASS" and cis_141["confidence_tier"] == "tier1"

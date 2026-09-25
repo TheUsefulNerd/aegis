@@ -22,19 +22,23 @@ def load_seed_kb(db: Session, tenant_id: str = "default") -> int:
             doc = yaml.safe_load(f)
         vendor = doc["vendor"]
         for e in doc["entries"]:
+            # "regex" entries match a whole family of lines deterministically
+            # (e.g. every numbered ACL line); `value` may be omitted for a
+            # list field, meaning "the matched line itself" (resolve.py).
+            pattern_type = e.get("pattern_type", "exact")
             existing = (
                 db.query(KnowledgeBaseEntry)
                 .filter(
                     KnowledgeBaseEntry.tenant_id == tenant_id,
                     KnowledgeBaseEntry.vendor == vendor,
-                    KnowledgeBaseEntry.pattern_type == "exact",
+                    KnowledgeBaseEntry.pattern_type == pattern_type,
                     KnowledgeBaseEntry.syntax_pattern == e["syntax_pattern"],
                 )
                 .first()
             )
             fields = dict(
                 canonical_field=e["canonical_field"],
-                value=e["value"],
+                value=e.get("value"),
                 confidence=1.0,
             )
             if existing:
@@ -45,7 +49,7 @@ def load_seed_kb(db: Session, tenant_id: str = "default") -> int:
                     KnowledgeBaseEntry(
                         tenant_id=tenant_id,
                         vendor=vendor,
-                        pattern_type="exact",
+                        pattern_type=pattern_type,
                         syntax_pattern=e["syntax_pattern"],
                         source="tier1_seed",
                         **fields,

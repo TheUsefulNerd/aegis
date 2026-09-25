@@ -11,7 +11,7 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 from . import llm_client
-from .canonical_schema import is_valid_field
+from .canonical_schema import CANONICAL_FIELDS, is_valid_field
 from .models import KnowledgeBaseEntry, ReviewQueueItem
 
 _embedding_model = None
@@ -121,7 +121,11 @@ def resolve_unit(
         return ResolveResult(
             tier="tier1",
             canonical_field=hit.canonical_field,
-            value=hit.value if hit.value is not None else True,
+            # A regex entry for a list field (e.g. "any numbered ACL line")
+            # carries no fixed value - the matched line IS the value.
+            value=hit.value if hit.value is not None else (
+                unit_text if CANONICAL_FIELDS.get(hit.canonical_field) == "list" else True
+            ),
             kb_entry_id=hit.id,
             kb_entry_version=hit.version,
             confidence=1.0,

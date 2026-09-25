@@ -13,11 +13,11 @@ DEMO = "sample_input_config_files"
 # (file parts, vendor, unit count, redaction types that must fire)
 CASES = [
     (("cisco_ios_sample.txt",), "cisco_ios", 12, {"ENABLE_SECRET_HASH", "SNMP_COMMUNITY"}),
-    (("pfsense_config_sample.xml",), "pfsense", 11, set()),
+    (("pfsense_config_sample.xml",), "pfsense", 7, set()),
     (("sonic_config_db_sample.json",), "sonic", 7, set()),
     ((DEMO, "01_cisco_ios_branch_router_hardened.txt"), "cisco_ios", 81,
      {"ENABLE_SECRET_HASH", "USER_SECRET_HASH", "TYPE7_PASSWORD", "SNMP_COMMUNITY", "PRE_SHARED_KEY", "AAA_KEY"}),
-    ((DEMO, "02_pfsense_hq_firewall.xml"), "pfsense", 67, {"XML_ELEMENT_SECRET", "GENERIC_SECRET_FIELD"}),
+    ((DEMO, "02_pfsense_hq_firewall.xml"), "pfsense", 57, {"XML_ELEMENT_SECRET", "GENERIC_SECRET_FIELD"}),
     ((DEMO, "03_sonic_spine_linecard_config_db.json"), "sonic", 70, set()),
     ((DEMO, "04_cisco_csr1000v_edge_misconfigured.txt"), "cisco_ios", 55, {"CLI_PASSWORD"}),
     ((DEMO, "05_arista_veos_unseen_vendor.txt"), "unknown", 18, {"USER_SECRET_HASH"}),
@@ -61,3 +61,30 @@ def test_novel_teach_once_line_is_in_the_demo_files():
 def test_fingerprint_does_not_call_every_xml_pfsense():
     fp = fingerprint.fingerprint('<?xml version="1.0"?><configuration><system/></configuration>')
     assert fp["vendor"] == "unknown_xml"
+
+
+def test_pfsense_filter_rules_are_reassembled_in_order():
+    # One ACL-syntax line per rule, so "block telnet" is never classified
+    # from its `destination.port=23` field alone (architecture §3.5).
+    xml = """<?xml version="1.0"?><pfsense><filter>
+      <rule><type>block</type><protocol>tcp</protocol><interface>wan</interface><descr>no telnet</descr>
+            <source><any/></source><destination><network>wanip</network><port>23</port></destination><log/></rule>
+      <rule><type>pass</type><interface>lan</interface><source><network>lan</network></source><destination><any/></destination></rule>
+      <rule><type>pass</type><disabled/><source><any/></source><destination><any/></destination></rule>
+      <rule><type>pass</type><protocol>tcp</protocol><source><address>192.0.2.9</address></source>
+            <destination><any/><port>1000:2000</port></destination></rule>
+    </filter></pfsense>"""
+    assert units.split_into_units(xml, "xml") == [
+        "pfsense.filter.rule[0].descr=no telnet",
+        "access-list pfsense-wan deny tcp any wanip eq 23 log",
+        "access-list pfsense-lan permit ip lan any",
+        "access-list pfsense-any permit tcp 192.0.2.9 any range 1000 2000",
+    ]
+
+
+def test_reassembled_pfsense_rules_evaluate_first_match():
+    from app.rule_engine import FAIL, PASS, evaluate
+    telnet = {"field": "AC.acl_rules", "match": {"protocol": "tcp", "port": 23}, "want_action_if_matched": "deny"}
+    acl = ["access-list pfsense-wan deny tcp any wanip eq 23", "access-list pfsense-lan permit ip lan any"]
+    assert evaluate("ordered-first-match", telnet, {"AC.acl_rules": acl}).result == PASS
+    assert evaluate("ordered-first-match", telnet, {"AC.acl_rules": acl[::-1]}).result == FAIL

@@ -58,3 +58,11 @@ entries:
   - syntax_pattern: "access-list 101 permit ip any any"
     canonical_field: AC.acl_rules
     value: "access-list 101 permit ip any any"
+
+  # Every numbered extended-ACL line, deterministically (regex, no fixed
+  # value: the matched line itself is appended to AC.acl_rules, in config
+  # order - the ordered first-match rules need the full list). The two exact
+  # entries above predate regex seeding and stay for backwards compatibility.
+  - syntax_pattern: '^access-list \d+ (permit|deny) '
+    pattern_type: regex
+    canonical_field: AC.acl_rules

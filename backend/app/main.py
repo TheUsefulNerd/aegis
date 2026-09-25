@@ -157,6 +157,15 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
                         "source_unit": unit_text,
                     })
                 else:
+                    # A deterministic Tier-1 value is never overwritten by a
+                    # later Tier-2 guess for the same scalar field. Found on
+                    # a real config: `enable secret 9` (Tier 1 ->
+                    # secret_type_9) was overwritten by the AI's reading of
+                    # `username ... secret 9` as "secret", turning a correct
+                    # CIS-1.4.1 PASS into a FAIL.
+                    prior = provenance.get(result.canonical_field)
+                    if prior and prior.get("confidence_tier") == "tier1" and result.tier != "tier1":
+                        continue
                     fields[result.canonical_field] = value
                     provenance[result.canonical_field] = {
                         "kb_entry_id": result.kb_entry_id,
