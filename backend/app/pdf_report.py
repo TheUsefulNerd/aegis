@@ -28,7 +28,7 @@ _TIER_LABELS = {
     "tier1": "Instantly recognized",
     "tier2_accepted": "AI-classified",
     "tier3_human_confirmed": "Human-confirmed",
-    None: "—",
+    None: "-",
 }
 _NAVY = colors.HexColor("#0f172a")
 _NAVY_LIGHT = colors.HexColor("#1e293b")
@@ -161,7 +161,7 @@ def generate(
     stats_table = Table(
         [[
             stat_cell(counts["PASS"], "PASSED", _RESULT_COLORS["PASS"]),
-            stat_cell(counts["FAIL"], "FAILED &mdash; NEEDS FIXING", _RESULT_COLORS["FAIL"]),
+            stat_cell(counts["FAIL"], "FAILED, NEEDS FIXING", _RESULT_COLORS["FAIL"]),
             stat_cell(counts["NOT_EVALUATED"], "COULD NOT BE EVALUATED", _RESULT_COLORS["NOT_EVALUATED"]),
         ]],
         colWidths=[2.17 * inch] * 3, rowHeights=[0.65 * inch],
@@ -203,7 +203,7 @@ def generate(
             # Remediation cell's text whenever that row's Control text wrapped
             # to 3+ lines and made the row tall enough for the overflow to
             # become visible). Same fix as Control/Remediation - wrap it too.
-            Paragraph(_escape(_TIER_LABELS.get(f.get("confidence_tier"), "—")), cell_style),
+            Paragraph(_escape(_TIER_LABELS.get(f.get("confidence_tier"), "-")), cell_style),
             Paragraph(_escape(rem).replace("\n", "<br/>"), cell_style),
         ])
 
@@ -296,11 +296,11 @@ def _legend_table(styles) -> Table:
          Paragraph("The device's setting was found and does / does not meet the rule.", cell)],
         [Paragraph("<b>Unknown</b>", cell),
          Paragraph("The setting this rule checks was never mentioned in the configuration. This is "
-                   "<b>not</b> a failure and <b>not</b> a guess &mdash; AEGIS reports what it cannot see "
+                   "<b>not</b> a failure and <b>not</b> a guess. AEGIS reports what it cannot see "
                    "instead of assuming it is compliant.", cell)],
         [Paragraph("<b>Severity</b>", cell),
-         Paragraph("CAT_I = high (fix first), CAT_II = medium, CAT_III = low &mdash; DISA STIG's "
-                   "category scale, applied to every framework.", cell)],
+         Paragraph("CAT_I = high (fix first), CAT_II = medium, CAT_III = low (DISA STIG's "
+                   "category scale, applied to every framework).", cell)],
         [Paragraph("<b>Source</b>", cell),
          Paragraph("How the setting was identified: <b>Instantly recognized</b> (matched a known pattern, no AI "
                    "involved), <b>AI-classified</b> (identified by an AI model, schema-validated), or "
@@ -373,10 +373,10 @@ def _header_footer(canvas, doc):
     # Footer
     canvas.setFillColor(_MUTED)
     canvas.setFont("Helvetica", 8)
-    canvas.drawString(0.7 * inch, 0.42 * inch, "AEGIS — Automated Evaluation & Governance for Infrastructure Security")
+    canvas.drawString(0.7 * inch, 0.42 * inch, "AEGIS: Automated Evaluation & Governance for Infrastructure Security")
     canvas.drawRightString(PAGE_W - 0.7 * inch, 0.42 * inch, f"Page {doc.page}")
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(0.7 * inch, 0.28 * inch, f"Report ID {_current_report_meta['report_id']} — verify remediation in a non-production environment before applying")
+    canvas.drawString(0.7 * inch, 0.28 * inch, f"Report ID {_current_report_meta['report_id']}. Verify remediation in a non-production environment before applying")
     canvas.restoreState()
 
 

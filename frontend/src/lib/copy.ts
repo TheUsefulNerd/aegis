@@ -30,7 +30,7 @@ export const CONTROL_FAMILY_LABELS: Record<string, string> = {
 export const REDACTION_TYPE_INFO: Record<string, { label: string; explanation: string }> = {
   TYPE7_PASSWORD: {
     label: "Encoded password (Cisco type 7)",
-    explanation: "A 'password 7' value. Type 7 is reversible encoding, not encryption — anyone can decode it, so it's treated as a plain-text password.",
+    explanation: "A 'password 7' value. Type 7 is reversible encoding, not encryption: anyone can decode it, so it's treated as a plain-text password.",
   },
   ENABLE_SECRET_HASH: {
     label: "Admin password hash",
@@ -42,7 +42,7 @@ export const REDACTION_TYPE_INFO: Record<string, { label: string; explanation: s
   },
   CLI_PASSWORD: {
     label: "Plain or weakly-encoded password",
-    explanation: "A password typed directly into the config — 'enable password', 'username … password 0', a line password, FTP or BGP neighbor passwords.",
+    explanation: "A password typed directly into the config: 'enable password', 'username … password 0', a line password, FTP or BGP neighbor passwords.",
   },
   SNMPV3_SECRET: {
     label: "SNMPv3 auth/privacy password",

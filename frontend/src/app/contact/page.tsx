@@ -6,7 +6,7 @@ import { Panel, PageHeader, SectionLabel, Badge } from "@/components/ui";
 // 4 AI/SWE engineers) without inventing names - update this array with real
 // names/emails once the team confirms them.
 const TEAM = [
-  { name: "Advait", role: "Team Lead — Full-stack & AI", email: "advait@eligere.ai", confirmed: true },
+  { name: "Advait", role: "Team Lead, Full-stack & AI", email: "advait@eligere.ai", confirmed: true },
   { name: "To be added", role: "Cybersecurity Specialist", email: null, confirmed: false },
   { name: "To be added", role: "AI / Software Engineer", email: null, confirmed: false },
   { name: "To be added", role: "AI / Software Engineer", email: null, confirmed: false },

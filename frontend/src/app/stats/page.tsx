@@ -42,7 +42,7 @@ export default function InsightsPage() {
           <div className="px-5 pt-5">
             <SectionLabel>How findings were decided</SectionLabel>
             <p className="text-xs text-slate-500 mb-1">
-              Every compliance finding traces back to one of three sources — never a silent guess.
+              Every compliance finding traces back to one of three sources, never a silent guess.
             </p>
           </div>
           <Table>
@@ -60,7 +60,7 @@ export default function InsightsPage() {
                   <Td className="font-medium text-slate-900">{r.label}</Td>
                   <Td className="text-right tabular-nums">{r.value}</Td>
                   <Td className="text-right tabular-nums text-slate-500">
-                    {tierTotal > 0 ? `${Math.round((r.value / tierTotal) * 100)}%` : "—"}
+                    {tierTotal > 0 ? `${Math.round((r.value / tierTotal) * 100)}%` : "-"}
                   </Td>
                   <Td>
                     <InlineBar value={r.value} max={tierMax} color={r.key === "tier1" ? "emerald" : r.key === "tier2_accepted" ? "indigo" : "amber"} />
@@ -75,7 +75,7 @@ export default function InsightsPage() {
           <div className="px-5 pt-5">
             <SectionLabel>Knowledge base by source</SectionLabel>
             <p className="text-xs text-slate-500 mb-1">
-              Where each learned pattern came from — seed rule files, an AI classification, or a
+              Where each learned pattern came from: seed rule files, an AI classification, or a
               human confirming a new one.
             </p>
           </div>
@@ -107,7 +107,7 @@ export default function InsightsPage() {
       </div>
 
       {stats && (
-        <TechnicalDetails label="Raw stats payload (this replaces Prometheus/Grafana for this build — see architecture-document.md §2/§5)">
+        <TechnicalDetails label="Raw stats payload (this replaces Prometheus/Grafana for this build; see architecture-document.md §2/§5)">
           <pre className="text-xs font-mono text-slate-600 whitespace-pre-wrap">{JSON.stringify(stats, null, 2)}</pre>
         </TechnicalDetails>
       )}

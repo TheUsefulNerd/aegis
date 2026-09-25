@@ -89,7 +89,7 @@ export default function ReviewQueuePage() {
     <div>
       <PageHeader
         title="Review queue"
-        description="Settings AEGIS couldn't classify on its own. Confirm the AI's guess, correct it, or say it isn't security-relevant — once resolved, AEGIS recognizes it instantly next time, on any device."
+        description="Settings AEGIS couldn't classify on its own. Confirm the AI's guess, correct it, or say it isn't security-relevant. Once resolved, AEGIS recognizes it instantly next time, on any device."
         actions={
           !loading && (
             <>
@@ -152,7 +152,7 @@ export default function ReviewQueuePage() {
                   </button>
                   <p className="text-xs text-slate-500 mt-1">
                     The AI judged these lines (interface names, routes, platform settings&hellip;) not security-relevant.
-                    Genuinely new syntax can land here too &mdash; search for it, or dismiss the rest in one step.
+                    Genuinely new syntax can land here too: search for it, or dismiss the rest in one step.
                   </p>
                   <Button variant="secondary" className="mt-2" disabled={dismissing} onClick={handleDismissAll}>
                     {dismissing ? <Spinner className="size-4" /> : <X className="size-4" />}
@@ -287,7 +287,7 @@ function ReviewDetail({
         is_security_relevant: judgment.isSecurityRelevant,
         reviewer_notes: judgment.notes.trim() || null,
       });
-      onResolved(item.id, `Confirmed — AEGIS will recognize "${item.raw_unit.slice(0, 40)}" instantly next time.`);
+      onResolved(item.id, `Confirmed. AEGIS will recognize "${item.raw_unit.slice(0, 40)}" instantly next time.`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -319,7 +319,7 @@ function ReviewDetail({
           </div>
           <p className="mt-1.5 text-sm text-rose-900">
             This text is shaped like an instruction to an AI classifier, not a description of a device
-            setting. It was quarantined here <span className="font-semibold">before any AI call</span> — the
+            setting. It was quarantined here <span className="font-semibold">before any AI call</span>. The
             AI never saw it, so it could not influence any compliance result.
           </p>
           {item.flag_reason && (
@@ -362,7 +362,7 @@ function ReviewDetail({
           {blocked && mode === "default" && (
             <div className="rounded-md bg-slate-50 border border-slate-300 p-4">
               <div className="text-sm text-slate-700">
-                Nothing needs to happen for the device to stay safe — this line is already excluded from its
+                Nothing needs to happen for the device to stay safe: this line is already excluded from its
                 findings. Resolve it to clear it from the queue.
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -370,14 +370,14 @@ function ReviewDetail({
                   variant="danger"
                   disabled={busy}
                   onClick={() =>
-                    reject("sanity_gate_confirmed", "Recorded as a blocked injection attempt — kept out of the knowledge base.")
+                    reject("sanity_gate_confirmed", "Recorded as a blocked injection attempt and kept out of the knowledge base.")
                   }
                 >
                   {busy ? <Spinner className="size-4" /> : <ShieldAlert className="size-4" />}
                   Confirm: this is an attack, keep it out
                 </Button>
                 <Button variant="secondary" disabled={busy} onClick={() => setMode("manual")}>
-                  False alarm — it&apos;s a real setting
+                  False alarm, it&apos;s a real setting
                 </Button>
               </div>
             </div>
@@ -404,7 +404,7 @@ function ReviewDetail({
                 </Button>
                 <Button variant="secondary" disabled={busy} onClick={() => setMode("manual")}>
                   <HelpCircle className="size-4" />
-                  Not quite — let me fix it
+                  Not quite, let me fix it
                 </Button>
               </div>
               <TechnicalDetails label="Why the AI thinks this">
@@ -423,13 +423,13 @@ function ReviewDetail({
                 <Button
                   variant="secondary"
                   disabled={busy}
-                  onClick={() => reject("not_applicable", "Marked as not security-relevant — removed from the queue.")}
+                  onClick={() => reject("not_applicable", "Marked as not security-relevant and removed from the queue.")}
                 >
                   {busy ? <Spinner className="size-4" /> : <X className="size-4" />}
                   Correct, not a security setting
                 </Button>
                 <Button variant="secondary" disabled={busy} onClick={() => setMode("manual")}>
-                  Actually, it does — let me classify it
+                  Actually, it does. Let me classify it
                 </Button>
               </div>
               {suggestion?.reasoning && (
@@ -466,7 +466,7 @@ function ReviewDetail({
       {blocked && (
         <TechnicalDetails label="Detection detail">
           <p className="text-xs text-slate-600">
-            The input-sanity gate is a deterministic keyword/pattern check, deliberately not another AI call — an
+            The input-sanity gate is a deterministic keyword/pattern check, deliberately not another AI call: an
             AI-based filter would have the same injection weakness it is meant to guard against.
           </p>
         </TechnicalDetails>
@@ -533,7 +533,7 @@ function ConfirmSummary({
   const family = CONTROL_FAMILY_LABELS[field.split(".")[0]];
   return (
     <div className="rounded-md border-2 border-emerald-500 bg-emerald-50 p-4 space-y-3">
-      <SectionLabel>Check before saving — this becomes permanent</SectionLabel>
+      <SectionLabel>Check before saving: this becomes permanent</SectionLabel>
       <div className="text-sm text-slate-800 space-y-2">
         <div>You&apos;re teaching AEGIS that this line:</div>
         <pre className="font-mono text-xs bg-white border border-emerald-200 rounded-md p-2 whitespace-pre-wrap break-words">
@@ -609,7 +609,7 @@ function AuditorJudgment({
         disabled={disabled}
         onChange={(e) => onChange({ ...judgment, notes: e.target.value })}
         rows={2}
-        placeholder="Auditor notes — why this matters (or doesn't), anything a future reviewer should know"
+        placeholder="Auditor notes: why this matters (or doesn't), anything a future reviewer should know"
         className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
       />
     </div>
@@ -652,7 +652,7 @@ function ManualForm({
         onChange={(e) => onFieldChange(e.target.value)}
         className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
       >
-        <option value="">— choose what this sets —</option>
+        <option value="">Choose what this sets</option>
         {Object.entries(groups).map(([family, entries]) => (
           <optgroup key={family} label={CONTROL_FAMILY_LABELS[family] ?? family}>
             {entries.map(([field, meta]) => (
@@ -679,8 +679,8 @@ function ManualForm({
           onChange={(e) => onValueChange(e.target.value)}
           className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
         >
-          <option value="true">Yes — this line turns it on / sets it to true</option>
-          <option value="false">No — this line turns it off / sets it to false</option>
+          <option value="true">Yes: this line turns it on / sets it to true</option>
+          <option value="false">No: this line turns it off / sets it to false</option>
         </select>
       )}
       {selected && !isBool && (

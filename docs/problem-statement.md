@@ -1,4 +1,4 @@
-# Problem Statement (NTRO) — SIH
+# Problem Statement (NTRO): SIH
 
 **Background**
 Modern enterprise networks are inherently heterogeneous, consisting of a vast array of hardware from diverse vendors. Organizations are mandated to align these devices with rigorous security frameworks, including CIS Benchmarks, NIST SP 800-53, DISA STIGs, and ISO/IEC 27001.
@@ -13,7 +13,7 @@ Note: The aforementioned list is illustrative; the application must be ideally d
 **Description**
 
 *The Core Challenge:*
-In modern digital infrastructures, network devices act as the primary gatekeepers of data. However, they are also the most common point of misconfiguration, which accounts for a significant percentage of security breaches. Security frameworks like CIS, NIST, and STIGs offer specific 'hardening' protocols — such as disabling insecure protocols (Telnet/HTTP), enforcing strong cryptographic suites, configuring granular ACLs, and logging all administrative access. Currently, the industry relies on a bifurcated approach: either highly manual, checklist-based human auditing or expensive, vendor-locked enterprise management suites that lack flexibility for heterogeneous, multi-vendor environments.
+In modern digital infrastructures, network devices act as the primary gatekeepers of data. However, they are also the most common point of misconfiguration, which accounts for a significant percentage of security breaches. Security frameworks like CIS, NIST, and STIGs offer specific 'hardening' protocols, such as disabling insecure protocols (Telnet/HTTP), enforcing strong cryptographic suites, configuring granular ACLs, and logging all administrative access. Currently, the industry relies on a bifurcated approach: either highly manual, checklist-based human auditing or expensive, vendor-locked enterprise management suites that lack flexibility for heterogeneous, multi-vendor environments.
 
 *Operational Gap:*
 Administrators managing hybrid networks (composed of firewalls, switches, and routers from various vendors like Palo Alto, Cisco, Arista, etc.) lack a centralized 'Source of Truth' for compliance. The challenge is twofold:
@@ -21,7 +21,7 @@ Administrators managing hybrid networks (composed of firewalls, switches, and ro
 1. **Syntactic Diversity**: Each vendor uses proprietary CLI syntax, varied hierarchical structures, and distinct firmware/OS versioning. A 'secure password' setting in a Cisco IOS switch is syntactically distinct from the same setting in a Juniper SRX firewall.
 2. **Scalability & Adaptation**: The network landscape is not static. As organizations adopt 'White Box' networking (SONiC), Cloud-native security groups (AWS/Azure), or specialized AI-driven infrastructure, traditional parsers fail because they cannot predict or interpret the configuration structures of newly acquired or proprietary hardware.
 
-The requested solution is an AI-augmented, vendor-agnostic Compliance Engine. Rather than relying on a hard-coded library of commands — which becomes obsolete as vendors release firmware updates — the system will employ AI-based approaches (e.g. Pattern Recognition and Natural Language Processing (NLP)) to interpret configuration files.
+The requested solution is an AI-augmented, vendor-agnostic Compliance Engine. Rather than relying on a hard-coded library of commands, which becomes obsolete as vendors release firmware updates, the system will employ AI-based approaches (e.g. Pattern Recognition and Natural Language Processing (NLP)) to interpret configuration files.
 
 When a configuration file is ingested, the AI-based engine will:
 - **Normalization**: Extract the configuration and map it into a standardized, vendor-neutral schema (e.g., a 'Security Baseline Model').
@@ -51,4 +51,4 @@ When a configuration file is ingested, the AI-based engine will:
 - Demo Video (Max 2 Minutes)
 - Technical Presentation (Max 5 Slides)
 
-**Dataset Link**: nciipc.gov.in, helpdesk1@nciipc.gov.in — CIS Benchmarks, NIST SP 800-53, DISA STIGs, ISO/IEC 27001; vendor-specific CLI configuration samples.
+**Dataset Link**: nciipc.gov.in, helpdesk1@nciipc.gov.in: CIS Benchmarks, NIST SP 800-53, DISA STIGs, ISO/IEC 27001; vendor-specific CLI configuration samples.

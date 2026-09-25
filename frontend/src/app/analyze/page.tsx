@@ -122,7 +122,7 @@ export default function AnalyzePage() {
             setBatch(
               saved.batch.map((b) =>
                 b.status === "queued" || b.status === "processing"
-                  ? { ...b, status: "error", error: "Interrupted — the page was left before this file was processed." }
+                  ? { ...b, status: "error", error: "Interrupted: the page was left before this file was processed." }
                   : b
               )
             );
@@ -262,7 +262,7 @@ export default function AnalyzePage() {
     <div>
       <PageHeader
         title="Analyze device"
-        description="Upload a network device configuration — any vendor, any format — to identify its security settings and check them against a compliance framework."
+        description="Upload a network device configuration (any vendor, any format) to identify its security settings and check them against a compliance framework."
       />
 
       <Panel className="p-5 mb-6">
@@ -299,7 +299,7 @@ export default function AnalyzePage() {
               </Button>
             </form>
             <p className="text-xs text-slate-500 mt-3">
-              Any vendor, any format — a Cisco/pfSense-style text config, or a JSON config like SONiC. Select
+              Any vendor, any format: a Cisco/pfSense-style text config, or a JSON config like SONiC. Select
               several files at once for a bulk upload; they&apos;re analyzed one after another.
             </p>
           </Panel>
@@ -332,7 +332,7 @@ export default function AnalyzePage() {
                 <AlertTriangle className="size-5 text-amber-600 shrink-0" />
               )}
               <div className="text-sm font-medium text-slate-800">
-                Detected as <span className="font-semibold">{result.vendor}</span> — understood{" "}
+                Detected as <span className="font-semibold">{result.vendor}</span>. Understood{" "}
                 {understood} of {result.total_units} settings automatically
                 {needsReview > 0 && `, ${needsReview} need your review`}.
               </div>
@@ -358,7 +358,7 @@ export default function AnalyzePage() {
             </div>
             {Object.keys(result.fields).length === 0 ? (
               <div className="text-sm text-slate-500 px-5 pb-5">
-                Nothing understood automatically yet — check the review queue.
+                Nothing understood automatically yet. Check the review queue.
               </div>
             ) : (
               <Table>
@@ -523,7 +523,7 @@ function RedactionPanel({
       </div>
       <p className="mt-1 text-xs text-slate-500">
         Redaction runs first, before vendor detection, AI classification or any log. The original values exist
-        only in memory while the file is processed — they are never stored and never leave this server.
+        only in memory while the file is processed. They are never stored and never leave this server.
       </p>
       <div className="mt-3 grid md:grid-cols-2 gap-3">
         {hits.map((h) => {
@@ -603,7 +603,7 @@ function BatchPanel({
           <SectionLabel>Bulk upload</SectionLabel>
           <div className="text-sm text-slate-700">
             {done.length} of {batch.length} devices analyzed
-            {running && " — keep this page open until the batch finishes"}
+            {running && ". Keep this page open until the batch finishes."}
           </div>
         </div>
         <Button variant="primary" disabled={running || evaluating || done.length === 0} onClick={onEvaluateAll}>
@@ -657,19 +657,19 @@ function BatchPanel({
                 <Td className="text-xs">
                   {b.result ? (
                     <>
-                      <div className="font-medium text-slate-900">{b.result.hostname ?? "—"}</div>
+                      <div className="font-medium text-slate-900">{b.result.hostname ?? "-"}</div>
                       <div className="font-mono text-slate-500">{b.result.vendor}</div>
                     </>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </Td>
                 <Td className="text-right tabular-nums">
                   {b.result
                     ? `${b.result.tier_counts.tier1 + b.result.tier_counts.tier2_accepted + (b.result.tier_counts.not_security ?? 0)} / ${b.result.total_units}`
-                    : "—"}
+                    : "-"}
                 </Td>
-                <Td className="text-right tabular-nums">{b.result ? b.result.tier_counts.tier3_pending : "—"}</Td>
+                <Td className="text-right tabular-nums">{b.result ? b.result.tier_counts.tier3_pending : "-"}</Td>
                 <Td className="text-right tabular-nums">
                   {b.evaluation ? (
                     <span>
@@ -677,7 +677,7 @@ function BatchPanel({
                       <span className="text-rose-700">{b.evaluation.counts.FAIL}</span>
                     </span>
                   ) : (
-                    "—"
+                    "-"
                   )}
                 </Td>
                 <Td className="text-right whitespace-nowrap">
@@ -776,7 +776,7 @@ function FindingsPanel({
                   )}
                   {f.result === "NOT_EVALUATED" && (
                     <div className="mt-1 text-xs text-slate-500">
-                      Not enough information to check this — reported as unknown, never assumed to pass.
+                      Not enough information to check this. Reported as unknown, never assumed to pass.
                     </div>
                   )}
                 </Td>
@@ -802,7 +802,7 @@ function ReportTab({ evaluation, frameworkParam }: { evaluation: EvaluateResult 
   if (!evaluation) {
     return (
       <Panel className="p-8 text-center text-sm text-slate-500">
-        Check compliance first — the report is built from those findings.
+        Check compliance first. The report is built from those findings.
       </Panel>
     );
   }
@@ -824,7 +824,7 @@ function ReportTab({ evaluation, frameworkParam }: { evaluation: EvaluateResult 
       <Panel className="p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <CheckCircle2 className="size-4 text-emerald-600" /> This is the exact PDF AEGIS will hand
-          you — rendered on screen before you save it.
+          you, rendered on screen before you save it.
         </div>
         <Button variant="primary" onClick={handleDownload} disabled={downloading}>
           {downloading ? <Spinner className="size-4" /> : <Download className="size-4" />}

@@ -129,7 +129,7 @@ const SOURCE_META: Record<string, { icon: typeof Cpu; color: "emerald" | "indigo
 
 export function SourceBadge({ tier }: { tier: string | null | undefined }) {
   const meta = tier ? SOURCE_META[tier] : undefined;
-  if (!meta) return <span className="text-xs text-slate-400">—</span>;
+  if (!meta) return <span className="text-xs text-slate-400">-</span>;
   const Icon = meta.icon;
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">

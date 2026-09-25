@@ -108,12 +108,12 @@ export default function OverviewPage() {
             <tbody>
               {recent?.map((c) => (
                 <Tr key={c.config_id}>
-                  <Td className="font-medium text-slate-900">{c.hostname ?? "—"}</Td>
+                  <Td className="font-medium text-slate-900">{c.hostname ?? "-"}</Td>
                   <Td className="font-mono text-xs">{c.vendor}</Td>
                   <Td className="text-slate-500">
-                    {c.created_at ? new Date(c.created_at).toLocaleString() : "—"}
+                    {c.created_at ? new Date(c.created_at).toLocaleString() : "-"}
                   </Td>
-                  <Td>{c.parse_coverage_pct != null ? `${c.parse_coverage_pct}%` : "—"}</Td>
+                  <Td>{c.parse_coverage_pct != null ? `${c.parse_coverage_pct}%` : "-"}</Td>
                   <Td className="text-right">
                     <a
                       href={reportUrl(c.config_id)}
