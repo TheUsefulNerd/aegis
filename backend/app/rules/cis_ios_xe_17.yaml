@@ -224,7 +224,7 @@ rules:
     check_type: ordered-first-match
     predicate:
       field: AC.acl_rules
-      match: { protocol: tcp, port: 23 }
+      match: { protocol: tcp, port: 23, source: any }  # a deny for specific hosts does not answer "from any source"
       want_action_if_matched: deny
     severity: CAT_I
     remediation_template_ref: CIS-SUPPLEMENT-ACL-TELNET

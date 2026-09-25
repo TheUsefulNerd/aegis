@@ -89,3 +89,15 @@ def test_cdp_disable_is_deterministic(db, monkeypatch):
     monkeypatch.setattr(llm_client, "classify", _fail)
     r = resolve.resolve_unit(db, "no cdp enable", "cisco_ios")
     assert r.tier == "tier1" and r.value is False
+
+
+def test_snmp_communities_are_deterministic_with_exact_values(db, monkeypatch):
+    # The live LLM once returned "public RO" as the value, which would pass
+    # the "no default public community" check on a failing device.
+    def _fail(*a, **k):
+        raise AssertionError("must be Tier 1")
+    monkeypatch.setattr(llm_client, "classify", _fail)
+    assert resolve.resolve_unit(db, "snmp-server community public RO", "cisco_ios").value == "public"
+    assert resolve.resolve_unit(db, "snmp-server community private RW 5", "cisco_ios").value == "private"
+    r = resolve.resolve_unit(db, "snmp-server community [REDACTED:SNMP_COMMUNITY] RO 1", "cisco_ios")
+    assert r.tier == "tier1" and r.value == "custom (redacted)"

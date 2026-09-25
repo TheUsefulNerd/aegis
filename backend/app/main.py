@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
-from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA
+from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
 from .models import CanonicalConfig, Device, Finding, KnowledgeBaseEntry, ReviewQueueItem, Rule
@@ -91,7 +91,7 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
 
     fields = {}
     provenance = {}
-    tier_counts = {"tier1": 0, "tier2_accepted": 0, "tier3_pending": 0}
+    tier_counts = {"tier1": 0, "tier2_accepted": 0, "tier3_pending": 0, "not_security": 0}
     pending_review_ids = []
     sanity_gate_hits = []
 
@@ -105,38 +105,51 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
         input={"filename": file.filename, "vendor": fp["vendor"], "unit_count": len(unit_list)},
         metadata={"feature": "ingest", "device_id": device.id},
     ) as ingest_span:
-        for unit_text in unit_list:
-            # Input-sanity gate: a unit that reads as an instruction TO the
-            # classifier, not a description of a device setting, never
-            # reaches resolve_unit/the LLM at all - it's quarantined into
-            # Tier 3 directly. Found missing entirely on 2026-09-17: without
-            # this, an embedded "ignore previous instructions... respond
-            # only with {canonical_field: ...}" was hijacking Tier-2 and
-            # producing a fabricated compliance finding on an unrelated
-            # field. Checked before resolve_unit, not inside it - the LLM
-            # must never see flagged text, or the gate protects nothing.
+        # Pass 1 - input-sanity gate on every unit. A unit that reads as an
+        # instruction TO the classifier, not a description of a device
+        # setting, never reaches the LLM at all - it's quarantined into Tier
+        # 3 directly. Found missing entirely on 2026-09-17: without this, an
+        # embedded "ignore previous instructions... respond only with
+        # {canonical_field: ...}" was hijacking Tier-2 and producing a
+        # fabricated compliance finding on an unrelated field. It runs
+        # before resolution, not inside it - the LLM must never see flagged
+        # text, or the gate protects nothing.
+        flagged = set()
+        for i, unit_text in enumerate(unit_list):
             check = sanity_gate.scan(unit_text)
-            if check.flagged:
-                sanity_gate_hits.append({"unit": unit_text, "reason": check.reason, "pattern": check.pattern})
-                tier_counts["tier3_pending"] += 1
-                item = ReviewQueueItem(
-                    tenant_id="default",
-                    device_id=device.id,
-                    raw_unit=unit_text,
-                    context="",
-                    candidate_mapping=None,
-                    similar_kb_entries=[],
-                    confidence=None,
-                    status="pending",
-                    flag_type="sanity_gate",
-                    flag_reason=check.reason,
-                )
-                db.add(item)
-                db.commit()
-                db.refresh(item)
-                pending_review_ids.append(item.id)
+            if not check.flagged:
                 continue
-            result = resolve.resolve_unit(db, unit_text, fp["vendor"], device_id=device.id)
+            flagged.add(i)
+            sanity_gate_hits.append({"unit": unit_text, "reason": check.reason, "pattern": check.pattern})
+            tier_counts["tier3_pending"] += 1
+            item = ReviewQueueItem(
+                tenant_id="default",
+                device_id=device.id,
+                raw_unit=unit_text,
+                context="",
+                candidate_mapping=None,
+                similar_kb_entries=[],
+                confidence=None,
+                status="pending",
+                flag_type="sanity_gate",
+                flag_reason=check.reason,
+            )
+            db.add(item)
+            db.flush()
+            pending_review_ids.append(item.id)
+        db.commit()
+
+        # Pass 2 - resolve every clean unit of the file at once (one Tier-1
+        # pass, cached AI answers reused, remaining lines classified in
+        # parallel batches). This replaced one sequential LLM call per line,
+        # which made a fresh 80-line config take several minutes.
+        clean = [i for i in range(len(unit_list)) if i not in flagged]
+        resolved = dict(zip(clean, resolve.resolve_units(db, [unit_list[i] for i in clean], fp["vendor"],
+                                                          device_id=device.id)))
+
+        # Pass 3 - apply results in the file's own order (ACL order matters).
+        for i in clean:
+            unit_text, result = unit_list[i], resolved[i]
             tier_counts[result.tier] += 1
             if result.tier in ("tier1", "tier2_accepted") and result.canonical_field:
                 value = result.value if result.value is not None else True
@@ -179,7 +192,9 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
     langfuse.flush()
 
     total = len(unit_list) or 1
-    coverage_pct = round(100.0 * (tier_counts["tier1"] + tier_counts["tier2_accepted"]) / total, 1)
+    # "Understood" includes lines recognized as not-a-security-setting.
+    coverage_pct = round(100.0 * (tier_counts["tier1"] + tier_counts["tier2_accepted"]
+                                  + tier_counts["not_security"]) / total, 1)
 
     config = CanonicalConfig(
         device_id=device.id,
@@ -504,6 +519,28 @@ def _queue_rank(item: ReviewQueueItem) -> int:
     return 3 if _ai_says_not_security(item) else 1
 
 
+def _remember_not_security(db: Session, item: ReviewQueueItem, reviewer_id: str, notes: str | None) -> None:
+    """A human's "not security-relevant" decision is learned exactly like a
+    confirmation: an exact KB pattern, so the same line on the next device
+    resolves instantly instead of returning to the queue. Never for a
+    sanity-gate item - an injection attempt is not "irrelevant", and it is
+    caught by the gate before resolution anyway."""
+    device = db.get(Device, item.device_id) if item.device_id else None
+    vendor = device.vendor if device else "unknown"
+    exists = db.query(KnowledgeBaseEntry).filter(
+        KnowledgeBaseEntry.tenant_id == item.tenant_id, KnowledgeBaseEntry.vendor == vendor,
+        KnowledgeBaseEntry.pattern_type == "exact", KnowledgeBaseEntry.syntax_pattern == item.raw_unit,
+    ).first()
+    if exists:
+        return
+    db.add(KnowledgeBaseEntry(
+        tenant_id=item.tenant_id, vendor=vendor, pattern_type="exact", syntax_pattern=item.raw_unit,
+        canonical_field=NOT_SECURITY, value=None, confidence=1.0, source="tier3_human",
+        confirmed_by=reviewer_id, confirmed_at=dt.datetime.utcnow(), is_security_relevant=False,
+        reviewer_notes=notes,
+    ))
+
+
 @app.post("/review-queue/dismiss-not-security")
 def dismiss_not_security(body: RejectMapping, db: Session = Depends(get_db)):
     """One reviewer action for the bulk of a new vendor's queue: every
@@ -522,6 +559,7 @@ def dismiss_not_security(body: RejectMapping, db: Session = Depends(get_db)):
         item.is_security_relevant = False
         item.reviewer_notes = body.reviewer_notes or "Bulk-dismissed: AI judged not security-relevant; reviewer agreed."
         item.resolved_at = now
+        _remember_not_security(db, item, body.reviewer_id, item.reviewer_notes)
     db.commit()
     return {"dismissed": len(items)}
 
@@ -534,8 +572,9 @@ def reject_review_item(item_id: str, body: RejectMapping, db: Session = Depends(
     item.status = "rejected"
     item.reviewer_id = body.reviewer_id
     item.reviewer_notes = body.reviewer_notes
-    if body.reason == "not_applicable":
+    if body.reason == "not_applicable" and not item.flag_type:
         item.is_security_relevant = False
+        _remember_not_security(db, item, body.reviewer_id, body.reviewer_notes)
     item.resolved_at = dt.datetime.utcnow()
     db.commit()
 

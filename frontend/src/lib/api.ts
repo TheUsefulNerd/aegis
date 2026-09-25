@@ -7,7 +7,7 @@ export type IngestResult = {
   format: string;
   fingerprint_confidence: string;
   total_units: number;
-  tier_counts: { tier1: number; tier2_accepted: number; tier3_pending: number };
+  tier_counts: { tier1: number; tier2_accepted: number; tier3_pending: number; not_security?: number };
   parse_coverage_pct: number;
   redaction_hits: { type: string; count: number }[];
   redaction_examples: { type: string; unit: string }[];

@@ -122,6 +122,22 @@ class Finding(Base):
     rule = relationship("Rule")
 
 
+class LLMCacheEntry(Base):
+    """A validated Tier-2 answer, remembered per (vendor, exact unit text,
+    prompt version) so the same line on the next device costs no AI call.
+    Deliberately NOT a KnowledgeBaseEntry: a cached AI answer is still an AI
+    answer - it keeps its tier2 label and still goes to human review when
+    it's low-confidence. Only a human confirmation becomes a Tier-1 pattern."""
+    __tablename__ = "llm_cache"
+
+    id = Column(String, primary_key=True, default=_id)
+    vendor = Column(String, nullable=False, index=True)
+    unit_text = Column(Text, nullable=False)
+    prompt_version = Column(String, nullable=False)
+    response = Column(JSON, nullable=False)  # {canonical_field, value, confidence, reasoning, provider, model_version}
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+
+
 class ReviewQueueItem(Base):
     __tablename__ = "review_queue"
 

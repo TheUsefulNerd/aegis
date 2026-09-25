@@ -1,0 +1,10 @@
+# Deterministic "not a security setting" patterns for SONiC config_db.json
+# paths (see cisco_ios_not_security.yaml for the reasoning). Physical port
+# and addressing structure only; SNMP, syslog, NTP, TACACS+, ACL and
+# management-interface tables still go through the tiers.
+
+vendor: sonic
+entries:
+  - {syntax_pattern: '^PORT\.[^.]+\.(alias|speed|mtu|admin_status|description|lanes|index|fec|autoneg)=', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^(DEVICE_METADATA|VERSIONS|LOOPBACK_INTERFACE|INTERFACE|PORTCHANNEL|PORTCHANNEL_MEMBER|MGMT_PORT)\.', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^BGP_NEIGHBOR\.[^.]+\.(name|local_addr|asn|holdtime|keepalive|nhopself|rrclient|admin_status)=', pattern_type: regex, canonical_field: NOT_SECURITY}

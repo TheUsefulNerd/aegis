@@ -245,7 +245,9 @@ export default function AnalyzePage() {
     setActiveTab(1);
   }
 
-  const understood = result ? result.tier_counts.tier1 + result.tier_counts.tier2_accepted : 0;
+  const understood = result
+    ? result.tier_counts.tier1 + result.tier_counts.tier2_accepted + (result.tier_counts.not_security ?? 0)
+    : 0;
   const needsReview = result?.tier_counts.tier3_pending ?? 0;
 
   const stepStates: StepState[] = [
@@ -664,7 +666,7 @@ function BatchPanel({
                 </Td>
                 <Td className="text-right tabular-nums">
                   {b.result
-                    ? `${b.result.tier_counts.tier1 + b.result.tier_counts.tier2_accepted} / ${b.result.total_units}`
+                    ? `${b.result.tier_counts.tier1 + b.result.tier_counts.tier2_accepted + (b.result.tier_counts.not_security ?? 0)} / ${b.result.total_units}`
                     : "—"}
                 </Td>
                 <Td className="text-right tabular-nums">{b.result ? b.result.tier_counts.tier3_pending : "—"}</Td>

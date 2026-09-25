@@ -11,8 +11,8 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 from . import llm_client
-from .canonical_schema import CANONICAL_FIELDS, is_valid_field
-from .models import KnowledgeBaseEntry, ReviewQueueItem
+from .canonical_schema import CANONICAL_FIELDS, NOT_SECURITY, is_valid_field
+from .models import KnowledgeBaseEntry, LLMCacheEntry, ReviewQueueItem
 
 _embedding_model = None
 
@@ -40,7 +40,7 @@ def _cosine(a: list, b: list) -> float:
 
 @dataclass
 class ResolveResult:
-    tier: str  # "tier1" | "tier2_accepted" | "tier3_pending"
+    tier: str  # "tier1" | "tier2_accepted" | "tier3_pending" | "not_security"
     canonical_field: Optional[str] = None
     value: object = None
     kb_entry_id: Optional[str] = None
@@ -53,10 +53,24 @@ class ResolveResult:
     langfuse_observation_id: Optional[str] = None
 
 
-def _tier1_exact_match(db: Session, unit_text: str, vendor: str, tenant_id: str) -> Optional[KnowledgeBaseEntry]:
-    """Exact/structural match only - deterministic, no cosine similarity
-    involved. This IS what "known vendor" means (architecture-document.md §1)."""
-    candidates = (
+def _similar_kb_entries(db: Session, unit_text: str, vendor: str, tenant_id: str, top_k: int = 5) -> list:
+    """Supporting signal only (not a gate) - ranked same-vendor candidates
+    shown to the LLM prompt and to a Tier-3 human reviewer. Same vendor only:
+    a pfSense or SONiC pattern shown as "similar" to a Cisco line is noise at
+    best and misleading context at worst (lead-claude-task-tracker.md §9)."""
+    return _similar_many(_tier1_entries(db, vendor, tenant_id), [unit_text], top_k)[0]
+
+
+def embed_many(texts: list) -> list:
+    """One encode() call for a whole file instead of one per line."""
+    if not texts:
+        return []
+    return [v.tolist() for v in _get_embedding_model().encode(texts, normalize_embeddings=True)]
+
+
+def _tier1_entries(db: Session, vendor: str, tenant_id: str) -> list:
+    """Loaded once per file, not once per line (it was a query per unit)."""
+    return (
         db.query(KnowledgeBaseEntry)
         .filter(
             KnowledgeBaseEntry.tenant_id == tenant_id,
@@ -65,7 +79,10 @@ def _tier1_exact_match(db: Session, unit_text: str, vendor: str, tenant_id: str)
         )
         .all()
     )
-    for entry in candidates:
+
+
+def _match_tier1(entries: list, unit_text: str) -> Optional[KnowledgeBaseEntry]:
+    for entry in entries:
         if entry.pattern_type == "exact" and entry.syntax_pattern.strip() == unit_text.strip():
             return entry
         if entry.pattern_type == "regex":
@@ -77,34 +94,135 @@ def _tier1_exact_match(db: Session, unit_text: str, vendor: str, tenant_id: str)
     return None
 
 
-def _similar_kb_entries(db: Session, unit_text: str, vendor: str, tenant_id: str, top_k: int = 5) -> list:
-    """Supporting signal only (not a gate) - ranked candidates shown to the
-    LLM prompt and to a Tier-3 human reviewer."""
-    # Same vendor only: a pfSense or SONiC pattern shown as "similar" to a
-    # Cisco line is noise at best and misleading context for the LLM at
-    # worst (lead-claude-task-tracker.md §9).
-    entries = (
-        db.query(KnowledgeBaseEntry)
-        .filter(
-            KnowledgeBaseEntry.tenant_id == tenant_id,
-            KnowledgeBaseEntry.vendor == vendor,
-            KnowledgeBaseEntry.embedding_vector.isnot(None),
-            KnowledgeBaseEntry.superseded_by.is_(None),
-        )
+def _similar_many(entries: list, unit_texts: list, top_k: int = 5) -> list:
+    """Supporting signal only - same as _similar_kb_entries, batched."""
+    with_vec = [e for e in entries if e.embedding_vector is not None]
+    if not with_vec or not unit_texts:
+        return [[] for _ in unit_texts]
+    mat = np.array([e.embedding_vector for e in with_vec], dtype=float)
+    mat /= np.maximum(np.linalg.norm(mat, axis=1, keepdims=True), 1e-12)
+    out = []
+    for vec in embed_many(unit_texts):
+        v = np.array(vec, dtype=float)
+        v /= max(np.linalg.norm(v), 1e-12)
+        scores = mat @ v
+        order = np.argsort(-scores)[:top_k]
+        out.append([{"syntax_pattern": with_vec[i].syntax_pattern, "canonical_field": with_vec[i].canonical_field,
+                     "similarity": round(float(scores[i]), 3)} for i in order])
+    return out
+
+
+def _cached_candidates(db: Session, vendor: str, texts: list) -> dict:
+    if not texts:
+        return {}
+    rows = (
+        db.query(LLMCacheEntry)
+        .filter(LLMCacheEntry.vendor == vendor, LLMCacheEntry.prompt_version == llm_client.BATCH_PROMPT_VERSION,
+                LLMCacheEntry.unit_text.in_(texts))
         .all()
     )
-    if not entries:
-        return []
-    unit_vec = embed(unit_text)
-    scored = [
-        (_cosine(unit_vec, e.embedding_vector), e)
-        for e in entries
-    ]
-    scored.sort(key=lambda p: p[0], reverse=True)
-    return [
-        {"syntax_pattern": e.syntax_pattern, "canonical_field": e.canonical_field, "similarity": round(s, 3)}
-        for s, e in scored[:top_k]
-    ]
+    return {
+        r.unit_text: llm_client.LLMCandidate(
+            canonical_field=r.response["canonical_field"], value=r.response["value"],
+            confidence=float(r.response["confidence"]), reasoning=r.response.get("reasoning", ""),
+            provider=r.response.get("provider", "cache"), model_version=r.response.get("model_version", ""),
+            prompt_version=r.prompt_version,
+        )
+        for r in rows
+    }
+
+
+def resolve_units(
+    db: Session,
+    unit_texts: list,
+    vendor: str,
+    device_id: str = None,
+    tenant_id: str = "default",
+) -> list:
+    """Resolve a whole file's units at once: one Tier-1 pass, cached AI
+    answers reused, every remaining line classified in parallel batches,
+    then Tier 3 for anything not confidently accepted. Returns one
+    ResolveResult per input unit, in input order (ACL order matters)."""
+    entries = _tier1_entries(db, vendor, tenant_id)
+    results: list = [None] * len(unit_texts)
+    misses: dict = {}  # unit text -> [indexes]
+    for i, text in enumerate(unit_texts):
+        hit = _match_tier1(entries, text)
+        if hit is not None and hit.canonical_field == NOT_SECURITY:
+            # Known structure, or a line a human already judged irrelevant:
+            # instant, no AI call, no review item.
+            results[i] = ResolveResult(tier="not_security", kb_entry_id=hit.id, confidence=1.0)
+        elif hit is not None:
+            results[i] = ResolveResult(
+                tier="tier1",
+                canonical_field=hit.canonical_field,
+                # A regex entry for a list field (e.g. "any numbered ACL line")
+                # carries no fixed value - the matched line IS the value.
+                value=hit.value if hit.value is not None else (
+                    text if CANONICAL_FIELDS.get(hit.canonical_field) == "list" else True
+                ),
+                kb_entry_id=hit.id,
+                kb_entry_version=hit.version,
+                confidence=1.0,
+            )
+        else:
+            misses.setdefault(text, []).append(i)
+
+    texts = list(misses)
+    similar = dict(zip(texts, _similar_many(entries, texts)))
+    candidates = _cached_candidates(db, vendor, texts)
+    pending = {
+        i.raw_unit: i for i in db.query(ReviewQueueItem).filter(
+            ReviewQueueItem.tenant_id == tenant_id, ReviewQueueItem.status == "pending",
+            ReviewQueueItem.raw_unit.in_(texts),
+        ).all()
+    } if texts else {}
+    # A line already waiting for a human is not sent to the AI again - the
+    # human owns that decision now, and re-asking only burns quota and time
+    # on every re-upload of the same config.
+    todo = [t for t in texts if t not in candidates and t not in pending]
+    for text, cand in zip(todo, llm_client.classify_batch(todo, [similar[t] for t in todo])):
+        if cand is None:
+            continue  # unavailable / invalid: never cached, goes to a human
+        candidates[text] = cand
+        db.add(LLMCacheEntry(vendor=vendor, unit_text=text, prompt_version=llm_client.BATCH_PROMPT_VERSION,
+                             response={"canonical_field": cand.canonical_field, "value": cand.value,
+                                       "confidence": cand.confidence, "reasoning": cand.reasoning,
+                                       "provider": cand.provider, "model_version": cand.model_version}))
+
+    for text, idxs in misses.items():
+        cand = candidates.get(text)
+        if cand is not None and cand.canonical_field != "UNKNOWN" and cand.confidence >= 0.6:
+            res = ResolveResult(
+                tier="tier2_accepted", canonical_field=cand.canonical_field, value=cand.value,
+                confidence=cand.confidence, reasoning=cand.reasoning, similar_kb_entries=similar[text],
+                langfuse_trace_id=cand.langfuse_trace_id, langfuse_observation_id=cand.langfuse_observation_id,
+            )
+        else:
+            # Tier 3: AI unavailable, invalid, UNKNOWN, or not confident.
+            # Deduped: an identical line already waiting for review is reused
+            # instead of piling up duplicates on every re-upload.
+            item = pending.get(text)
+            if item is None:
+                item = ReviewQueueItem(
+                    tenant_id=tenant_id, device_id=device_id, raw_unit=text, context="",
+                    candidate_mapping=({"canonical_field": cand.canonical_field, "value": cand.value,
+                                        "confidence": cand.confidence, "reasoning": cand.reasoning}
+                                       if cand is not None else None),
+                    similar_kb_entries=similar[text],
+                    confidence=cand.confidence if cand is not None else None,
+                    langfuse_trace_id=cand.langfuse_trace_id if cand is not None else None,
+                    langfuse_observation_id=cand.langfuse_observation_id if cand is not None else None,
+                    status="pending",
+                )
+                db.add(item)
+                db.flush()  # assigns item.id without a commit per line
+                pending[text] = item
+            res = ResolveResult(tier="tier3_pending", review_queue_id=item.id, similar_kb_entries=similar[text])
+        for i in idxs:
+            results[i] = res
+    db.commit()
+    return results
 
 
 def resolve_unit(
@@ -115,81 +233,5 @@ def resolve_unit(
     tenant_id: str = "default",
     context: str = "",
 ) -> ResolveResult:
-    # Tier 1: exact/structural match.
-    hit = _tier1_exact_match(db, unit_text, vendor, tenant_id)
-    if hit is not None:
-        return ResolveResult(
-            tier="tier1",
-            canonical_field=hit.canonical_field,
-            # A regex entry for a list field (e.g. "any numbered ACL line")
-            # carries no fixed value - the matched line IS the value.
-            value=hit.value if hit.value is not None else (
-                unit_text if CANONICAL_FIELDS.get(hit.canonical_field) == "list" else True
-            ),
-            kb_entry_id=hit.id,
-            kb_entry_version=hit.version,
-            confidence=1.0,
-        )
-
-    # Tier 2: LLM, with similar KB entries as supporting context.
-    similar = _similar_kb_entries(db, unit_text, vendor, tenant_id)
-    candidate = llm_client.classify(unit_text, context, similar)
-
-    if candidate is not None and candidate.canonical_field != "UNKNOWN" and candidate.confidence >= 0.6:
-        return ResolveResult(
-            tier="tier2_accepted",
-            canonical_field=candidate.canonical_field,
-            value=candidate.value,
-            confidence=candidate.confidence,
-            reasoning=candidate.reasoning,
-            similar_kb_entries=similar,
-            langfuse_trace_id=candidate.langfuse_trace_id,
-            langfuse_observation_id=candidate.langfuse_observation_id,
-        )
-
-    # Tier 3: LLM unavailable, invalid, UNKNOWN, or low self-reported
-    # confidence - queue for human review. Never a crash, never a silent drop.
-    #
-    # Dedupe first: re-ingesting the same or a similar config (routine during
-    # testing, and realistic for a real device re-audited later) would
-    # otherwise pile up identical pending items for the same line every time,
-    # which reads as broken clutter rather than a real queue. If an
-    # unresolved item for this exact vendor+text is already pending, reuse it
-    # instead of creating a duplicate.
-    existing = (
-        db.query(ReviewQueueItem)
-        .filter(
-            ReviewQueueItem.tenant_id == tenant_id,
-            ReviewQueueItem.raw_unit == unit_text,
-            ReviewQueueItem.status == "pending",
-        )
-        .first()
-    )
-    if existing is not None:
-        return ResolveResult(tier="tier3_pending", review_queue_id=existing.id, similar_kb_entries=similar)
-
-    item = ReviewQueueItem(
-        tenant_id=tenant_id,
-        device_id=device_id,
-        raw_unit=unit_text,
-        context=context,
-        candidate_mapping=(
-            {
-                "canonical_field": candidate.canonical_field,
-                "value": candidate.value,
-                "confidence": candidate.confidence,
-                "reasoning": candidate.reasoning,
-            }
-            if candidate is not None
-            else None
-        ),
-        similar_kb_entries=similar,
-        confidence=candidate.confidence if candidate is not None else None,
-        langfuse_trace_id=candidate.langfuse_trace_id if candidate is not None else None,
-        langfuse_observation_id=candidate.langfuse_observation_id if candidate is not None else None,
-        status="pending",
-    )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return ResolveResult(tier="tier3_pending", review_queue_id=item.id, similar_kb_entries=similar)
+    """Single-unit form of resolve_units (same tiers, same rules)."""
+    return resolve_units(db, [unit_text], vendor, device_id=device_id, tenant_id=tenant_id)[0]

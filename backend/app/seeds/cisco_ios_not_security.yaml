@@ -1,0 +1,42 @@
+# Deterministic "not a security setting" patterns for cisco_ios.
+#
+# On a real 81-line router config, ~60% of lines are structure the canonical
+# schema has no field for (interface headers, addressing, speed/duplex,
+# routes, boot markers). Sending each to the AI cost time and quota and then
+# flooded the review queue with lines a human had to dismiss one by one.
+# These resolve instantly as NOT_SECURITY: no AI call, no review item.
+#
+# Deliberately conservative: only lines that cannot affect any rule in
+# backend/app/rules/. Anything security-adjacent (control-plane, routing
+# protocol blocks, transport, logging, AAA, SNMP, NTP, ACLs, banners, lines)
+# is NOT listed and still goes through the normal tiers. A reviewer marking
+# a line "not security-relevant" adds more patterns like these, per vendor.
+
+vendor: cisco_ios
+entries:
+  - {syntax_pattern: '^interface \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^(no )?ip address( .*)?$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^(duplex|speed) \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^negotiation auto$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^encapsulation dot1Q \d+( native)?$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^(ip vrf( forwarding)?|vrf (definition|forwarding)) \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^ip nat (inside|outside)$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^hostname \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^version [\d.]+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^boot-(start|end)-marker$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^end$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^(Building configuration\.\.\.|Current configuration : \d+ bytes)$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^ip domain[ -]name \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^ip name-server [\d. ]+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^ip route [\d. ]+\S*$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^ip cef$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^spanning-tree (mode|extend) .*$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^redundancy$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^logging synchronous$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^license udi pid \S+ sn \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^(multilink bundle-name authenticated|subscriber templating|ip forward-protocol nd)$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^platform (console|punt-keepalive) .*$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^virtual-service \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^network [\d.]+ [\d.]+ area \d+$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^redistribute connected( subnets)?$', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^service timestamps (debug|log) .*$', pattern_type: regex, canonical_field: NOT_SECURITY}

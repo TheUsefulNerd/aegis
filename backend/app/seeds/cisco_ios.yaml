@@ -77,3 +77,30 @@ entries:
   - syntax_pattern: "no cdp run"
     canonical_field: SC.external_interface_cdp
     value: false
+
+  # SNMP communities, deterministically. After redaction a community is
+  # either literally "public"/"private" (left visible on purpose so CIS
+  # 1.5.2/1.5.3 can flag them) or a redaction placeholder. Added 2026-09-25
+  # after the live classifier returned the value "public RO" for
+  # `snmp-server community public RO` - which would have PASSED the
+  # "no default public community" check on a device that fails it.
+  - syntax_pattern: '^snmp-server community public( |$)'
+    pattern_type: regex
+    canonical_field: AC.snmp_community_strings
+    value: public
+  - syntax_pattern: '^snmp-server community private( |$)'
+    pattern_type: regex
+    canonical_field: AC.snmp_community_strings
+    value: private
+  - syntax_pattern: '^snmp-server community \[REDACTED:SNMP_COMMUNITY\]'
+    pattern_type: regex
+    canonical_field: AC.snmp_community_strings
+    value: "custom (redacted)"
+
+  # Named extended-ACL entries (the lines under `ip access-list extended
+  # NAME`), deterministically, like numbered ACL lines above. Without this
+  # the verdict of every ACL rule depended on which entries the AI happened
+  # to classify as ACL rules.
+  - syntax_pattern: '^(permit|deny) (ip|tcp|udp|icmp|\d+) '
+    pattern_type: regex
+    canonical_field: AC.acl_rules

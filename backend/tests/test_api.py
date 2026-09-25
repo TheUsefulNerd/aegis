@@ -121,7 +121,7 @@ def test_bulk_dismiss_only_touches_ai_not_security_items(client, monkeypatch):
     def fake(unit, *a, **k):
         if "orgpolicy" in unit:
             return None  # no suggestion at all
-        if "interface" in unit:
+        if unit.startswith("aaa"):
             return LLMCandidate("UNKNOWN", None, 0.9, "not a setting", "test", "test")
         return LLMCandidate("AU.logging_enabled", True, 0.3, "unsure", "test", "test")
     monkeypatch.setattr(llm_client, "classify", fake)
@@ -179,3 +179,38 @@ def test_acl_finding_source_is_the_deciding_line_not_the_first_entry(client, mon
     ev = client.post(f"/configs/{body['config_id']}/evaluate").json()
     acl = next(f for f in ev["findings"] if f["rule_id"] == "CIS-SUPPLEMENT-ACL-TELNET")
     assert acl["result"] == "FAIL" and acl["confidence_tier"] == "tier1"
+
+
+def test_structural_lines_never_reach_the_ai_or_the_queue(client, monkeypatch):
+    from app import llm_client
+    seen = []
+    monkeypatch.setattr(llm_client, "classify", lambda unit, *a, **k: seen.append(unit) or None)
+    body = _ingest(client, "04_cisco_csr1000v_edge_misconfigured.txt")
+    assert body["tier_counts"]["not_security"] >= 10
+    for line in ("interface GigabitEthernet1", "negotiation auto", "hostname CSR1", "ip route 0.0.0.0 0.0.0.0 GigabitEthernet1"):
+        assert line not in seen
+    queue = {i["raw_unit"] for i in client.get("/review-queue").json()}
+    assert "negotiation auto" not in queue
+    # Security-adjacent lines still go through the tiers.
+    assert "control-plane" in seen
+
+
+def test_not_relevant_decision_is_learned_for_the_next_device(client):
+    _ingest(client, "04_cisco_csr1000v_edge_misconfigured.txt")
+    item = next(i for i in client.get("/review-queue").json() if i["raw_unit"] == "aaa session-id common")
+    client.post(f"/review-queue/{item['id']}/reject", json={"reviewer_id": "t", "reason": "not_applicable"})
+    body = _ingest(client, "06_cisco_csr1000v_edge_remediated.txt")
+    queue = {i["raw_unit"] for i in client.get("/review-queue").json()}
+    assert "aaa session-id common" not in queue
+    assert body["tier_counts"]["not_security"] >= 1
+
+
+def test_blocked_attack_is_never_learned_as_not_security(client):
+    _ingest(client, "04_cisco_csr1000v_edge_misconfigured.txt")
+    blocked = next(i for i in client.get("/review-queue").json() if i["flag_type"] == "sanity_gate")
+    client.post(f"/review-queue/{blocked['id']}/reject", json={"reviewer_id": "t", "reason": "not_applicable"})
+    from app.models import KnowledgeBaseEntry
+    from app.db import get_db
+    from app.main import app
+    db = next(app.dependency_overrides[get_db]())
+    assert db.query(KnowledgeBaseEntry).filter_by(syntax_pattern=blocked["raw_unit"]).count() == 0

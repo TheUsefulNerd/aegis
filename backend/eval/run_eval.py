@@ -1,6 +1,7 @@
 """Score the live Tier-2 classifier against the golden set.
 
     cd backend && python -m eval.run_eval            # real LLM calls (needs .env keys)
+    cd backend && python -m eval.run_eval --batch    # same set through classify_batch (production path)
 
 Makes one real Groq/Gemini call per item - run it deliberately, not in CI.
 Reports the numbers architecture-document.md §9 asks for, with the one that
@@ -67,12 +68,20 @@ def score(item: dict, cand) -> dict:
 def main():
     with open(os.path.join(HERE, "golden_set.yaml"), encoding="utf-8") as f:
         items = yaml.safe_load(f)["items"]
+    batch = "--batch" in sys.argv
     rows = []
-    for item in items:
-        cand = llm_client.classify(item["unit"])
+    if batch:
+        t0 = time.time()
+        cands = llm_client.classify_batch([it["unit"] for it in items])
+        elapsed = round(time.time() - t0, 1)
+    else:
+        cands = []
+        for item in items:
+            cands.append(llm_client.classify(item["unit"]))
+            time.sleep(1.0)  # stay polite to free-tier rate limits
+    for item, cand in zip(items, cands):
         rows.append(score(item, cand))
         print(f"{rows[-1]['outcome']:16} {item['id']:9} {item['unit'][:55]!r} -> {rows[-1]['got']} {rows[-1]['got_value']!r}")
-        time.sleep(1.0)  # stay polite to free-tier rate limits
 
     pos = [r for r in rows if r["expected"] != "UNKNOWN"]
     neg = [r for r in rows if r["expected"] == "UNKNOWN"]
@@ -89,7 +98,9 @@ def main():
         "negatives_declined": round(n("correct_decline", neg) / len(neg), 3) if neg else None,
         "providers": sorted({r["provider"] for r in rows if r["provider"]}),
         "groq_model": llm_client.GROQ_MODEL, "gemini_model": llm_client.GEMINI_MODEL,
-        "prompt_version": llm_client.PROMPT_VERSION,
+        "mode": "batch" if batch else "single",
+        "prompt_version": llm_client.BATCH_PROMPT_VERSION if batch else llm_client.PROMPT_VERSION,
+        "seconds": elapsed if batch else None,
         "run_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
     }
     print(json.dumps(summary, indent=2))

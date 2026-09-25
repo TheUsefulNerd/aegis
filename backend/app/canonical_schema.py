@@ -164,6 +164,13 @@ FIELD_METADATA = {
     },
 }
 
+# Pseudo-field for KB patterns that mean "this line is not a security
+# setting". Deliberately NOT in FIELD_METADATA: the AI validator can never
+# emit it and the review-queue picker never offers it - it only comes from
+# the deterministic not-security seeds or a human's "not security-relevant"
+# decision.
+NOT_SECURITY = "NOT_SECURITY"
+
 # Back-compat: field -> value type, used by resolve.py / llm_client.py.
 CANONICAL_FIELDS = {field: meta["type"] for field, meta in FIELD_METADATA.items()}
 

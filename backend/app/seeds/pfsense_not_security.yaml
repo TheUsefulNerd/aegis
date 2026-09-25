@@ -1,0 +1,13 @@
+# Deterministic "not a security setting" patterns for pfSense config.xml
+# paths (see cisco_ios_not_security.yaml for the reasoning). Structure only:
+# versions, identity, addressing, cron. Web GUI, syslog, SNMP, users'
+# privileges, OpenVPN and filter rules all still go through the tiers.
+
+vendor: pfsense
+entries:
+  - {syntax_pattern: '^pfsense\.(version|lastchange)=', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^pfsense\.system\.(hostname|domain|timezone|optimization)=', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^pfsense\.interfaces\.\w+\.(if|ipaddr|subnet|descr|ipaddrv6|subnetv6)=', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^pfsense\.system\.group(\[\d+\])?\.(name|description|scope|gid)=', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^pfsense\.system\.user(\[\d+\])?\.(name|descr|scope|groupname|uid)=', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^pfsense\.cron\.', pattern_type: regex, canonical_field: NOT_SECURITY}

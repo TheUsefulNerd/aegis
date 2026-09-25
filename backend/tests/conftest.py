@@ -50,7 +50,13 @@ def offline(monkeypatch):
     """No test ever loads the embedding model or reaches an LLM unless it
     explicitly replaces `llm_client.classify` itself."""
     monkeypatch.setattr(resolve, "embed", _fake_embed)
+    monkeypatch.setattr(resolve, "embed_many", lambda texts: [_fake_embed(t) for t in texts])
     monkeypatch.setattr(llm_client, "classify", lambda *a, **k: None)
+    # The batch path delegates to whatever `classify` a test installed, so a
+    # test that fakes single-line answers exercises the real batch plumbing.
+    monkeypatch.setattr(llm_client, "classify_batch", lambda units, similar=None: [
+        llm_client.classify(u, "", s) for u, s in zip(units, similar or [[] for _ in units])
+    ])
 
 
 @pytest.fixture

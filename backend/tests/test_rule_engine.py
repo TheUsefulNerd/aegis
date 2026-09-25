@@ -124,3 +124,14 @@ def test_no_allow_rule_from_any_source_anywhere():
 def test_protocol_any_matches_every_protocol():
     pred = {"field": "AC.acl_rules", "match": {"protocol": "any", "port": None}, "want_action_if_matched": "deny"}
     assert evaluate("ordered-first-match", pred, {"AC.acl_rules": ["access-list 1 permit udp any any"]}).result == FAIL
+
+
+def test_source_specific_deny_does_not_answer_from_any_source():
+    # A deny for a few blacklisted hosts followed by permit-all still lets
+    # telnet in from everyone else.
+    pred = {"field": "AC.acl_rules", "match": {"protocol": "tcp", "port": 23, "source": "any"},
+            "want_action_if_matched": "deny"}
+    acl = ["deny   ip object-group BLACKBALLED any log", "permit ip any any"]
+    r = evaluate("ordered-first-match", pred, {"AC.acl_rules": acl})
+    assert r.result == FAIL and r.evidence["first_match"] == "permit ip any any"
+    assert evaluate("ordered-first-match", pred, {"AC.acl_rules": ["deny tcp any any eq 23", "permit ip any any"]}).result == PASS
