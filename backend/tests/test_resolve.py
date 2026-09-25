@@ -80,3 +80,12 @@ def test_regex_seed_resolves_any_numbered_acl_line_with_the_line_as_value(db):
 def test_reassembled_pfsense_rule_is_tier1(db):
     r = resolve.resolve_unit(db, "access-list pfsense-wan deny tcp any wanip eq 23", "pfsense")
     assert r.tier == "tier1" and r.value == "access-list pfsense-wan deny tcp any wanip eq 23"
+
+
+def test_cdp_disable_is_deterministic(db, monkeypatch):
+    # The live LLM once inverted this line; it must never reach Tier 2.
+    def _fail(*a, **k):
+        raise AssertionError("must be Tier 1")
+    monkeypatch.setattr(llm_client, "classify", _fail)
+    r = resolve.resolve_unit(db, "no cdp enable", "cisco_ios")
+    assert r.tier == "tier1" and r.value is False

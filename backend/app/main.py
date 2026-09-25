@@ -238,6 +238,30 @@ def _redaction_examples(unit_list: list[str], limit: int = 5) -> list[dict]:
     return out
 
 
+_TIER_STRENGTH = {"tier3_human_confirmed": 0, "tier2_accepted": 1, "tier1": 2}
+
+
+def _finding_tier(prov: dict, evidence: dict) -> str | None:
+    """How the setting behind a finding was decided. For a list field (e.g.
+    ACL rules) this is the tier of the entry that actually DECIDED the
+    verdict - the first-match line, or the offending lines - not whichever
+    entry happened to be appended first. Before this, a shadowed-ACL FAIL
+    decided by two deterministic Tier-1 lines was labeled "AI-classified"
+    because an unrelated AI-mapped line (`ip access-group 101 in`) was first
+    in the list."""
+    if prov.get("confidence_tier"):
+        return prov["confidence_tier"]
+    entries = prov.get("entries") or []
+    if not entries:
+        return None
+    deciding = [evidence.get("first_match")] if evidence.get("first_match") else evidence.get("offending_rules") or []
+    tiers = [e["confidence_tier"] for e in entries if e.get("source_unit") in deciding]
+    if not tiers:
+        tiers = [e["confidence_tier"] for e in entries]
+    # Several lines decided it: report the weakest evidence among them.
+    return min(tiers, key=lambda t: _TIER_STRENGTH.get(t, -1))
+
+
 def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None = None) -> dict:
     """Deterministic rule evaluation - architecture-document.md §3 step 6.
     No LLM involvement in producing PASS/FAIL/NOT_EVALUATED; every finding
@@ -268,11 +292,7 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
 
         field_name = rule.predicate.get("field") if isinstance(rule.predicate, dict) else None
         prov = (config.provenance or {}).get(field_name) if field_name else None
-        confidence_tier = None
-        if prov:
-            confidence_tier = prov.get("confidence_tier") or (
-                prov["entries"][0]["confidence_tier"] if prov.get("entries") else None
-            )
+        confidence_tier = _finding_tier(prov, eval_result.evidence) if prov else None
 
         remediation_text = remediation_source = None
         if eval_result.result == rule_engine.FAIL:

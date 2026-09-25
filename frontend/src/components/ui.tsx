@@ -122,7 +122,7 @@ export function Badge({
  * (findings table, PDF "Source" column, review queue) so a viewer only has
  * to learn this vocabulary once. */
 const SOURCE_META: Record<string, { icon: typeof Cpu; color: "emerald" | "indigo" | "amber"; label: string }> = {
-  tier1: { icon: Cpu, color: "emerald", label: "Deterministic" },
+  tier1: { icon: Cpu, color: "emerald", label: "Instantly recognized" },
   tier2_accepted: { icon: Sparkles, color: "indigo", label: "AI-classified" },
   tier3_human_confirmed: { icon: UserCheck, color: "amber", label: "Human-confirmed" },
 };

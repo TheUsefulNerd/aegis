@@ -160,3 +160,22 @@ def test_ai_guess_never_overwrites_a_deterministic_value(client, monkeypatch):
     ev = client.post(f"/configs/{body['config_id']}/evaluate?framework=CIS").json()
     cis_141 = next(f for f in ev["findings"] if f["rule_id"] == "CIS-1.4.1")
     assert cis_141["result"] == "PASS" and cis_141["confidence_tier"] == "tier1"
+
+
+def test_acl_finding_source_is_the_deciding_line_not_the_first_entry(client, monkeypatch):
+    # The shadowed ACL in 04 is decided by two Tier-1 lines; an unrelated
+    # AI-mapped line earlier in the list must not relabel it "AI-classified".
+    from app import llm_client
+    from app.llm_client import LLMCandidate
+
+    def fake(unit, *a, **k):
+        if unit.startswith("ip access-group"):
+            return LLMCandidate("AC.acl_rules", unit, 0.9, "r", "test", "test")
+        return None
+    monkeypatch.setattr(llm_client, "classify", fake)
+
+    body = _ingest(client, "04_cisco_csr1000v_edge_misconfigured.txt")
+    assert body["fields"]["AC.acl_rules"][0] == "ip access-group 101 in"
+    ev = client.post(f"/configs/{body['config_id']}/evaluate").json()
+    acl = next(f for f in ev["findings"] if f["rule_id"] == "CIS-SUPPLEMENT-ACL-TELNET")
+    assert acl["result"] == "FAIL" and acl["confidence_tier"] == "tier1"

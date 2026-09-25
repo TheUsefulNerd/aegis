@@ -66,3 +66,14 @@ entries:
   - syntax_pattern: '^access-list \d+ (permit|deny) '
     pattern_type: regex
     canonical_field: AC.acl_rules
+
+  # CDP disabled on an interface / globally. Added 2026-09-25 after the live
+  # Tier-2 classifier inverted this exact line on a real-config sample
+  # ("no cdp enable" -> SC.external_interface_cdp = true, a false STIG
+  # V-216675 FAIL). Common, unambiguous syntax belongs in Tier 1.
+  - syntax_pattern: "no cdp enable"
+    canonical_field: SC.external_interface_cdp
+    value: false
+  - syntax_pattern: "no cdp run"
+    canonical_field: SC.external_interface_cdp
+    value: false
