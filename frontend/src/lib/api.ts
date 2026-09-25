@@ -97,6 +97,15 @@ export async function rejectReviewItem(id: string, body: { reviewer_id: string; 
   return handle<{ review_queue_id: string; status: string }>(res);
 }
 
+export async function dismissNotSecurity(body: { reviewer_id: string; reviewer_notes?: string | null }) {
+  const res = await fetch(`${API_BASE}/review-queue/dismiss-not-security`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handle<{ dismissed: number }>(res);
+}
+
 export async function getStats(): Promise<Stats> {
   const res = await fetch(`${API_BASE}/stats`);
   return handle<Stats>(res);

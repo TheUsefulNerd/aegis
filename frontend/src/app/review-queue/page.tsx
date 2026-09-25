@@ -9,6 +9,7 @@ import {
   getCanonicalFields,
   listReviewQueue,
   rejectReviewItem,
+  dismissNotSecurity,
 } from "@/lib/api";
 import { CONTROL_FAMILY_LABELS } from "@/lib/copy";
 import {
@@ -32,6 +33,9 @@ export default function ReviewQueuePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [notSecurityOpen, setNotSecurityOpen] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
   const [toast, setToast] = useToast();
 
   useEffect(() => {
@@ -54,6 +58,30 @@ export default function ReviewQueuePage() {
     setToast({ type: "success", text: message });
   }
 
+  async function handleDismissAll() {
+    setDismissing(true);
+    try {
+      const { dismissed } = await dismissNotSecurity({ reviewer_id: REVIEWER_ID });
+      setItems((prev) => {
+        const next = prev.filter((i) => !isNotSecurity(i));
+        setSelectedId((current) => (next.some((i) => i.id === current) ? current : next[0]?.id ?? null));
+        return next;
+      });
+      setToast({ type: "success", text: `Dismissed ${dismissed} lines as not security-relevant.` });
+    } catch (e) {
+      setToast({ type: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setDismissing(false);
+    }
+  }
+
+  const q = query.trim().toLowerCase();
+  const visible = q ? items.filter((i) => i.raw_unit.toLowerCase().includes(q)) : items;
+  const needsAttention = visible.filter((i) => !isNotSecurity(i));
+  const notSecurity = visible.filter(isNotSecurity);
+  const notSecurityTotal = items.filter(isNotSecurity).length;
+  // While searching, show matches inside the low-priority group too.
+  const showNotSecurity = notSecurityOpen || q !== "";
   const selected = items.find((i) => i.id === selectedId) ?? null;
   const blockedCount = items.filter((i) => i.flag_type === "sanity_gate").length;
 
@@ -94,59 +122,59 @@ export default function ReviewQueuePage() {
 
       {!loading && items.length > 0 && (
         <div className="grid lg:grid-cols-[340px_1fr] gap-4 items-start">
-          <Panel className="divide-y divide-slate-200 overflow-hidden">
-            {items.map((item, i) => {
-              const blocked = item.flag_type === "sanity_gate";
-              const hasSuggestion = !!item.candidate_mapping && item.candidate_mapping.canonical_field !== "UNKNOWN";
-              const isSelected = item.id === selectedId;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedId(item.id)}
-                  className={`w-full text-left px-4 py-3 flex gap-3 transition-colors border-l-4 ${
-                    isSelected
-                      ? blocked
-                        ? "bg-rose-50 border-l-rose-600"
-                        : "bg-slate-100 border-l-slate-900"
-                      : blocked
-                      ? "bg-rose-50/50 border-l-rose-300 hover:bg-rose-50"
-                      : "border-l-transparent hover:bg-slate-50"
-                  }`}
-                >
-                  <span
-                    className={`shrink-0 mt-0.5 flex items-center justify-center size-5 rounded-full text-[11px] font-semibold ${
-                      blocked
-                        ? "bg-rose-600 text-white"
-                        : isSelected
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-200 text-slate-600"
-                    }`}
+          <div className="space-y-3">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search lines, e.g. orgpolicy"
+              className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+            />
+            <Panel className="divide-y divide-slate-200 overflow-hidden">
+              {needsAttention.length === 0 && (
+                <div className="px-4 py-3 text-xs text-slate-500">
+                  {q ? "No matching lines need attention." : "Nothing needs attention beyond the group below."}
+                </div>
+              )}
+              {needsAttention.map((item, i) => (
+                <QueueRow key={item.id} item={item} n={i + 1} selected={item.id === selectedId} onSelect={setSelectedId} />
+              ))}
+            </Panel>
+            {notSecurityTotal > 0 && (
+              <Panel className="overflow-hidden">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setNotSecurityOpen((o) => !o)}
+                    className="w-full flex items-center justify-between gap-2 text-left text-sm font-medium text-slate-700"
                   >
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-mono text-xs text-slate-700 truncate">{item.raw_unit}</div>
-                    <div className="mt-1.5 flex items-center gap-1.5 text-xs">
-                      {blocked ? (
-                        <span className="flex items-center gap-1 font-medium text-rose-700">
-                          <ShieldAlert className="size-3" /> Blocked: possible prompt injection
-                        </span>
-                      ) : hasSuggestion ? (
-                        <span className="flex items-center gap-1 text-indigo-600">
-                          <Sparkles className="size-3" /> AI suggestion
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">No suggestion</span>
-                      )}
-                      {item.device_hostname && (
-                        <span className="text-slate-400 truncate">· {item.device_hostname}</span>
-                      )}
-                    </div>
+                    <span>Probably not security settings ({q ? `${notSecurity.length} of ` : ""}{notSecurityTotal})</span>
+                    <span className="text-xs text-slate-400">{showNotSecurity ? "Hide" : "Show"}</span>
+                  </button>
+                  <p className="text-xs text-slate-500 mt-1">
+                    The AI judged these lines (interface names, routes, platform settings&hellip;) not security-relevant.
+                    Genuinely new syntax can land here too &mdash; search for it, or dismiss the rest in one step.
+                  </p>
+                  <Button variant="secondary" className="mt-2" disabled={dismissing} onClick={handleDismissAll}>
+                    {dismissing ? <Spinner className="size-4" /> : <X className="size-4" />}
+                    Dismiss all {notSecurityTotal} as not security-relevant
+                  </Button>
+                </div>
+                {showNotSecurity && (
+                  <div className="divide-y divide-slate-200 max-h-[420px] overflow-y-auto">
+                    {notSecurity.map((item, i) => (
+                      <QueueRow
+                        key={item.id}
+                        item={item}
+                        n={needsAttention.length + i + 1}
+                        selected={item.id === selectedId}
+                        onSelect={setSelectedId}
+                      />
+                    ))}
                   </div>
-                </button>
-              );
-            })}
-          </Panel>
+                )}
+              </Panel>
+            )}
+          </div>
 
           {selected && (
             <ReviewDetail
@@ -159,6 +187,66 @@ export default function ReviewQueuePage() {
         </div>
       )}
     </div>
+  );
+}
+
+function isNotSecurity(item: ReviewQueueItem): boolean {
+  return !item.flag_type && item.candidate_mapping?.canonical_field === "UNKNOWN";
+}
+
+function QueueRow({
+  item,
+  n,
+  selected,
+  onSelect,
+}: {
+  item: ReviewQueueItem;
+  n: number;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const blocked = item.flag_type === "sanity_gate";
+  const hasSuggestion = !!item.candidate_mapping && item.candidate_mapping.canonical_field !== "UNKNOWN";
+  return (
+    <button
+      onClick={() => onSelect(item.id)}
+      className={`w-full text-left px-4 py-3 flex gap-3 transition-colors border-l-4 ${
+        selected
+          ? blocked
+            ? "bg-rose-50 border-l-rose-600"
+            : "bg-slate-100 border-l-slate-900"
+          : blocked
+          ? "bg-rose-50/50 border-l-rose-300 hover:bg-rose-50"
+          : "border-l-transparent hover:bg-slate-50"
+      }`}
+    >
+      <span
+        className={`shrink-0 mt-0.5 flex items-center justify-center size-5 rounded-full text-[11px] font-semibold ${
+          blocked ? "bg-rose-600 text-white" : selected ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600"
+        }`}
+      >
+        {n}
+      </span>
+      <div className="min-w-0">
+        <div className="font-mono text-xs text-slate-700 truncate">{item.raw_unit}</div>
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+          {blocked ? (
+            <span className="flex items-center gap-1 font-medium text-rose-700">
+              <ShieldAlert className="size-3" /> Blocked: possible prompt injection
+            </span>
+          ) : hasSuggestion ? (
+            <span className="flex items-center gap-1 text-indigo-600">
+              <Sparkles className="size-3" /> AI suggestion
+            </span>
+          ) : item.candidate_mapping ? (
+            <span className="text-slate-400">AI: not a security setting</span>
+          ) : (
+            <span className="text-slate-400">No suggestion</span>
+          )}
+          {item.device_hostname && <span className="text-slate-400 truncate">· {item.device_hostname}</span>}
+        </div>
+      </div>
+    </button>
   );
 }
 

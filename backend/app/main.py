@@ -381,7 +381,7 @@ def list_review_queue(status: str = "pending", db: Session = Depends(get_db)):
     # Flagged items (a blocked injection attempt) first - they're a different
     # category of event from "the AI wasn't sure", not just another pending
     # line - then oldest first within each group.
-    items.sort(key=lambda i: (i.flag_type is None, i.created_at or dt.datetime.min))
+    items.sort(key=lambda i: (_queue_rank(i), i.created_at or dt.datetime.min))
     devices = {
         d.id: d
         for d in db.query(Device).filter(Device.id.in_({i.device_id for i in items if i.device_id})).all()
@@ -456,6 +456,45 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depend
         langfuse.flush()
 
     return {"kb_entry_id": entry.id, "review_queue_id": item.id, "status": "confirmed"}
+
+
+def _ai_says_not_security(item: ReviewQueueItem) -> bool:
+    return bool(item.candidate_mapping) and item.candidate_mapping.get("canonical_field") == "UNKNOWN"
+
+
+def _queue_rank(item: ReviewQueueItem) -> int:
+    """Blocked attacks, then real (low-confidence) AI suggestions, then lines
+    with no suggestion at all, then lines the AI judged not
+    security-relevant - on a fresh vendor that last group is most of the
+    queue (interface names, routes, `ip cef`), and it must not bury the
+    handful of items that need real attention."""
+    if item.flag_type:
+        return 0
+    if not item.candidate_mapping:
+        return 2
+    return 3 if _ai_says_not_security(item) else 1
+
+
+@app.post("/review-queue/dismiss-not-security")
+def dismiss_not_security(body: RejectMapping, db: Session = Depends(get_db)):
+    """One reviewer action for the bulk of a new vendor's queue: every
+    pending line the AI judged not security-relevant is rejected as
+    not-applicable. Each item still records WHO dismissed it and that it was
+    judged not security-relevant, so nothing becomes silent. Never touches
+    blocked (sanity-gate) items or items with a real suggestion."""
+    items = [
+        i for i in db.query(ReviewQueueItem).filter(ReviewQueueItem.status == "pending").all()
+        if not i.flag_type and _ai_says_not_security(i)
+    ]
+    now = dt.datetime.utcnow()
+    for item in items:
+        item.status = "rejected"
+        item.reviewer_id = body.reviewer_id
+        item.is_security_relevant = False
+        item.reviewer_notes = body.reviewer_notes or "Bulk-dismissed: AI judged not security-relevant; reviewer agreed."
+        item.resolved_at = now
+    db.commit()
+    return {"dismissed": len(items)}
 
 
 @app.post("/review-queue/{item_id}/reject")

@@ -112,3 +112,32 @@ def test_pdf_report_renders(client):
 
 def test_unknown_config_404s(client):
     assert client.post("/configs/does-not-exist/evaluate").status_code == 404
+
+
+def test_bulk_dismiss_only_touches_ai_not_security_items(client, monkeypatch):
+    from app import llm_client
+    from app.llm_client import LLMCandidate
+
+    def fake(unit, *a, **k):
+        if "orgpolicy" in unit:
+            return None  # no suggestion at all
+        if "interface" in unit:
+            return LLMCandidate("UNKNOWN", None, 0.9, "not a setting", "test", "test")
+        return LLMCandidate("AU.logging_enabled", True, 0.3, "unsure", "test", "test")
+    monkeypatch.setattr(llm_client, "classify", fake)
+
+    _ingest(client, "04_cisco_csr1000v_edge_misconfigured.txt")
+    queue = client.get("/review-queue").json()
+    kinds = []
+    for i in queue:
+        cm = i["candidate_mapping"]
+        kinds.append(0 if i["flag_type"] else 2 if not cm else 3 if cm["canonical_field"] == "UNKNOWN" else 1)
+    assert kinds == sorted(kinds)  # attacks, suggestions, no-suggestion, not-security
+
+    unknown = sum(k == 3 for k in kinds)
+    res = client.post("/review-queue/dismiss-not-security", json={"reviewer_id": "test"})
+    assert res.json()["dismissed"] == unknown > 0
+    left = client.get("/review-queue").json()
+    assert len(left) == len(queue) - unknown
+    assert any(i["flag_type"] == "sanity_gate" for i in left)
+    assert any("orgpolicy" in i["raw_unit"] for i in left)
