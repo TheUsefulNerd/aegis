@@ -1,86 +1,71 @@
-%% Full detailed pipeline — companion diagram to architecture-document.md.
-%% This is the "big" architecture diagram (for the 2-page doc / your own
-%% understanding), NOT the simplified one used on the PPT slide — that one is
-%% documents/idea-ppt/technical-approach-diagram.mmd and deliberately drops
-%% most of this detail for a 3-second read. Read architecture-document.md
-%% section 3 alongside this; the numbers below match that section's steps.
+%% AEGIS pipeline as BUILT (updated 2026-09-25). Companion to
+%% architecture-document-2page.md; step numbers match that document.
+%% Dashed grey boxes are designed-not-built roadmap items, shown so the
+%% diagram never implies more than exists.
 
 flowchart TD
 
-    F0[/"Config file(s) — single or bulk upload<br/>CLI text OR structured JSON/YAML"/]
+    F0[/"Config file(s) - single or bulk upload<br/>CLI text / XML / JSON, any vendor"/]
 
-    F0 --> S1["1. Input-sanity gate<br/>reject non-config junk before it burns quota"]
+    F0 --> S1["1. Redaction pass (runs first)<br/>typed placeholders for passwords, hashes, SNMP,<br/>PSKs, RADIUS/TACACS+, routing keys, XML/JSON secrets<br/>originals never stored or sent to an AI"]
 
-    S1 --> S2["2. Redaction pass<br/>regex secret-shapes + entropy fallback<br/>raw original stored encrypted-at-rest"]
+    S1 --> S2A["2a. Fingerprint<br/>vendor + format + confidence<br/>unknown vendor = still processed"]
+    S1 --> S2B["2b. Device identity<br/>hostname / model / serial / firmware"]
 
-    S2 --> S3A["3a. Fingerprint vendor + version<br/>signature match, then embedding fallback"]
-    S2 --> S3B["3b. Device-ID extraction<br/>(parallel, always runs)"]
+    S2A --> SPLIT["Split into units<br/>CLI lines / XML paths / JSON paths"]
 
-    S3A --> S3C["3c. Structured-config normalizer<br/>(JSON/YAML sources only)<br/>flattens but preserves cross-references"]
+    SPLIT --> GATE{"3. Input-sanity gate<br/>text shaped like an instruction to an AI?"}
+    GATE -- "yes: blocked BEFORE any LLM call" --> Q
 
-    S3C --> S35["3.5 Cross-reference / linking stage<br/>joins controls split by NAME not proximity<br/>(AAA method-lists, policy names, SG-to-SG refs)"]
+    GATE -- "no" --> KB{{"4. resolve_unit - ONE function, ONE knowledge base"}}
 
-    S35 --> KB{{"4. resolve_unit(unit, vendor_context)<br/>ONE function, ONE knowledge base"}}
+    KB -- "Tier 1: exact / regex KB match<br/>instant, deterministic" --> NORM
+    KB -- "no match" --> LLM["Tier 2: LLM (Groq, Gemini fallback)<br/>proposes field + value + confidence<br/>validated: known field, confidence 0-1,<br/>value type matches field kind"]
+    LLM -- "valid and confidence >= 0.6" --> NORM
+    LLM -- "rejected / low confidence / unavailable" --> Q
 
-    KB -- "Tier 1: similarity &ge; 0.85<br/>cache hit, auto-mapped" --> NORM
-    KB -- "Tier 2: 0.4&ndash;0.85<br/>LLM proposes mapping + reasoning" --> LLM
-    KB -- "Tier 3: &lt; 0.4 or human-rejected<br/>review queue" --> LLM
+    Q[["Tier 3: Review queue<br/>blocked attacks flagged red, sorted first<br/>reviewer confirms field + value<br/>+ security-relevant? + auditor notes"]]
+    Q -- "confirmation = new Tier-1 pattern<br/>(no redeploy)" --> KBW[("Knowledge base<br/>per vendor, provenance-tracked")]
+    KBW -. "next device: instant Tier-1 hit" .-> KB
 
-    LLM["LLM candidate: field, value,<br/>confidence, reasoning<br/>(model/prompt version recorded)<br/>schema-validated — malformed/<br/>hallucinated output or provider<br/>outage routes to Tier 3, never crashes"] --> HITL
+    NORM["5. Canonical Security Baseline Model<br/>NIST 800-53 families AC / AU / IA / SC / CM<br/>per-field provenance (KB entry, tier, source line)"]
+    S2B --> RPT
 
-    HITL(("Human confirms, corrects,<br/>or rejects (reviewer role)")) --> KBW
+    NORM --> RULE["6. Deterministic rule engine (no LLM)<br/>39 cited rules: CIS / NIST / STIG / ISO<br/>6 predicate types incl. ordered first-match ACL<br/>vendor-specific benchmarks scoped to their vendor"]
 
-    KBW[("Knowledge Base<br/>append-only, versioned, tenant-scoped<br/>+ periodic spot-recheck of Tier-1 entries")]
+    RULE --> VERDICT{"Finding"}
+    VERDICT -->|"setting found"| PF["PASS / FAIL + severity"]
+    VERDICT -->|"setting never mentioned"| NE["NOT_EVALUATED<br/>(never a silent PASS)"]
 
-    KBW -. "same store — Tier 1 and Tier 2/3<br/>both read AND write here" .-> KB
+    PF --> REM["7. Remediation<br/>vetted per-vendor templates only<br/>never AI-generated"]
+    NE --> RPT
+    REM --> RPT["8. Per-device PDF<br/>device ID + executive summary + legend<br/>findings most-urgent first + source of each decision"]
 
-    NORM["5. Normalize &rarr; Canonical Security Baseline Model<br/>NIST 800-53 control-family backbone<br/>scalar + list-valued fields<br/>parse_coverage_pct BY SEVERITY<br/>full field-level provenance"]
-    S3B --> NORM
+    OBS[["Langfuse: every LLM call traced,<br/>human decision scored on the same trace"]]
+    LLM -.-> OBS
+    Q -.-> OBS
 
-    NORM --> FSEL["User selects framework(s)<br/>CIS / STIG / NIST 800-53 / ISO"]
+    XREF["Roadmap: cross-reference stage<br/>(join settings split across lines by name)"]
+    XREF -.- SPLIT
 
-    FSEL --> RULE["6. Rule engine (deterministic, no LLM)<br/>6 predicate types incl. ORDERED/first-match<br/>for ACL &amp; security-group precedence<br/>versioned rule files per framework"]
-
-    RULE --> VERDICT{"Finding.result"}
-    VERDICT -->|"required field resolved"| PF["PASS / FAIL"]
-    VERDICT -->|"required field never resolved"| NE["NOT_EVALUATED<br/>(fail-closed — never a silent PASS)"]
-
-    PF --> SNAP["Evaluation snapshot pinned:<br/>rule_version, kb_entry_version, timestamp<br/>+ framework-version drift flag if standard revised"]
-    NE --> SNAP
-
-    SNAP --> REM["7. Remediation<br/>KB-template lookup ONLY, keyed (vendor, rule_id)<br/>deliberately NOT LLM-drafted this build<br/>&#40;highest prompt-injection-risk surface&#41;<br/>no template on file &rarr; 'no remediation available,'<br/>never improvised"]
-
-    REM --> RPT["8. Per-device PDF report<br/>'AEGIS VERIFIED OUTPUT' banner: report id + generated-at<br/>&#40;no hash-chained audit log yet - roadmap, not built&#41;<br/>pass/fail/not_evaluated + severity + remediation<br/>+ evidence (source unit + KB provenance)<br/>+ confidence tier / review-status per finding<br/>+ device ID + parse coverage by severity"]
-
-    RPT --> ROLLUP["Batch summary rolls up every device in the upload"]
-
-    ROLLUP --> OUT[/"PDF report(s)"/]
-
-    OBS1[["Langfuse<br/>traces every LLM call + human score<br/>golden-set dataset evals, versioned by prompt/model"]]
-    OBS2[["Plain stats page for this build &#40;Prometheus + Grafana is the<br/>stated production target&#41;<br/>tier distribution &middot; parse coverage by severity<br/>review-queue age &middot; NOT_EVALUATED trend &middot; spot-recheck rate"]]
-    LLM -.-> OBS1
-    HITL -.-> OBS1
-    KB -.-> OBS2
-    RULE -.-> OBS2
-    REM -.-> OBS2
-
-    classDef gate fill:#595959,stroke:#333,color:#fff
     classDef redact fill:#4BACC6,stroke:#2f8a9e,color:#fff
+    classDef gate fill:#C0504D,stroke:#8f3a36,color:#fff
     classDef resolve fill:#8064A2,stroke:#5f4a7d,color:#fff
     classDef norm fill:#4F81BD,stroke:#2f5c8a,color:#fff
     classDef rule fill:#1F497D,stroke:#12305a,color:#fff
     classDef remediate fill:#F79646,stroke:#c9761c,color:#fff
     classDef report fill:#9BBB59,stroke:#77953f,color:#fff
-    classDef fail fill:#C0504D,stroke:#8f3a36,color:#fff
-
-    class S1 gate
-    class S2,S3A,S3B,S3C,S35 redact
-    class LLM,HITL resolve
-    class NORM,FSEL norm
-    class RULE,VERDICT rule
-    class REM remediate
-    class RPT,ROLLUP,OUT report
-    class NE fail
-    class OBS1,OBS2 obs
-
+    classDef unknown fill:#7F7F7F,stroke:#595959,color:#fff
     classDef obs fill:#F2F2F2,stroke:#999,color:#333,stroke-dasharray: 4 3
+    classDef roadmap fill:#FFFFFF,stroke:#999,color:#777,stroke-dasharray: 4 3
+
+    class S1,S2A,S2B,SPLIT redact
+    class GATE gate
+    class KB,LLM,Q,KBW resolve
+    class NORM norm
+    class RULE,VERDICT,PF rule
+    class NE unknown
+    class REM remediate
+    class RPT report
+    class OBS obs
+    class XREF roadmap

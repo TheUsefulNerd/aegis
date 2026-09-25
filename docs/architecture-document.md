@@ -1,19 +1,49 @@
-# Sentra — Architecture (canonical, current — full engineering reference)
+# AEGIS — Architecture (full engineering reference)
 
-**This is the full reference — read it top to bottom before touching the
-diagram** (the diagram is a simplified *view* of what's written here, not the
-other way around). It supersedes the original version of this document and
-`architecture-draft-v3-for-review.md` (folded in and removed). Two companion
-files live alongside it in this folder:
-- `architecture-document-2page.md` — the condensed submission artifact. This
-  file is the internal reference; that one is what gets formatted and
-  submitted.
-- `team-task-assignments.md` — who is building what, by which day.
+**This is the full reference.** It is written as a design document: it
+describes both what is built and what is intentionally designed-but-deferred,
+often in the same section. **§0 below is the authoritative list of which is
+which** — read it before citing anything later in this document as a current
+capability. Companion files in this folder:
+- `architecture-document-2page.md` — the condensed submission document,
+  describing only what is built.
+- `architecture-v2.mmd` / `architecture-v2.png` — the as-built pipeline
+  diagram.
+- `problem-statement.md` — the NTRO problem statement this answers.
 
-**Sentra** is the working product name for an AI-augmented, vendor-agnostic
-network device compliance engine, built against the NTRO problem statement in
-`problem-statement.md` in this same folder. If you haven't read that file
-recently, read it first — this document assumes it.
+**AEGIS** (Automated Evaluation & Governance for Infrastructure Security;
+working name "Sentra" during early design, which is why the database file is
+still `sentra.db`) is an AI-augmented, vendor-agnostic network device
+compliance engine.
+
+---
+
+## 0. Build status (as of 2026-09-25)
+
+| Capability | Status |
+|---|---|
+| Redaction before any AI call (11 secret types: enable/user hashes, type-7 and plain passwords, SNMP communities, SNMPv3 keys, PSKs, RADIUS/TACACS+ keys, routing keys, XML/JSON secret fields) | **Built**, regex-based. Originals are never stored anywhere. |
+| Entropy-based redaction fallback | Designed, **not built** (disclosed residual risk, §10) |
+| Input-sanity gate (prompt-injection pre-filter, before any LLM call; flagged items shown distinctly in the review queue) | **Built** |
+| Reject non-config files outright at upload | Not built; unrecognized input is processed as an unknown vendor instead |
+| Fingerprint (signature-based) + device identity extraction | **Built**; embedding-based fingerprint fallback not built |
+| Tier 1 exact/regex KB match → Tier 2 LLM (schema + value-type validated) → Tier 3 review queue with KB write-back | **Built** |
+| Review queue: control-family-grouped picker, confirmation step, auditor judgment (security-relevant + notes) | **Built** |
+| Cross-reference / linking stage (§3.5) | Designed, **not built** |
+| Canonical model on NIST 800-53 families with per-field provenance | **Built** |
+| Rule engine: 6 predicate types incl. ordered first-match; vendor-scoped benchmarks; 39 cited rules across CIS / NIST / STIG / ISO | **Built** |
+| Remediation from vetted per-vendor templates | **Built** (Cisco IOS, pfSense; SONiC has none yet). LLM-drafted remediation deliberately **not built** |
+| Per-device PDF (executive summary, legend, severity-sorted findings, source of each decision) | **Built** |
+| Single and bulk upload | **Built** (bulk = sequential, client-driven) |
+| Langfuse tracing of LLM calls + human decision scored on the trace | **Built** |
+| Automated tests + CI | **Built** — 133 offline tests, GitHub Actions |
+| SQLite | Current DB. Postgres + pgvector is the production path, **not started** |
+| Prometheus/Grafana | **Not built** — a plain `/stats` endpoint + Insights page instead |
+| RBAC, multi-tenant enforcement | **Not built** — `tenant_id` / `reviewer_id` recorded, not enforced |
+| Tier-1 spot-recheck sampling, framework-version drift re-evaluation | Designed, **not built** |
+| Tamper-evident hash-chained audit log | **Dropped from the roadmap** (see §4) |
+| Job queue, LLM rate limiting, live device polling (Netmiko) | **Not built** |
+| Golden-set precision/recall measurement (§9) | Methodology defined; **no measured numbers are claimed** |
 
 ---
 
@@ -36,11 +66,12 @@ in service of keeping this true.
 | Backend | FastAPI (async) | I/O-bound LLM/embedding calls benefit from async; typed models reduce integration bugs under time pressure |
 | Frontend | Next.js + Tailwind | |
 | DB | **SQLite for the Sept 16 demo build**; PostgreSQL is the stated production choice | zero-setup now, relational integrity either way — a finding references a rule, a device, a KB entry; not worth the setup time this week |
-| Vector store | **Brute-force cosine similarity in Python for the demo** (KB is a few hundred rows — trivial at this scale); Chroma/pgvector is the stated production choice | standing up Chroma is infra time with no demo-visible payoff at this size; the interface is the same either way, so this is a config change later, not a rearchitecture |
+| Vector store | **Brute-force cosine similarity in Python for this build** (KB is a few hundred rows — trivial at this scale), used only as supporting context for Tier 2/3, scoped to the device's vendor; pgvector inside the same Postgres is the production choice | a separate vector DB is infra time with no payoff at this size; the interface is the same either way, so this is a config change later, not a rearchitecture |
 | Embeddings | `sentence-transformers` `all-MiniLM-L6-v2` (local, free) | **Spike-tested Sept 13** (`spike/embedding_spike.py`): reliable for near-identical/lexical-variant matching, NOT reliable for cross-paradigm (CLI-prose vs. JSON-key-path) semantic equivalence — separation was negative on that specific case. Demoted from Tier-1 gate to a supporting signal (§3, step 4); Tier 1 is exact/structural matching instead. |
 | LLM | Groq `qwen/qwen3.8-27b` primary, Gemini `gemini-2.5-flash` fallback | free-tier, abstracted behind one interface so a real deployment swaps in self-hosted Ollama without touching calling code (see §4, redaction). **Verified live Sept 13** with real API keys — the original picks (`llama-3.3-70b-versatile`, `gemini-2.0-flash`) were both decommissioned earlier in 2026 and would have failed outright; `openai/gpt-oss-120b` was also tested but is a reasoning model needing a much larger token budget, so `qwen3.8-27b` was chosen for speed and free-tier quota efficiency instead. Re-verify before the grand finale — `gemini-2.5-flash` itself is slated to retire ~Oct 16 2026. |
 | PDF | ReportLab (programmatic, pure Python) | **Changed Sept 14** — WeasyPrint requires GTK3/Pango system libraries that failed to load on the dev machine (`libgobject-2.0-0` not found) and aren't guaranteed present on the actual demo machine either; not a risk worth carrying this close to the deadline. ReportLab has zero external system dependencies and is the brief's own named alternative ("ReportLab or FPDF"). |
-| Parsing helper | `ciscoconfparse2` for hierarchical dissection on seeded vendors | speeds up Tier-1 seeding. Honest caveat: its structured output still has to be reconciled into the KB's flat/embedding-based resolution — that reconciliation is real, incremental code and test surface, even though the KB lookup underneath stays unified. "Not a second parser" is true of the resolution logic; it isn't zero-cost integration work. |
+| Parsing helper | None. `ciscoconfparse2` was considered and not adopted | units are plain CLI lines / flattened XML and JSON paths (`units.py`), so there is genuinely one resolution path for every vendor. Hierarchy-aware parsing belongs in the cross-reference stage (§3.5) when it's built. |
+| Testing | pytest (133 offline tests) + GitHub Actions CI | keys blanked, LLM and embedder mocked, in-memory DB — CI needs no secrets and can't spend API quota |
 | LLM observability | Langfuse (cloud free tier — a few lines of decorator code, not infra to stand up) | traces every Tier-2/3 LLM call (prompt → completion → latency/cost), and — the actual reason it's here — lets the human confirm/reject decision in the review queue attach as a score on that exact trace, which is most of our audit trail for free instead of hand-built. Cheap enough to keep even for the Sept 16 demo. |
 | Pipeline observability | **A plain Next.js stats page, direct SQL queries, for the Sept 16 demo**; Prometheus + Grafana is the stated production choice | same numbers either way (tier distribution, parse coverage, queue depth — see §5) — Prometheus/Grafana is real infra setup with no demo-visible difference in the numbers shown, so it's deferred, not the stats themselves |
 
@@ -60,26 +91,35 @@ Upload (single/bulk: raw CLI text OR structured JSON/YAML — AWS Security
         Groups, Azure NSGs, SONiC config_db.json)
         │
         ▼
-1. INPUT-SANITY GATE (runs before anything else)
-   Reject files that don't look like a device config at all before they can
-   burn free-tier LLM quota or reach a human reviewer's screen. Anything that
-   does proceed and is later rendered raw in the review-queue UI (§3.5) is
-   sanitized against markdown/script injection — a crafted "banner" is
-   attacker-controlled text landing in a browser, not trusted content.
+1. INPUT-SANITY GATE
+   AS BUILT (2026-09-17): runs per unit, after redaction and splitting and
+   before resolve_unit. Any unit shaped like an instruction to an AI
+   classifier ("ignore previous instructions", "respond only with", the
+   classifier's own `"canonical_field":` output format, ...) is quarantined
+   straight to the review queue and flagged `sanity_gate`, so the LLM never
+   sees it. Built after a real attack was demonstrated: a pfSense rule
+   description fabricated an `AC.telnet_enabled: true` finding via Tier 2.
+   Deliberately a deterministic pattern check, not another LLM call (which
+   would share the injection surface). NOT built: rejecting whole non-config
+   files up front. Review-queue text is rendered by React as plain text, never
+   as HTML, so a crafted banner can't inject markup into the reviewer's page.
         │
         ▼
 2. REDACTION PASS
    - Regex-scrub known secret shapes: Cisco type-7/type-5 passwords (type-7
      is reversible XOR, not a hash), SNMP community strings, IPsec/VPN
      pre-shared keys, RADIUS/TACACS+ shared secrets, embedded certs/keys.
-   - PLUS an entropy-based fallback check for high-entropy strings that don't
-     match a known shape (vendor-specific hashes, base64 blobs, cloud IAM
-     keys in flattened JSON) — the enumerated regex list alone only catches
-     secret shapes we thought to write a pattern for; entropy scoring catches
-     the ones we didn't anticipate. "Redacted" is reported as a guarantee
-     only because of this second layer, not despite skipping it.
-   - Raw original stored encrypted-at-rest; everything downstream (KB
-     lookups, LLM calls) operates ONLY on the redacted view.
+   - AS BUILT: 11 regex rule types covering the common credential shapes of
+     the supported vendors (see `redaction.py` and `tests/test_redaction.py`).
+     The type digit is kept visible (`key 7 [REDACTED:AAA_KEY]`) because
+     compliance rules need it; only the secret is replaced.
+   - DESIGNED, NOT BUILT: an entropy-based fallback for high-entropy strings
+     that match no known shape (vendor-specific hashes, base64 blobs, cloud
+     IAM keys). Until it exists, redaction is best-effort over known shapes,
+     never presented as a guarantee (§10).
+   - The raw original is NEVER stored: it exists only in memory for the
+     duration of one `/ingest` request. Everything downstream (KB lookups,
+     LLM calls, the review queue, the database) sees only the redacted view.
    - Groq/Gemini free tier is a hackathon stand-in; a real deployment (e.g.
      for NTRO) runs a self-hosted model (Ollama/vLLM) inside the customer's
      perimeter. Worth being explicit that even with redaction, Tier-2/3 still
@@ -258,8 +298,10 @@ Upload (single/bulk: raw CLI text OR structured JSON/YAML — AWS Security
         │
         ▼
 7. REMEDIATION ENGINE
-   - KB template lookup first (vendor, rule_id). If absent, LLM drafts a
-     candidate, conditioned on the vendor's known syntax family.
+   - KB template lookup (vendor, rule_id). AS BUILT this is the ONLY source;
+     with no template on file the report says so instead of improvising.
+     DESIGNED, NOT BUILT: an LLM-drafted candidate, conditioned on the
+     vendor's known syntax family, gated as below.
    - EVERY LLM-drafted remediation is gated behind human confirmation before
      it appears in a report or is persisted as a reusable template — the
      highest-consequence trust boundary in the system, since a wrong CLI
@@ -311,20 +353,26 @@ Upload (single/bulk: raw CLI text OR structured JSON/YAML — AWS Security
 - KB entries are **append-only and versioned**, never mutated in place — a
   bad or malicious confirmation can be diffed against history and rolled
   back.
-- **Spot-recheck sampling has a concrete rule, not a vague "periodically":**
+- **Reviewer judgment is recorded, not just the mapping (built 2026-09-25).**
+  A Tier-3 confirmation stores whether the reviewer judged the line
+  security-relevant, plus free-text auditor notes, on both the review record
+  and the resulting KB entry — so "which learned patterns did a human
+  explicitly judge relevant, and why" is answerable later, separately from
+  *how* a mapping was decided.
+- **(Designed, not built.) Spot-recheck sampling has a concrete rule, not a vague "periodically":**
   a fixed percentage (e.g. 5%) of Tier-1 auto-applied mappings per
   vendor per month are re-surfaced to a reviewer, with sample size weighted
   toward higher-severity control families first. Tier-1 bypasses human review
   by design (that's what makes it fast); this is the mechanism that bounds
   how long a bad auto-applied mapping can go undetected, since nothing else
   in the pipeline would ever re-examine it.
-- **Tamper-evident audit log via hash-chaining, deliberately NOT blockchain.**
-  Blockchain/DLT earns its cost when multiple mutually-distrusting parties
-  need shared consensus over a ledger; this is one organization's own audit
-  trail, so hash-chaining gets the same "provably not silently edited"
-  property without the infra/consensus overhead. A hash chain guards against
-  edits, not wholesale deletion/replacement by a privileged insider — an
-  honest limitation, not claimed as solved.
+- **Tamper-evident audit log: dropped from the roadmap (2026-09-22).** Its
+  threat model — a privileged insider editing their own organization's audit
+  trail — is not what this buyer's compliance review is about (coverage and
+  correctness are), and a real version (external anchoring, WORM storage) is
+  multi-day work for a property nobody has asked for. If a requirement for
+  tamper-evidence appears, the cheap version (a rolling hash column on
+  `Finding` / `KnowledgeBaseEntry` writes) is an afternoon's work.
 
 ---
 
@@ -480,8 +528,8 @@ with code already built on the old assumption.
   in-control rather than caught out.
 - Fingerprinting: signature/banner match only (no embedding-based file-level
   fallback yet).
-- The full tiered resolve pipeline for real: Tier 1 brute-force cosine
-  similarity in Python, Tier 2 Groq/Gemini with the schema-validation +
+- The full tiered resolve pipeline for real: Tier 1 exact/regex KB match
+  (brute-force cosine similarity only as supporting context), Tier 2 Groq/Gemini with the schema-validation +
   auto-fallback-to-Tier-3 hardening (§3, step 4) actually wired, Tier 3 a
   real working review-queue UI — this is the differentiator and the last
   thing to cut if the schedule slips, not the first.
@@ -598,17 +646,21 @@ presented as a measured result that wasn't actually measured.
 - **Remediation auto-generation is the highest-risk component** and is
   deliberately the most gated — never auto-applied, always human-confirmed,
   always disclaimed.
-- **A hash-chained audit log guards against edits, not deletion/replacement
-  by a privileged insider**, absent an external anchor — a real limitation
-  of the chosen approach, not hidden. Stated phase-2 answer, not just a
-  disclosed gap: periodically anchor the chain's current root hash to an
-  external, independently-controlled store (e.g. a checkpoint committed
-  somewhere the insider doesn't have write access) or move the log itself to
-  WORM storage — either closes the "insider deletes and rebuilds a clean
-  chain" hole without needing a distributed ledger.
-- **Redaction is regex-plus-entropy, not a formal guarantee.** It will still
-  miss secret shapes neither layer anticipates. Stated as a residual risk,
-  not closed to zero.
+- **Redaction is regex-only in this build, not a formal guarantee.** It
+  covers the common credential shapes of the supported vendors (each one has
+  a regression test) and will miss shapes nobody wrote a pattern for — e.g. a
+  Juniper `encrypted-password "$6$..."` with no recognizable keyword, kept as
+  a deliberate, tested demo of the gap. The entropy fallback is the stated
+  next layer. Building the real-config demo set (2026-09-25) found and fixed
+  a worse class of bug here — secrets that were *counted* as redacted while
+  the value stayed in place (the type digit got replaced instead) — which is
+  why every redaction test now asserts the secret is absent from the output,
+  not just that a hit was reported.
+- **pfSense configs lose empty flag elements** (`<any/>`, `<log/>`,
+  `<enable/>`) during XML flattening, so "source any" and rule-logging
+  settings are invisible today. Fixing it properly belongs with the
+  cross-reference stage, since pfSense filter rules are also split across
+  sibling elements.
 - **Observed Sept 14, not a code bug**: Groq per-call latency for the same
   model/prompt varied from ~0.5s to ~5.5s across one afternoon of repeated
   testing (checked via Langfuse trace latencies directly, not guessed) —
@@ -657,11 +709,10 @@ architecture:
 - **Be precise about what "regex-based redaction" means on stage**: regex +
   entropy fallback is the production target; the demo runs regex-only. Say
   the distinction, don't let "redaction" stand in unqualified.
-- **Be precise about which date maps to which deliverable**: PPT due the
-  15th, presented the 16th, internal hackathon the 17th, SIH portal
-  submission the 18th. Say explicitly what's demoed *live/recorded* on the
-  16th versus what's still slide-only at that checkpoint, so there's no
-  ambiguity about what's actually running yet.
+- **Say what's recorded versus live**: the demo video is a recording of the
+  real system on the sample set in `samples/sample_input_config_files/`;
+  anything on a slide that isn't in §0's "Built" rows is roadmap, and should
+  be called that.
 - **Rehearse the primary SONiC recorded-demo segment at least once before
   the 16th** — and say plainly on stage that it's a recording, not an
   implied-live attempt with a recording as quiet insurance. Those are two

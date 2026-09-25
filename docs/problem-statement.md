@@ -52,11 +52,3 @@ When a configuration file is ingested, the AI-based engine will:
 - Technical Presentation (Max 5 Slides)
 
 **Dataset Link**: nciipc.gov.in, helpdesk1@nciipc.gov.in — CIS Benchmarks, NIST SP 800-53, DISA STIGs, ISO/IEC 27001; vendor-specific CLI configuration samples.
-
----
-
-## Team constraints (context for feasibility review)
-- Team of 6: 1 cybersecurity specialist, 5 with strong AI engineering / SWE experience; team lead (the user) has the most experience and the only Claude Code access.
-- Only free-tier LLM APIs available: Groq and Gemini (no paid API budget).
-- Timeline: today is 2026-09-10. Internal-hackathon PPT due 2026-09-15, presented internally 2026-09-16, internal hackathon (build sprint) 2026-09-17, submit to SIH portal 2026-09-18.
-- The 4 non-lead SWE/AI teammates do not have Claude Code access and cannot build at the same velocity as the team lead; the lead + Claude will build the base application, and other teammates work in parallel on non-blocking tracks (rule authoring, sample config sourcing, golden-set labeling, PPT visuals/research, demo video/architecture doc drafting).
