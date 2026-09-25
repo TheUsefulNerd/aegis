@@ -40,8 +40,8 @@
   <rect x="467" y="32" width="105" height="66" rx="8" fill="#4F81BD"/>
   <text class="t" x="519" y="58">Units</text><text class="s" x="519" y="75">lines / paths; ACL</text><text class="s" x="519" y="89">rules reassembled</text>
   <path class="e" d="M326,65 H352"/><path class="e" d="M459,65 H465"/>
-  <text class="l" x="356" y="117">One parser for every vendor: a</text>
-  <text class="l" x="356" y="130">known vendor is a cache hit, not code.</text>
+  <text class="l" x="351" y="117">One unified parser for any vendor: a</text>
+  <text class="l" x="351" y="130">known vendor is a cache hit, not code.</text>
 
   <!-- 3 AI-ASSISTED RESOLUTION -->
   <rect x="4" y="198" width="470" height="118" rx="12" fill="#F3EFF8" stroke="#8064A2" stroke-width="1.5" stroke-dasharray="5 3"/>
