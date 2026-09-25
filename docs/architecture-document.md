@@ -36,7 +36,7 @@ compliance engine.
 | Per-device PDF (executive summary, legend, severity-sorted findings, source of each decision) | **Built** |
 | Single and bulk upload | **Built** (bulk = sequential, client-driven) |
 | Langfuse tracing of LLM calls + human decision scored on the trace | **Built** |
-| Automated tests + CI | **Built** — 133 offline tests, GitHub Actions |
+| Automated tests + CI | **Built** — 138 offline tests, GitHub Actions |
 | SQLite | Current DB. Postgres + pgvector is the production path, **not started** |
 | Prometheus/Grafana | **Not built** — a plain `/stats` endpoint + Insights page instead |
 | RBAC, multi-tenant enforcement | **Not built** — `tenant_id` / `reviewer_id` recorded, not enforced |
@@ -71,7 +71,7 @@ in service of keeping this true.
 | LLM | Groq `qwen/qwen3.8-27b` primary, Gemini `gemini-2.5-flash` fallback | free-tier, abstracted behind one interface so a real deployment swaps in self-hosted Ollama without touching calling code (see §4, redaction). **Verified live Sept 13** with real API keys — the original picks (`llama-3.3-70b-versatile`, `gemini-2.0-flash`) were both decommissioned earlier in 2026 and would have failed outright; `openai/gpt-oss-120b` was also tested but is a reasoning model needing a much larger token budget, so `qwen3.8-27b` was chosen for speed and free-tier quota efficiency instead. Re-verify before the grand finale — `gemini-2.5-flash` itself is slated to retire ~Oct 16 2026. |
 | PDF | ReportLab (programmatic, pure Python) | **Changed Sept 14** — WeasyPrint requires GTK3/Pango system libraries that failed to load on the dev machine (`libgobject-2.0-0` not found) and aren't guaranteed present on the actual demo machine either; not a risk worth carrying this close to the deadline. ReportLab has zero external system dependencies and is the brief's own named alternative ("ReportLab or FPDF"). |
 | Parsing helper | None. `ciscoconfparse2` was considered and not adopted | units are plain CLI lines / flattened XML and JSON paths (`units.py`), so there is genuinely one resolution path for every vendor. Hierarchy-aware parsing belongs in the cross-reference stage (§3.5) when it's built. |
-| Testing | pytest (133 offline tests) + GitHub Actions CI | keys blanked, LLM and embedder mocked, in-memory DB — CI needs no secrets and can't spend API quota |
+| Testing | pytest (138 offline tests) + GitHub Actions CI | keys blanked, LLM and embedder mocked, in-memory DB — CI needs no secrets and can't spend API quota |
 | LLM observability | Langfuse (cloud free tier — a few lines of decorator code, not infra to stand up) | traces every Tier-2/3 LLM call (prompt → completion → latency/cost), and — the actual reason it's here — lets the human confirm/reject decision in the review queue attach as a score on that exact trace, which is most of our audit trail for free instead of hand-built. Cheap enough to keep even for the Sept 16 demo. |
 | Pipeline observability | **A plain Next.js stats page, direct SQL queries, for the Sept 16 demo**; Prometheus + Grafana is the stated production choice | same numbers either way (tier distribution, parse coverage, queue depth — see §5) — Prometheus/Grafana is real infra setup with no demo-visible difference in the numbers shown, so it's deferred, not the stats themselves |
 

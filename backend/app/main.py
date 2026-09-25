@@ -267,7 +267,7 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
 
         remediation_text = remediation_source = None
         if eval_result.result == rule_engine.FAIL:
-            rem = remediation.get_remediation(config.vendor, rule.standard_ref)
+            rem = remediation.get_remediation(config.vendor, rule.standard_ref, rule.remediation_template_ref)
             if rem:
                 remediation_text, remediation_source = rem.text, rem.source
 

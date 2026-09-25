@@ -83,6 +83,35 @@ TEMPLATES: dict[tuple[str, str], str] = {
     ("pfsense", "CIS-PF-4.1.5"): "Edit applicable firewall rules and enable the Log option.",
     ("pfsense", "CIS-PF-6.1"): "Configure a remote syslog server under Status > System Logs > Settings.",
     ("pfsense", "CIS-PF-5.5.1"): "In VPN > OpenVPN, edit the applicable server configuration and configure only approved strong ciphers and hashing algorithms under Cryptographic Settings.",
+
+    # SONiC - there is no CIS/STIG benchmark for SONiC, so only the
+    # vendor-neutral NIST/ISO rules apply to it. Commands are the documented
+    # `config` CLI from sonic-net/sonic-utilities doc/Command-Reference.md
+    # (checked 2026-09-25 at commit 627858630348): `config syslog add
+    # <server_address>`, `config acl update full [--table_name T] <file>`,
+    # `config save -y` (without which a change doesn't survive a reboot).
+    # Not tested against a live SONiC device.
+    ("sonic", "NIST-AU-4-1"): "sudo config syslog add <syslog_server_ip>\nsudo config save -y",
+    ("sonic", "NIST-AU-2"): (
+        "# forward logs off-box so activity is retained centrally\n"
+        "sudo config syslog add <syslog_server_ip>\nsudo config save -y"
+    ),
+    ("sonic", "ISO-A.8.15"): (
+        "# forward logs off-box so activity is retained centrally\n"
+        "sudo config syslog add <syslog_server_ip>\nsudo config save -y"
+    ),
+    ("sonic", "NIST-AC-4"): (
+        "# In the ACL rules file, give the DROP rule for the unwanted traffic a HIGHER\n"
+        "# PRIORITY than any broader FORWARD rule (higher priority is evaluated first), then:\n"
+        "sudo config acl update full --table_name <ACL_TABLE> <acl_rules.json>\n"
+        "sudo config save -y"
+    ),
+    ("sonic", "ISO-A.8.20"): (
+        "# In the ACL rules file, give the DROP rule for the unwanted traffic a HIGHER\n"
+        "# PRIORITY than any broader FORWARD rule (higher priority is evaluated first), then:\n"
+        "sudo config acl update full --table_name <ACL_TABLE> <acl_rules.json>\n"
+        "sudo config save -y"
+    ),
 }
 
 
@@ -92,8 +121,13 @@ class Remediation:
     source: str  # "template" - the only value this build ever produces
 
 
-def get_remediation(vendor: str, rule_id: str) -> Optional[Remediation]:
-    text = TEMPLATES.get((vendor, rule_id))
-    if text is None:
-        return None
-    return Remediation(text=text, source="template")
+def get_remediation(vendor: str, rule_id: str, template_ref: Optional[str] = None) -> Optional[Remediation]:
+    """A rule's own id first, then its `remediation_template_ref` - several
+    NIST/ISO rules deliberately point at the equivalent CIS control's fix
+    (e.g. NIST-IA-7 -> CIS-2.1.1.2, "ip ssh version 2"). Before that
+    fallback existed, a failed NIST rule on a Cisco device showed "no
+    template available" although the exact fix was on file."""
+    for key in (rule_id, template_ref):
+        if key and (text := TEMPLATES.get((vendor, key))) is not None:
+            return Remediation(text=text, source="template")
+    return None

@@ -49,7 +49,7 @@ backend/
     pdf_report.py       ReportLab report
     rules/*.yaml        the 39 cited rules (each file's header states its source + verification)
     seeds/*.yaml        Tier-1 starter patterns per vendor
-  tests/                133 offline tests (no API keys, LLM/embedder mocked)
+  tests/                138 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 318" font-family="Segoe UI, Calibri, Arial, sans-serif">
+  <!-- AEGIS pipeline as built (2026-09-25). Two rows so it stays legible at page width. -->
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+    <marker id="r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#C0504D"/>
+    </marker>
+  </defs>
+  <style>
+    .t { fill: #fff; font-size: 12.5px; font-weight: 700; text-anchor: middle; }
+    .s { fill: #fff; font-size: 11px; text-anchor: middle; }
+    .l { fill: #333; font-size: 10.5px; font-style: italic; }
+    .e { stroke: #444; stroke-width: 1.6; fill: none; marker-end: url(#a); }
+    .x { stroke: #C0504D; stroke-width: 1.8; fill: none; marker-end: url(#r); }
+    .d { stroke: #8064A2; stroke-width: 1.6; fill: none; stroke-dasharray: 5 4; marker-end: url(#a); }
+  </style>
+
+  <!-- Row 1: ingestion -> resolution -->
+  <rect x="6" y="12" width="138" height="74" rx="8" fill="#595959"/>
+  <text class="t" x="75" y="40">Config upload</text>
+  <text class="s" x="75" y="57">single or bulk</text><text class="s" x="75" y="72">CLI · XML · JSON</text>
+
+  <rect x="172" y="12" width="138" height="74" rx="8" fill="#4BACC6"/>
+  <text class="t" x="241" y="40">1 · Redaction</text>
+  <text class="s" x="241" y="57">secrets → typed</text><text class="s" x="241" y="72">placeholders, first</text>
+
+  <rect x="338" y="12" width="138" height="74" rx="8" fill="#4BACC6"/>
+  <text class="t" x="407" y="40">2 · Fingerprint</text>
+  <text class="s" x="407" y="57">vendor, format</text><text class="s" x="407" y="72">+ device identity</text>
+
+  <rect x="504" y="12" width="138" height="74" rx="8" fill="#C0504D"/>
+  <text class="t" x="573" y="40">3 · Sanity gate</text>
+  <text class="s" x="573" y="57">is this text trying</text><text class="s" x="573" y="72">to instruct the AI?</text>
+
+  <rect x="670" y="12" width="138" height="74" rx="8" fill="#8064A2"/>
+  <text class="t" x="739" y="40">4 · Tier 1</text>
+  <text class="s" x="739" y="57">exact / regex match</text><text class="s" x="739" y="72">in knowledge base</text>
+
+  <rect x="856" y="12" width="138" height="74" rx="8" fill="#8064A2"/>
+  <text class="t" x="925" y="40">Tier 2 · LLM</text>
+  <text class="s" x="925" y="57">Groq → Gemini</text><text class="s" x="925" y="72">schema + type checked</text>
+
+  <path class="e" d="M144,49 H170"/><path class="e" d="M310,49 H336"/><path class="e" d="M476,49 H502"/>
+  <path class="e" d="M642,49 H668"/><text class="l" x="646" y="42">no</text>
+  <path class="e" d="M808,49 H854"/><text class="l" x="817" y="42">miss</text>
+
+  <!-- Row 2: human loop (left) and verdict (right) -->
+  <rect x="338" y="226" width="160" height="78" rx="8" fill="#8064A2" stroke="#5f4a7d" stroke-width="3"/>
+  <text class="t" x="418" y="255">Tier 3 · Review queue</text>
+  <text class="s" x="418" y="272">a human confirms once;</text><text class="s" x="418" y="287">attacks flagged red</text>
+
+  <path d="M172,236 a52,10 0 0 1 104,0 v56 a52,10 0 0 1 -104,0 z" fill="#8064A2"/>
+  <path d="M172,236 a52,10 0 0 0 104,0" fill="none" stroke="#5f4a7d" stroke-width="1.5"/>
+  <text class="t" x="224" y="268">Knowledge</text><text class="t" x="224" y="284">base</text>
+
+  <rect x="552" y="226" width="136" height="78" rx="8" fill="#4F81BD"/>
+  <text class="t" x="620" y="255">5 · Canonical model</text>
+  <text class="s" x="620" y="272">NIST 800-53 families</text><text class="s" x="620" y="287">+ provenance</text>
+
+  <rect x="712" y="226" width="136" height="78" rx="8" fill="#1F497D"/>
+  <text class="t" x="780" y="255">6 · Rule engine</text>
+  <text class="s" x="780" y="272">no LLM · 39 rules</text><text class="s" x="780" y="287">CIS NIST STIG ISO</text>
+
+  <rect x="872" y="226" width="122" height="78" rx="8" fill="#9BBB59"/>
+  <text class="t" x="933" y="252">7 · PDF report</text>
+  <text class="s" x="933" y="268">PASS · FAIL ·</text><text class="s" x="933" y="282">NOT_EVALUATED</text>
+  <text class="s" x="933" y="296">+ vetted fixes</text>
+
+  <path class="e" d="M688,265 H710"/><path class="e" d="M848,265 H870"/>
+
+  <!-- gate -> review queue (blocked before any LLM call) -->
+  <path class="x" d="M560,86 V150 H440 V224"/>
+  <text class="l" x="446" y="167" fill="#C0504D">blocked before any LLM call</text>
+  <!-- tier 2 -> review queue -->
+  <path class="e" d="M900,86 V178 H470 V224"/>
+  <text class="l" x="755" y="172">rejected · unsure · unavailable</text>
+  <!-- review queue -> KB -->
+  <path class="e" d="M338,265 H278"/>
+  <text class="l" x="282" y="258">new pattern</text>
+  <!-- KB -> Tier 1 (instant next time) -->
+  <path class="d" d="M224,226 V118 H720 V88"/>
+  <text class="l" x="236" y="112" fill="#5f4a7d">next device: recognized instantly, no redeploy</text>
+  <!-- tier 1 hit / tier 2 accepted -> canonical -->
+  <path class="e" d="M760,86 V132 H640 V224"/>
+  <text class="l" x="620" y="148">hit</text>
+  <path class="e" d="M950,86 V204 H660 V224"/>
+  <text class="l" x="872" y="198">accepted</text>
+</svg>

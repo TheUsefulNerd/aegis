@@ -29,3 +29,6 @@ Thumbs.db
 spike/
 winning ppts/
 documents/
+
+# generated intermediate of docs/build_2page_pdf.py
+docs/AEGIS-Architecture-2page.html

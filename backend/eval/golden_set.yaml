@@ -1,0 +1,52 @@
+# Golden set for the Tier-2 classifier (architecture-document.md §9, ground
+# truth #1). Hand-labeled against each vendor's own command documentation.
+# Held out: none of these lines is a Tier-1 seed pattern (backend/app/seeds/),
+# so every item genuinely exercises the LLM path.
+#
+# Each item is written as it reaches the classifier - i.e. AFTER redaction.
+# `field: UNKNOWN` marks a negative: a real config line that sets nothing in
+# the canonical schema, which the classifier should decline to map.
+# `value` is scored only where it is unambiguous (booleans, numbers, a
+# single address/string); list-field items are scored on the field alone
+# unless a value is given.
+
+items:
+  # --- Cisco IOS / IOS-XE (Cisco IOS Configuration Fundamentals & Security command references) ---
+  - {id: ios-01, vendor: cisco_ios, unit: "transport input telnet", field: AC.telnet_enabled, value: true, ref: "line vty: transport input"}
+  - {id: ios-02, vendor: cisco_ios, unit: "transport input ssh telnet", field: AC.telnet_enabled, value: true, ref: "line vty: transport input"}
+  - {id: ios-03, vendor: cisco_ios, unit: "transport input none", field: AC.telnet_enabled, value: false, ref: "line vty: transport input"}
+  - {id: ios-04, vendor: cisco_ios, unit: "ip ssh version 1", field: IA.ssh_version, value: 1, ref: "ip ssh version"}
+  - {id: ios-05, vendor: cisco_ios, unit: "no service password-encryption", field: IA.password_encryption_enabled, value: false, ref: "service password-encryption"}
+  - {id: ios-06, vendor: cisco_ios, unit: "logging on", field: AU.logging_enabled, value: true, ref: "logging on"}
+  - {id: ios-07, vendor: cisco_ios, unit: "no logging on", field: AU.logging_enabled, value: false, ref: "logging on"}
+  - {id: ios-08, vendor: cisco_ios, unit: "logging host 10.20.30.40", field: AU.logging_host, value: "10.20.30.40", ref: "logging host"}
+  - {id: ios-09, vendor: cisco_ios, unit: "exec-timeout 5 0", field: AC.session_idle_timeout_minutes, value: 5, ref: "line: exec-timeout <minutes> <seconds>"}
+  - {id: ios-10, vendor: cisco_ios, unit: "exec-timeout 0 0", field: AC.session_idle_timeout_minutes, value: 0, ref: "line: exec-timeout (0 0 disables)"}
+  - {id: ios-11, vendor: cisco_ios, unit: "access-class 10 in", field: AC.vty_access_class, value: true, ref: "line vty: access-class"}
+  - {id: ios-12, vendor: cisco_ios, unit: "ntp authenticate", field: AU.ntp_authentication_enabled, value: true, ref: "ntp authenticate"}
+  - {id: ios-13, vendor: cisco_ios, unit: "no ip source-route", field: SC.ip_source_routing_enabled, value: false, ref: "ip source-route"}
+  - {id: ios-14, vendor: cisco_ios, unit: "ip source-route", field: SC.ip_source_routing_enabled, value: true, ref: "ip source-route"}
+  - {id: ios-15, vendor: cisco_ios, unit: "no ip proxy-arp", field: SC.proxy_arp_enabled, value: false, ref: "interface: ip proxy-arp"}
+  - {id: ios-16, vendor: cisco_ios, unit: "no service pad", field: SC.pad_enabled, value: false, ref: "service pad"}
+  - {id: ios-17, vendor: cisco_ios, unit: "banner login ^C Authorized access only. Activity is logged. ^C", field: AC.login_banner_configured, value: true, ref: "banner login"}
+  - {id: ios-18, vendor: cisco_ios, unit: "snmp-server community public RO", field: AC.snmp_community_strings, value: "public", ref: "snmp-server community"}
+  - {id: ios-19, vendor: cisco_ios, unit: "ip ospf message-digest-key 1 md5 [REDACTED:ROUTING_AUTH_KEY]", field: SC.routing_authentication, value: true, ref: "ip ospf message-digest-key"}
+  - {id: ios-20, vendor: cisco_ios, unit: "enable password [REDACTED:CLI_PASSWORD]", field: AC.privileged_password_type, ref: "enable password (weaker than enable secret)"}
+  # negatives
+  - {id: ios-n1, vendor: cisco_ios, unit: "interface GigabitEthernet0/1", field: UNKNOWN, ref: "interface (no security setting by itself)"}
+  - {id: ios-n2, vendor: cisco_ios, unit: "hostname core-sw-01", field: UNKNOWN, ref: "hostname"}
+  - {id: ios-n3, vendor: cisco_ios, unit: "speed auto", field: UNKNOWN, ref: "interface: speed"}
+  - {id: ios-n4, vendor: cisco_ios, unit: "spanning-tree mode rapid-pvst", field: UNKNOWN, ref: "spanning-tree mode"}
+  - {id: ios-n5, vendor: cisco_ios, unit: "ip route 0.0.0.0 0.0.0.0 192.0.2.1", field: UNKNOWN, ref: "ip route"}
+
+  # --- pfSense config.xml, flattened (pfSense documentation: config.xml / webConfigurator / remote logging) ---
+  - {id: pf-01, vendor: pfsense, unit: "pfsense.system.webgui.protocol=http", field: SC.webgui_protocol, value: false, ref: "System > Advanced > Admin Access: protocol"}
+  - {id: pf-02, vendor: pfsense, unit: "pfsense.syslog.remoteserver=192.0.2.50", field: AU.logging_host, value: "192.0.2.50", ref: "Status > System Logs > Settings: remote log servers"}
+  - {id: pf-n1, vendor: pfsense, unit: "pfsense.system.timezone=Etc/UTC", field: UNKNOWN, ref: "System > General Setup: timezone"}
+  - {id: pf-n2, vendor: pfsense, unit: "pfsense.interfaces.lan.subnet=24", field: UNKNOWN, ref: "Interfaces: subnet"}
+
+  # --- SONiC config_db.json, flattened (SONiC Configuration guide: SYSLOG_SERVER / SNMP_COMMUNITY tables) ---
+  - {id: sonic-01, vendor: sonic, unit: "SYSLOG_SERVER.10.11.0.5=<present>", field: AU.logging_host, value: "10.11.0.5", ref: "SYSLOG_SERVER table (key = server IP)"}
+  - {id: sonic-02, vendor: sonic, unit: "SNMP_COMMUNITY.public.TYPE=RO", field: AC.snmp_community_strings, value: "public", ref: "SNMP_COMMUNITY table (key = community)"}
+  - {id: sonic-n1, vendor: sonic, unit: "PORT.Ethernet0.mtu=9100", field: UNKNOWN, ref: "PORT table: mtu"}
+  - {id: sonic-n2, vendor: sonic, unit: "DEVICE_METADATA.localhost.hwsku=Force10-S6000", field: UNKNOWN, ref: "DEVICE_METADATA: hwsku"}
