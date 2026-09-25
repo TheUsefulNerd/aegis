@@ -8,9 +8,16 @@ An AI-augmented, vendor-agnostic network device compliance engine, built for Sma
 
 AEGIS reads a network device's configuration — any vendor, any format (CLI text, XML, JSON) — identifies its security-relevant settings through a tiered deterministic → AI → human pipeline, and checks them against **39 real, cited rules across all four frameworks the brief names: CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001**. When it meets syntax it has never seen, it asks a human once in the review queue and recognizes it instantly on every device afterwards — no code change, no redeploy.
 
-- Full technical design: [`docs/architecture-document.md`](docs/architecture-document.md)
-- 2-page submission version: [`docs/architecture-document-2page.md`](docs/architecture-document-2page.md)
-- Demo configs and walkthrough: [`samples/sample_input_config_files/README.md`](samples/sample_input_config_files/README.md)
+## Submission deliverables (SIH 2026, PS 26155, Team SIX ORIGINS)
+
+| Deliverable | Where |
+|---|---|
+| Source code + setup instructions | this repository; setup below |
+| Architecture document (2 pages) | [`docs/AEGIS-Architecture-2page.pdf`](docs/AEGIS-Architecture-2page.pdf) (source: [`docs/architecture-document-2page.md`](docs/architecture-document-2page.md)) |
+| Demo video (1:52) | [`docs/AEGIS-demo.mp4`](docs/AEGIS-demo.mp4): every screen is the running system on the demo configs below |
+| Technical presentation (5 slides) | [`docs/AEGIS-Technical-Presentation.pdf`](docs/AEGIS-Technical-Presentation.pdf) / [`.pptx`](docs/AEGIS-Technical-Presentation.pptx) |
+| Full engineering reference | [`docs/architecture-document.md`](docs/architecture-document.md), with a build-status table in §0 |
+| Demo configs + walkthrough | [`samples/sample_input_config_files/README.md`](samples/sample_input_config_files/README.md) |
 
 ## How a config flows through AEGIS
 
