@@ -22,13 +22,13 @@ DB or server was involved. Anything that depends on Tier 2 (LLM) is labeled
 | # | File | Vendor / format → fingerprint | Original source (pinned) | License | What was trimmed | Units |
 |---|---|---|---|---|---|---|
 | 01 | `01_cisco_ios_branch_router_hardened.txt` | Cisco IOS 15.1 CLI → `cisco_ios` / high | [jasonadsit/NetworkDeviceConfigs `basic-cisco-router-config.txt`](https://github.com/jasonadsit/NetworkDeviceConfigs/blob/d4eb6db902a3682431842f6dbadd7be22afcc235/basic-cisco-router-config.txt) | MIT (notice kept in file header) | 335 → 141 lines: author contact/notes comments, DHCP pools, multicast, all IPv6 addressing/DHCPv6/routes/ACL, DNS-view block, SIP-UA, SSH pubkey-chain, static NAT and host routes, DMZ/native subinterfaces, NetFlow/NBAR/virtual-reassembly, boot/clock/keepalive/nagle lines, archive rollback settings, `ntp master`, extra name-servers | **81** |
-| 02 | `02_pfsense_hq_firewall.xml` | pfSense 22.2 (2.6.0) `config.xml` → `pfsense` / high | [pfsense/pfsense `src/conf.default/config.xml` @ RELENG_2_6_0](https://github.com/pfsense/pfsense/blob/6e1a14535673e5a1ca7af875110a9c34f729c0e5/src/conf.default/config.xml) (the factory-default config) | Apache-2.0 | `all` group, nextuid/gid, powerd/offload/bogons/table-size tunables, IPv6 WAN/LAN + DHCPv6, DHCP range, diag, NAT, the IPv6 default-allow rule, 9 of 10 cron jobs, wol/rrd/widgets/dnshaper/shaper/proxyarp/vlans/qinqs, most `unbound` children | **67** |
+| 02 | `02_pfsense_hq_firewall.xml` | pfSense 22.2 (2.6.0) `config.xml` → `pfsense` / high | [pfsense/pfsense `src/conf.default/config.xml` @ RELENG_2_6_0](https://github.com/pfsense/pfsense/blob/6e1a14535673e5a1ca7af875110a9c34f729c0e5/src/conf.default/config.xml) (the factory-default config) | Apache-2.0 | `all` group, nextuid/gid, powerd/offload/bogons/table-size tunables, IPv6 WAN/LAN + DHCPv6, DHCP range, diag, NAT, the IPv6 default-allow rule, 9 of 10 cron jobs, wol/rrd/widgets/dnshaper/shaper/proxyarp/vlans/qinqs, most `unbound` children | **57** (filter rules reassembled, one unit each) |
 | 03 | `03_sonic_spine_linecard_config_db.json` | SONiC nested `config_db.json` → `sonic` / high | [sonic-net/sonic-mgmt `tests/vs_voq_cfgs/vlab-t2-01_config_db.json`](https://github.com/sonic-net/sonic-mgmt/blob/15fa4996348b7e260756bbac40d1cf2616140d5b/tests/vs_voq_cfgs/vlab-t2-01_config_db.json) (virtual-lab T2 linecard) | Apache-2.0 (repo `LICENSE`; GitHub's API shows "NOASSERTION" only because the file has a copyright header) | 42 tables → 18 kept (17 from source + 1 planted): dropped QoS/buffer/queue/system-port/VOQ/CRM/FEATURE/DHCP/KDUMP etc.; `PORT` 32 → 2 ports and 5 fields each; `BGP_NEIGHBOR` 4 → 1; `ACL_TABLE` 5 → 3; `DEVICE_METADATA` 18 → 5 fields; `RESTAPI`/`TELEMETRY` cert paths dropped | **70** |
 | 04 | `04_cisco_csr1000v_edge_misconfigured.txt` | Cisco IOS-XE 15.5 (CSR1000v) CLI → `cisco_ios` / high | [napalm-automation/napalm `test/ios/mocked_data/test_get_config/normal/show_running_config.txt`](https://github.com/napalm-automation/napalm/blob/820a06b2069eb1d7b0cbe8943ee2dea6e2949d1a/test/ios/mocked_data/test_get_config/normal/show_running_config.txt) | Apache-2.0 | Only runs of empty `!` lines (they produce no units anyway) | **55** |
 | 05 | `05_arista_veos_unseen_vendor.txt` | Arista vEOS 4.15 CLI → `unknown` / low (unsupported vendor, on purpose) | [napalm-automation/napalm `test/eos/eos/mock_data/show_running_config.txt`](https://github.com/napalm-automation/napalm/blob/820a06b2069eb1d7b0cbe8943ee2dea6e2949d1a/test/eos/eos/mock_data/show_running_config.txt) | Apache-2.0 | Nothing | **18** |
 | 06 *(optional)* | `06_cisco_csr1000v_edge_remediated.txt` | Cisco IOS-XE 15.5 CLI → `cisco_ios` / high | Same napalm file as 04: this is **04's remediated twin** (same device, with 04's findings fixed) | Apache-2.0 | As 04 | **64** |
 
-Core set (01-05) = **291 units**. With 06 = **355**. Every unit that doesn't hit
+Core set (01-05) = **281 units**. With 06 = **345**. Every unit that doesn't hit
 Tier 1 becomes one sequential LLM call, so leave 06 out of a time-boxed live run.
 
 One idea (not text) was borrowed from
@@ -131,7 +131,7 @@ FAKE-edge-ro-7c1 RO` (L85, SNMP_COMMUNITY); ACL in the **correct** order, deny-2
 | File | Fingerprint | Units | Redaction hits (type × count) | Sanity-gate hits | Exact Tier-1 seed hits |
 |---|---|---|---|---|---|
 | 01 | cisco_ios / high | 81 | ENABLE_SECRET_HASH 1, USER_SECRET_HASH 1, TYPE7_PASSWORD 1, SNMP_COMMUNITY 1, PRE_SHARED_KEY 1, AAA_KEY 1 | **0** | 4: `service password-encryption`, `enable secret 9 [REDACTED:ENABLE_SECRET_HASH]`, `ip ssh version 2`, `transport input ssh` |
-| 02 | pfsense / high | 67 | XML_ELEMENT_SECRET 2, GENERIC_SECRET_FIELD 1 | **1** (`filter.rule[0].descr`) | 1: `pfsense.syslog.remoteserver=10.0.0.5` |
+| 02 | pfsense / high | 57 | XML_ELEMENT_SECRET 2, GENERIC_SECRET_FIELD 1 | **1** (`filter.rule[0].descr`) | 1: `pfsense.syslog.remoteserver=10.0.0.5` |
 | 03 | sonic / high | 70 | none (no secrets in source) | **0** | 0 |
 | 04 | cisco_ios / high | 55 | CLI_PASSWORD 2 | **1** (Gi2 `description`) | 2: both `access-list 101` lines |
 | 05 | unknown / low | 18 | USER_SECRET_HASH 3 | **1** (Ethernet1 `description`) | 0 (unknown vendor has no seeds) |
@@ -140,7 +140,7 @@ FAKE-edge-ro-7c1 RO` (L85, SNMP_COMMUNITY); ACL in the **correct** order, deny-2
 - **9 of the 11 redaction types fire** across the set (01 alone shows 6). `SNMPV3_SECRET` and `ROUTING_AUTH_KEY` are covered by the unit tests instead.
 - **No planted fake secret survives** into any unit the classifier sees (`backend/tests/test_samples.py` enforces this).
 - **3 injection payloads, 3 different phrasings, 3 different formats** (pfSense XML `<descr>`, IOS interface description, EOS interface description). All 3 flagged. Files without a payload (01, 03, 06) show **zero** hits.
-- Every file still parses after redaction (XML 67 units, JSON 70 units). No structure was damaged.
+- Every file still parses after redaction (XML 57 units, JSON 70 units). No structure was damaged.
 - Novel line `orgpolicy-tag SEC-BASELINE-77 apply`: present in 01, 04 and 06, and matches **no** seed pattern (exact or substring). Not tested: whether an LLM classifies it confidently, since no LLM was called. The previous hand-made demo files used the same line and it landed in Tier 3 in both earlier live runs.
 
 Deterministic results (from Tier-1 seed hits alone, so they don't depend on the LLM):
@@ -201,7 +201,7 @@ on vendor + text), so the reuse story needs the confirmation in between.
 ## Pipeline bugs found while building this set
 
 Building this set against the real pipeline surfaced real bugs. **Status as of 2026-09-25:**
-B1-B7 are **fixed**, each with regression tests in `backend/tests/`; B8/B9 remain open
+B1-B7 are **fixed**, B8 is **fixed for filter rules**, each with regression tests in `backend/tests/`; B9 and the rest of B8 remain open
 and are disclosed. The original descriptions are kept below as found.
 
 - **B1 (fixed) - common credential shapes are not redacted at all.** `redact()` returns no hit and
@@ -239,7 +239,7 @@ and are disclosed. The original descriptions are kept below as found.
 - **B7 (fixed) - range check passes a disabled timeout.** `evaluate("range", {"field":
   "AC.session_idle_timeout_minutes", "max": 10}, {...: 0})` → PASS. `exec-timeout 0 0`
   means *never* time out, but it would pass CIS-1.2.8 if Tier 2 returns 0.
-- **B8 (open) - XML flattening drops empty flag elements.** pfSense stores booleans as empty
+- **B8 (fixed for filter rules; open elsewhere) - XML flattening drops empty flag elements.** Filter rules are now reassembled into one ACL line each (`access-list pfsense-wan deny tcp any wanip eq 23`), `<any/>`/`<log/>` included; flags elsewhere (e.g. `<syslog><enable/>`) are still dropped. As found: pfSense stores booleans as empty
   elements. `<rule><type>pass</type><source><any></any></source><log></log></rule>` plus
   `<wan><blockpriv></blockpriv></wan>` flattens to just `['pfsense.filter.rule.type=pass']`.
   "Source any", "log enabled", "block private networks" and `<syslog><enable>` all

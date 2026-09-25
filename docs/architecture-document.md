@@ -178,6 +178,16 @@ Upload (single/bulk: raw CLI text OR structured JSON/YAML — AWS Security
     this stage properly is the actual fix — noted here as a specific,
     demonstrated example rather than a hypothetical, so it doesn't surprise
     anyone in a live demo or Q&A.
+
+    **Partially addressed 2026-09-25** (after the same misclassification
+    reappeared on a real-config pfSense sample): like SONiC's ACL_RULE table,
+    each pfSense filter rule is now reassembled into ONE ACL-syntax line
+    before resolution (`access-list pfsense-wan deny tcp any wanip eq 23`),
+    in rule order, and resolved deterministically by a Tier-1 regex pattern,
+    so the rule is evaluated by the same first-match engine as Cisco ACLs.
+    That is a per-vendor, per-structure reassembly, not the general
+    by-name reference graph this stage describes — which is still not built
+    (Cisco AAA method lists remain the open example).
         │
         ▼
 4. resolve_unit(unit, vendor_context) → canonical_field | None
@@ -656,11 +666,11 @@ presented as a measured result that wasn't actually measured.
   the value stayed in place (the type digit got replaced instead) — which is
   why every redaction test now asserts the secret is absent from the output,
   not just that a hit was reported.
-- **pfSense configs lose empty flag elements** (`<any/>`, `<log/>`,
-  `<enable/>`) during XML flattening, so "source any" and rule-logging
-  settings are invisible today. Fixing it properly belongs with the
-  cross-reference stage, since pfSense filter rules are also split across
-  sibling elements.
+- **pfSense empty flag elements outside filter rules** (e.g.
+  `<syslog><enable/>`, `<wan><blockpriv/>`) are still dropped by generic XML
+  flattening. Filter rules themselves are handled: since 2026-09-25 each rule
+  is reassembled into one ACL-syntax line, `<any/>` and `<log/>` included
+  (see §3.5).
 - **Observed Sept 14, not a code bug**: Groq per-call latency for the same
   model/prompt varied from ~0.5s to ~5.5s across one afternoon of repeated
   testing (checked via Langfuse trace latencies directly, not guessed) —

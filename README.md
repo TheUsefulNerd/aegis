@@ -115,7 +115,7 @@ Stated up front — see `docs/architecture-document.md` §10 for the full list:
 
 - **Third-party LLMs today.** Secrets are redacted first, but config structure (hostnames, interfaces, ACL layout) is still sent to Groq/Gemini. A real deployment would swap in a self-hosted model; the provider sits behind one interface.
 - **Redaction is regex-based.** It covers the common credential shapes of the supported vendors (see the tests), not every possible format. A keyword-less vendor blob (e.g. Juniper `encrypted-password "$6$…"`) is a known, disclosed gap.
-- **No cross-reference linking yet.** Settings joined by name across distant lines (Cisco AAA method lists, pfSense filter rules split across sibling elements) are resolved per line. Empty XML flag elements (e.g. pfSense `<any/>`) are not yet emitted as units.
+- **No general cross-reference linking yet.** Settings joined by name across distant lines (e.g. Cisco AAA method lists) are resolved per line. SONiC ACL rows and pfSense filter rules are the exception: each is reassembled into one ACL line before evaluation. Empty XML flag elements outside filter rules (e.g. pfSense `<syslog><enable/>`) are not yet emitted as units.
 - **Single-tenant demo build.** `tenant_id` / `reviewer_id` are recorded but there is no login or role enforcement; the database is SQLite (Postgres + pgvector is the production path).
 - **Ingestion is synchronous**, one LLM call at a time, with no job queue or rate limiting yet.
 
