@@ -92,6 +92,7 @@ def generate(
     styles = getSampleStyleSheet()
     heading_style = ParagraphStyle(
         "AegisHeading", parent=styles["Heading2"], textColor=_NAVY, spaceBefore=4, spaceAfter=6,
+        keepWithNext=1,  # never strand a heading at the bottom of a page, away from its table
     )
     story = []
 
