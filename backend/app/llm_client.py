@@ -40,6 +40,11 @@ PROMPT_VERSION = "v1-2026-09-13"
 # finale: Gemini 2.5 Flash itself is slated to retire ~Oct 16 2026.
 GROQ_MODEL = "qwen/qwen3.8-27b"
 GEMINI_MODEL = "gemini-2.5-flash"
+# Hard per-call ceiling. Neither SDK call had one: during a real-config run a
+# single unanswered Gemini request blocked one /ingest for 10+ minutes with
+# no progress. A timed-out call returns None like any other failure, so the
+# line goes to the review queue instead of hanging the whole upload.
+LLM_TIMEOUT_SECONDS = 20.0
 # openai/gpt-oss-120b is also live on this account but is a reasoning model -
 # it spends tokens on hidden reasoning before the answer, so it needs a much
 # larger max_tokens budget (1500+, empirically) and is slower per call.
@@ -189,7 +194,7 @@ def _try_groq(unit_text: str, context: str, similar_kb_entries: list) -> Optiona
             metadata={"prompt_version": PROMPT_VERSION, "feature": "tier2-classification"},
         ) as gen:
             from groq import Groq
-            client = Groq(api_key=api_key)
+            client = Groq(api_key=api_key, timeout=LLM_TIMEOUT_SECONDS, max_retries=1)
             resp = client.chat.completions.create(
                 model=GROQ_MODEL,
                 messages=[
@@ -246,7 +251,7 @@ def _try_gemini(unit_text: str, context: str, similar_kb_entries: list) -> Optio
             import google.generativeai as genai
             genai.configure(api_key=api_key)
             model = genai.GenerativeModel(GEMINI_MODEL, system_instruction=_SYSTEM_PROMPT)
-            resp = model.generate_content(user_prompt)
+            resp = model.generate_content(user_prompt, request_options={"timeout": LLM_TIMEOUT_SECONDS})
             parsed = _validate(_extract_json(resp.text) or {})
             usage_meta = getattr(resp, "usage_metadata", None)
             gen.update(

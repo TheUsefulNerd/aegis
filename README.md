@@ -49,7 +49,7 @@ backend/
     pdf_report.py       ReportLab report
     rules/*.yaml        the 39 cited rules (each file's header states its source + verification)
     seeds/*.yaml        Tier-1 starter patterns per vendor
-  tests/                138 offline tests (no API keys, LLM/embedder mocked)
+  tests/                146 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -108,6 +108,10 @@ The suite is fully offline — it never reads your `.env` keys or calls an LLM �
 6. Download the PDF for any device.
 
 Every line AEGIS can't recognize is one LLM call, so a fresh ~80-line config takes a few minutes on the free tier. Once patterns are learned, repeat devices are near-instant.
+
+## Measured accuracy
+
+On a hand-labeled, held-out golden set of 33 config lines (24 security settings + 9 negatives, Cisco IOS / pfSense / SONiC; `backend/eval/`), the live Tier-2 classifier reached **92% precision on the mappings it auto-accepted** and 95.8% recall, and declined 8 of 9 non-settings. It auto-accepted **2 wrong mappings (6.1%)** — `transport input none` read as a VTY access restriction, and a pfSense `lan.subnet=24` read as network segmentation — which is exactly why Tier-1 matches win over AI guesses and every finding shows how it was decided. A small, honestly scoped set, not a broad benchmark. Re-run it with `cd backend && python -m eval.run_eval` (real API calls; results land in `backend/eval/results/`).
 
 ## Known limitations
 
