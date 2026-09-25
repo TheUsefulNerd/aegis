@@ -27,7 +27,10 @@ rules:
     check_type: ordered-first-match
     predicate:
       field: AC.acl_rules
-      match: { protocol: any, port: null }
+      # Every allow rule, anywhere in the list, whose source is Any - not
+      # just the first match: the control is "no such rule exists".
+      match: { protocol: any, source: any, any_port: true }
+      scope: all_matches
       want_action_if_matched: deny
     severity: CAT_I
     remediation_template_ref: CIS-PF-4.1.2

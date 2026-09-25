@@ -176,10 +176,15 @@ def _parse_acl_line(line: str) -> Optional[dict]:
         port = int(token) if token.isdigit() else _NAMED_PORTS.get(token)
         if port is None:
             return None  # a named port we don't know - don't guess its number
+    tokens = m.group("rest").split()
     return {
         "action": m.group("action").lower(),
         "protocol": m.group("proto").lower(),
         "port": port,
+        # Only "is the source literally any" is modeled - enough for the
+        # "no allow rule from Any source" checks; specific sources, hosts
+        # and object-groups all read as not-any.
+        "src_any": bool(tokens) and tokens[0].lower() == "any",
         "raw": line,
     }
 
@@ -192,24 +197,40 @@ def _eval_ordered_first_match(predicate: dict, fields: dict) -> EvalResult:
 
     match = predicate["match"]  # {"protocol": "tcp", "port": 23}
     parsed = [_parse_acl_line(r) for r in rules]
+    wanted = predicate.get("want_action_if_matched", "deny")
 
-    for p in parsed:
-        if p is None:
-            continue
-        proto_matches = p["protocol"] in ("ip", match["protocol"])
+    def matches(p) -> bool:
+        if match.get("source") == "any" and not p["src_any"]:
+            return False
+        if match["protocol"] not in ("any", "ip") and p["protocol"] not in ("ip", match["protocol"]):
+            return False
+        if match.get("any_port"):
+            return True
         if match.get("port") is None:
             # The question is "what happens to ARBITRARY traffic of this
             # protocol" (e.g. deny-by-default) - only a rule covering every
             # port answers that. Counting a port-specific line here let
             # `[deny tcp any any eq 23, permit ip any any]` PASS a
             # deny-by-default check although the ACL ends in permit-all.
-            port_matches = p["port"] is None
-        else:
-            port_matches = p["port"] is None or p["port"] == match["port"]
-        if proto_matches and port_matches:
+            return p["port"] is None
+        return p["port"] is None or p["port"] == match["port"]
+
+    if predicate.get("scope") == "all_matches":
+        # "No rule of this shape may exist with the wrong action" - e.g.
+        # CIS pfSense 4.1.2, no allow rule from Any source ANYWHERE in the
+        # list. Order is irrelevant here; every matching rule must comply.
+        live = [p for p in parsed if p is not None]
+        if not live:
+            return EvalResult(NOT_EVALUATED, {"reason": "no ACL line could be parsed", "raw_rules": rules})
+        offending = [p["raw"] for p in live if matches(p) and p["action"] != wanted]
+        return EvalResult(FAIL if offending else PASS, {"offending_rules": offending})
+
+    for p in parsed:
+        if p is None:
+            continue
+        if matches(p):
             # First matching rule in sequence - its action decides this,
             # regardless of any later rule that also happens to match.
-            wanted = predicate.get("want_action_if_matched", "deny")
             ok = p["action"] == wanted
             return EvalResult(PASS if ok else FAIL, {"first_match": p["raw"]})
 

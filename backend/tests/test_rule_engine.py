@@ -105,3 +105,22 @@ def test_acl_parser_reads_port_when_both_addresses_are_any():
 
 def test_unparseable_acl_is_not_evaluated_not_pass():
     assert evaluate("ordered-first-match", TELNET, {"AC.acl_rules": ["garbage"]}).result == NOT_EVALUATED
+
+
+ANY_SOURCE_ALLOW = {"field": "AC.acl_rules", "match": {"protocol": "any", "source": "any", "any_port": True},
+                    "scope": "all_matches", "want_action_if_matched": "deny"}
+
+
+def test_no_allow_rule_from_any_source_anywhere():
+    # CIS pfSense 4.1.2. The LAN default-allow (source = lan) is compliant;
+    # an allow from Any source fails wherever it sits in the list.
+    ok = ["access-list pfsense-wan deny tcp any wanip eq 23", "access-list pfsense-lan permit ip lan any"]
+    assert evaluate("ordered-first-match", ANY_SOURCE_ALLOW, {"AC.acl_rules": ok}).result == PASS
+    bad = ok + ["access-list pfsense-wan permit tcp any any eq 443"]
+    r = evaluate("ordered-first-match", ANY_SOURCE_ALLOW, {"AC.acl_rules": bad})
+    assert r.result == FAIL and r.evidence["offending_rules"] == [bad[-1]]
+
+
+def test_protocol_any_matches_every_protocol():
+    pred = {"field": "AC.acl_rules", "match": {"protocol": "any", "port": None}, "want_action_if_matched": "deny"}
+    assert evaluate("ordered-first-match", pred, {"AC.acl_rules": ["access-list 1 permit udp any any"]}).result == FAIL
