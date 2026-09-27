@@ -24,6 +24,18 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 # env vars must be loaded before the Langfuse client reads them.
 load_dotenv()
 
+# Where Tier-2 AI calls may go (read per call, so it can change without a
+# restart):
+#   cloud - Groq, then Gemini (the default; free tiers)
+#   local - ONLY an OpenAI-compatible endpoint you host (Ollama, vLLM,
+#           LM Studio): AEGIS_LOCAL_LLM_URL / AEGIS_LOCAL_LLM_MODEL. Nothing
+#           leaves your network: no Groq, no Gemini, no Langfuse cloud.
+#   off   - no AI at all: every line the knowledge base doesn't know goes
+#           straight to a human reviewer.
+# Air-gapped deployments (the NCIIPC case) use local or off.
+if os.environ.get("AEGIS_LLM_MODE", "cloud").strip().lower() in ("local", "off"):
+    os.environ["LANGFUSE_TRACING_ENABLED"] = "false"  # no trace export off-box
+
 from langfuse import get_client  # noqa: E402
 
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, is_valid_field  # noqa: E402
@@ -282,10 +294,17 @@ def _try_gemini(unit_text: str, context: str, similar_kb_entries: list) -> Optio
         langfuse.flush()
 
 
+def llm_mode() -> str:
+    mode = os.environ.get("AEGIS_LLM_MODE", "cloud").strip().lower()
+    return mode if mode in ("cloud", "local", "off") else "cloud"
+
+
 def classify(unit_text: str, context: str = "", similar_kb_entries: list = None) -> Optional[LLMCandidate]:
     """Returns None if both providers are unavailable/invalid - the caller
     (resolve.py) treats that identically to any other Tier-3 routing reason."""
     similar_kb_entries = similar_kb_entries or []
+    if llm_mode() != "cloud":
+        return _classify_chunk([unit_text], [similar_kb_entries])[0]
     result = _try_groq(unit_text, context, similar_kb_entries)
     if result is not None:
         return result
@@ -404,8 +423,31 @@ def _batch_gemini(units, similar):
     return resp.text, GEMINI_MODEL, "gemini"
 
 
+def _batch_local(units, similar):
+    """OpenAI-compatible chat endpoint on your own hardware - same prompt,
+    same per-item validation as the cloud providers."""
+    import httpx
+    base = os.environ.get("AEGIS_LOCAL_LLM_URL", "http://localhost:11434/v1").rstrip("/")
+    model = os.environ.get("AEGIS_LOCAL_LLM_MODEL", "qwen2.5:7b-instruct")
+    headers = {"Authorization": f"Bearer {os.environ['AEGIS_LOCAL_LLM_KEY']}"} if os.environ.get("AEGIS_LOCAL_LLM_KEY") else {}
+    resp = httpx.post(f"{base}/chat/completions", headers=headers, timeout=LLM_TIMEOUT_SECONDS * 6, json={
+        "model": model, "temperature": 0, "max_tokens": 25 * len(units) + 120,
+        "response_format": {"type": "json_object"},
+        "messages": [{"role": "system", "content": _BATCH_SYSTEM_PROMPT},
+                     {"role": "user", "content": _batch_user_prompt(units, similar)}],
+    })
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"], model, "local"
+
+
 def _classify_chunk(units: list, similar: list, gemini_first: bool = False) -> list:
-    order = (_batch_gemini, _batch_groq) if gemini_first else (_batch_groq, _batch_gemini)
+    mode = llm_mode()
+    if mode == "off":
+        return [None] * len(units)
+    if mode == "local":
+        order = (_batch_local,)
+    else:
+        order = (_batch_gemini, _batch_groq) if gemini_first else (_batch_groq, _batch_gemini)
     for provider in order:
         try:
             with langfuse.start_as_current_observation(

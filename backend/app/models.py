@@ -46,6 +46,10 @@ class KnowledgeBaseEntry(Base):
     # forward to every future Tier-1 match of this pattern.
     is_security_relevant = Column(Boolean, nullable=True)
     reviewer_notes = Column(Text, nullable=True)
+    # Hash chain over human decisions (audit_chain.py). Null for seeds.
+    audit_seq = Column(Integer, nullable=True)
+    audit_prev_hash = Column(String, nullable=True)
+    audit_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 

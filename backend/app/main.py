@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
+from . import audit_chain, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
@@ -508,6 +508,13 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
     }
 
 
+@app.get("/audit/verify")
+def verify_audit_chain(db: Session = Depends(get_db)):
+    """Recompute the hash chain over every human decision; any edit, deletion
+    or reordering made after the fact is reported with its position."""
+    return audit_chain.verify(db)
+
+
 @app.post("/rules/reload")
 def reload_rules(request: Request, db: Session = Depends(get_db)):
     """Re-read backend/app/rules/*.yaml and the seed KB without restarting:
@@ -646,6 +653,8 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, request: Request, db
         reviewer_notes=body.reviewer_notes,
     )
     db.add(entry)
+    db.flush()
+    audit_chain.append(db, entry)
 
     item.status = "confirmed"
     item.reviewer_id = reviewer
@@ -757,12 +766,15 @@ def _remember_not_security(db: Session, item: ReviewQueueItem, reviewer_id: str,
     ).first()
     if exists:
         return
-    db.add(KnowledgeBaseEntry(
+    entry = KnowledgeBaseEntry(
         tenant_id=item.tenant_id, vendor=vendor, pattern_type="exact", syntax_pattern=item.raw_unit,
         canonical_field=NOT_SECURITY, value=None, confidence=1.0, source="tier3_human",
         confirmed_by=reviewer_id, confirmed_at=dt.datetime.utcnow(), is_security_relevant=False,
         reviewer_notes=notes,
-    ))
+    )
+    db.add(entry)
+    db.flush()
+    audit_chain.append(db, entry)
 
 
 @app.post("/review-queue/dismiss-not-security")
@@ -839,7 +851,9 @@ def stats(db: Session = Depends(get_db)):
     for (hits,) in db.query(Device.redaction_hits).all():
         for h in hits or []:
             redactions_by_type[h["type"]] = redactions_by_type.get(h["type"], 0) + h["count"]
+    from . import llm_client
     return {
+        "llm_mode": llm_client.llm_mode(),
         "kb_entries_total": total_kb,
         "kb_entries_by_source": by_source,
         "review_queue_pending": pending,

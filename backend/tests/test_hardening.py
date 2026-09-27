@@ -271,3 +271,22 @@ def test_redaction_covers_multivendor_secrets(line, secret):
 def test_default_communities_stay_visible_for_the_cis_check():
     assert "public" in redaction.redact("snmp-server host 10.1.1.1 version 2c public").text
     assert "public" in redaction.redact("set snmp community public authorization read-only").text
+
+
+def test_human_decisions_are_hash_chained_and_tampering_is_detected(client):
+    _ingest_text(client, "c.txt", "version 17.3\nline vty 0 4\nfoo alpha\nfoo beta\n")
+    for raw in ("foo alpha", "foo beta"):
+        item = _queue_item(client, raw)
+        client.post(f"/review-queue/{item['id']}/confirm", json={
+            "canonical_field": "AU.logging_enabled", "value": True, "reviewer_id": "lead"})
+    assert client.get("/audit/verify").json() == {"ok": True, "entries": 2,
+                                                  "head": client.get("/audit/verify").json()["head"]}
+    from app.db import get_db
+    from app.main import app
+    from app.models import KnowledgeBaseEntry
+    db = next(app.dependency_overrides[get_db]())
+    first = db.query(KnowledgeBaseEntry).filter(KnowledgeBaseEntry.audit_seq == 1).one()
+    first.value = False  # someone edits a past decision directly in the database
+    db.commit()
+    report = client.get("/audit/verify").json()
+    assert report["ok"] is False and report["broken_at"] == 1
