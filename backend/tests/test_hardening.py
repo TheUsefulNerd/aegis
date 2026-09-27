@@ -296,3 +296,19 @@ def test_boolean_check_on_a_list_field_means_at_least_one_configured():
     pred = {"field": "AU.logging_host", "equals": True}
     assert evaluate("boolean", pred, {"AU.logging_host": ["10.0.0.5"]}).result == PASS
     assert evaluate("boolean", pred, {"AU.logging_host": []}).result == FAIL
+
+
+def test_set_membership_is_case_insensitive():
+    pred = {"field": "SC.enabled_ciphers", "mode": "none_in", "values": ["sha1", "des"]}
+    assert evaluate("set-membership", pred, {"SC.enabled_ciphers": ["SHA1"]}).result == FAIL
+    assert evaluate("set-membership", pred, {"SC.enabled_ciphers": ["AES-256-GCM"]}).result == PASS
+
+
+def test_pfsense_weak_openvpn_digest_fails_deterministically(client):
+    from conftest import sample_path
+    with open(sample_path("sample_input_config_files", "02_pfsense_hq_firewall.xml"), "rb") as f:
+        body = client.post("/ingest", files={"file": ("02.xml", f, "text/xml")}).json()
+    assert body["fields"]["SC.webgui_protocol"] is True
+    r = _eval(client, body["config_id"])
+    assert r["CIS-PF-5.5.1"]["result"] == FAIL and r["CIS-PF-5.5.1"]["confidence_tier"] == "tier1"
+    assert r["CIS-PF-1.8"]["result"] == PASS

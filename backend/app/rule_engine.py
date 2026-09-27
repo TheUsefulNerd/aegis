@@ -146,12 +146,15 @@ def _eval_set_membership(predicate: dict, fields: dict) -> EvalResult:
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"]})
     values = values if isinstance(values, list) else [values]
     mode = predicate["mode"]
-    allow_or_deny = set(predicate["values"])
+    # Case-insensitive: a config's `SHA1` once passed a deny-list of "sha1".
+    fold = lambda v: v.strip().lower() if isinstance(v, str) else v
+    allow_or_deny = {fold(v) for v in predicate["values"]}
+    values_folded = [(v, fold(v)) for v in values]
     if mode == "all_in":
-        bad = [v for v in values if v not in allow_or_deny]
+        bad = [v for v, f in values_folded if f not in allow_or_deny]
         return EvalResult(FAIL if bad else PASS, {"not_allowed": bad})
     if mode == "none_in":
-        bad = [v for v in values if v in allow_or_deny]
+        bad = [v for v, f in values_folded if f in allow_or_deny]
         return EvalResult(FAIL if bad else PASS, {"forbidden_found": bad})
     return EvalResult(NOT_EVALUATED, {"error": f"unknown mode {mode!r}"})
 

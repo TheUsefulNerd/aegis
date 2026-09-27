@@ -69,6 +69,18 @@ devices:
     STIG-V-216662: FAIL        # still ends in permit ip any any
     STIG-V-216650: FAIL        # bare `control-plane`
 
+  02_pfsense_hq_firewall.xml:
+    CIS-PF-1.8: PASS           # webgui protocol https
+    CIS-PF-6.1: PASS           # remote syslog server
+    NIST-AU-4-1: PASS
+    CIS-PF-5.5.1: FAIL         # OpenVPN digest SHA1
+    CIS-PF-4.1.2: PASS         # no pass rule from Any source (LAN rule is LAN-sourced)
+
+  03_sonic_spine_linecard_config_db.json:
+    ISO-A.8.20: FAIL           # ACL_RULE: permit-all has the higher priority, before deny 23
+    NIST-AC-4: FAIL
+    NIST-AU-4-1: PASS          # SYSLOG_SERVER entries
+
   07_juniper_srx_branch.conf:
     NIST-AC-17-2: FAIL         # system services telnet
     NIST-SC-8: PASS            # ssh protocol-version v2

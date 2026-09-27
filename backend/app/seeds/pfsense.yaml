@@ -30,3 +30,9 @@ entries:
   - syntax_pattern: '^access-list pfsense-\S+ (permit|deny) '
     pattern_type: regex
     canonical_field: AC.acl_rules
+
+  # Added 2026-09-27: these no longer depend on the AI.
+  - {syntax_pattern: '^pfsense\.system\.webgui\.protocol=https$', pattern_type: regex, canonical_field: SC.webgui_protocol, value: true}
+  - {syntax_pattern: '^pfsense\.system\.webgui\.protocol=http$', pattern_type: regex, canonical_field: SC.webgui_protocol, value: false}
+  - {syntax_pattern: '^pfsense\.openvpn\.[\w-]+(\[\d+\])?\.digest=(\S+)$', pattern_type: regex, canonical_field: SC.enabled_ciphers, value: "$2"}
+  - {syntax_pattern: '^pfsense\.openvpn\.[\w-]+(\[\d+\])?\.data_ciphers_fallback=(\S+)$', pattern_type: regex, canonical_field: SC.enabled_ciphers, value: "$2"}

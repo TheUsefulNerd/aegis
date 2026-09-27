@@ -22,3 +22,8 @@ entries:
   - syntax_pattern: "SYSLOG_SERVER.10.0.0.9=<present>"
     canonical_field: AU.logging_host
     value: "10.0.0.9"
+
+  # Added 2026-09-27: deterministic, no AI. ACL_RULE rows are reassembled by
+  # units.py into `access-list <n> ...` lines; every syslog server table key.
+  - {syntax_pattern: '^access-list \S+ (permit|deny) ', pattern_type: regex, canonical_field: AC.acl_rules}
+  - {syntax_pattern: '^SYSLOG_SERVER\.([\w.:-]+)=<present>$', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}

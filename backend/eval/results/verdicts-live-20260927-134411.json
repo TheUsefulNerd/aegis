@@ -1,0 +1,536 @@
+{
+ "summary": {
+  "labelled": 65,
+  "correct": 59,
+  "false_pass": 0,
+  "false_fail": 0,
+  "undecided": 6,
+  "decided": 59,
+  "accuracy_when_decided": 1.0,
+  "coverage": 0.9077,
+  "mode": "live",
+  "run_at": "2026-09-27T13:44:11"
+ },
+ "rows": [
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.2.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "NIST-AC-17-2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-2.1.1.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "NIST-SC-8",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.4.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.4.1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "NIST-IA-5-1-d",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-2.2.4",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.5.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.5.3",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.2.5",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-3.1.1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-2.1.7",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-1.3.2",
+   "expected": "FAIL",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-2.3.1.1",
+   "expected": "FAIL",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "CIS-SUPPLEMENT-ACL-TELNET",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier2_accepted"
+  },
+  {
+   "device": "01_cisco_ios_branch_router_hardened.txt",
+   "rule": "STIG-V-216662",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier2_accepted"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-1.2.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "NIST-AC-17-2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-1.4.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-1.4.1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "NIST-IA-5-1-d",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-1.5.3",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-1.5.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-2.2.4",
+   "expected": "FAIL",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "CIS-SUPPLEMENT-ACL-TELNET",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "ISO-A.8.20",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "NIST-AC-4",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "STIG-V-216662",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "04_cisco_csr1000v_edge_misconfigured.txt",
+   "rule": "STIG-V-216650",
+   "expected": "FAIL",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.2.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "NIST-AC-17-2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-2.1.1.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "NIST-SC-8",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.4.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.4.1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "NIST-IA-5-1-d",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-2.2.4",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.5.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.5.3",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.3.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-1.2.8",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-3.1.1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "CIS-SUPPLEMENT-ACL-TELNET",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "ISO-A.8.20",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "NIST-AC-4",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "STIG-V-216662",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "06_cisco_csr1000v_edge_remediated.txt",
+   "rule": "STIG-V-216650",
+   "expected": "FAIL",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null
+  },
+  {
+   "device": "02_pfsense_hq_firewall.xml",
+   "rule": "CIS-PF-1.8",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "02_pfsense_hq_firewall.xml",
+   "rule": "CIS-PF-6.1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "02_pfsense_hq_firewall.xml",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "02_pfsense_hq_firewall.xml",
+   "rule": "CIS-PF-5.5.1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier2_accepted"
+  },
+  {
+   "device": "02_pfsense_hq_firewall.xml",
+   "rule": "CIS-PF-4.1.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "03_sonic_spine_linecard_config_db.json",
+   "rule": "ISO-A.8.20",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "03_sonic_spine_linecard_config_db.json",
+   "rule": "NIST-AC-4",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "03_sonic_spine_linecard_config_db.json",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "07_juniper_srx_branch.conf",
+   "rule": "NIST-AC-17-2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "07_juniper_srx_branch.conf",
+   "rule": "NIST-SC-8",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "07_juniper_srx_branch.conf",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "08_fortigate_60f_edge.conf",
+   "rule": "NIST-AC-17-2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "08_fortigate_60f_edge.conf",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  },
+  {
+   "device": "08_fortigate_60f_edge.conf",
+   "rule": "NIST-AU-2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1"
+  }
+ ]
+}
