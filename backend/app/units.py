@@ -77,8 +77,10 @@ def _flatten_braces(raw_text: str) -> list:
 
 def _flatten_config_blocks(raw_text: str) -> list:
     """`config system global / set x y / end` -> ["system global set x y"];
-    `edit <id>` ... `next` scopes a table entry."""
-    units, stack = [], []
+    `edit <id>` ... `next` scopes a table entry. Firewall-policy entries are
+    additionally reassembled into ordered ACL lines (like pfSense filter
+    rules), because a policy's meaning is spread over several `set` lines."""
+    units, stack, policy = [], [], None
     for line in raw_text.splitlines():
         t = line.strip()
         if not t or t.startswith("#"):
@@ -87,12 +89,49 @@ def _flatten_config_blocks(raw_text: str) -> list:
             stack.append(t[len("config "):].strip())
         elif t.startswith("edit "):
             stack.append("edit " + t[len("edit "):].strip().strip('"'))
+            if stack[:-1] == ["firewall policy"]:
+                policy = {}
         elif t in ("next", "end"):
+            if policy is not None and t == "next":
+                units.extend(_policy_acl_lines(policy))
+                policy = None
             if stack:
                 stack.pop()
         else:
             units.append(" ".join(stack + [t]) if stack else t)
+            if policy is not None and t.startswith("set "):
+                key, _, val = t[4:].partition(" ")
+                policy[key] = [v.strip('"') for v in val.split()]
     return units
+
+
+# FortiOS predefined services -> (protocol, port or None)
+_FORTI_SERVICES = {"ALL": ("ip", None), "ALL_TCP": ("tcp", None), "ALL_UDP": ("udp", None), "ALL_ICMP": ("icmp", None),
+                   "PING": ("icmp", None), "TELNET": ("tcp", 23), "SSH": ("tcp", 22), "HTTP": ("tcp", 80),
+                   "HTTPS": ("tcp", 443), "FTP": ("tcp", 21), "SMTP": ("tcp", 25), "DNS": ("udp", 53),
+                   "SNMP": ("udp", 161), "NTP": ("udp", 123), "RDP": ("tcp", 3389), "SAMBA": ("tcp", 445)}
+
+
+def _policy_acl_lines(p: dict) -> list:
+    """One `access-list fortios-<srcintf> ...` line per service of a policy,
+    in policy order. A disabled policy decides nothing; an unknown service
+    name becomes a line the rule engine cannot read (so it fails closed)."""
+    if (p.get("status") or [""])[0] == "disable":
+        return []
+    action = {"accept": "permit", "deny": "deny"}.get((p.get("action") or ["deny"])[0])
+    if action is None:
+        return []
+    src = "any" if (p.get("srcaddr") or ["all"])[0] == "all" else "host " + p["srcaddr"][0]
+    dst = "any" if (p.get("dstaddr") or ["all"])[0] == "all" else "host " + p["dstaddr"][0]
+    iface = (p.get("srcintf") or ["any"])[0]
+    lines = []
+    for svc in p.get("service") or ["ALL"]:
+        proto, port = _FORTI_SERVICES.get(svc.upper(), (f"service-{svc}", None))
+        line = f"access-list fortios-{iface} {action} {proto} {src} {dst}"
+        if port:
+            line += f" eq {port}"
+        lines.append(line)
+    return lines
 
 
 _BANNER_RE = re.compile(r"^banner\s+(\S+)\s+(\S)(\S?)(.*)$")

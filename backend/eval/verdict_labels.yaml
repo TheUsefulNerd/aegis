@@ -96,3 +96,5 @@ devices:
     NIST-AC-17-2: FAIL         # admin-telnet enable; allowaccess telnet on wan1
     NIST-AU-4-1: PASS          # syslogd server 10.30.0.25
     NIST-AU-2: PASS            # syslogd status enable
+    NIST-AC-4: FAIL            # policy 1 (accept ALL from all) comes before the telnet deny
+    ISO-A.8.20: FAIL

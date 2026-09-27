@@ -66,7 +66,11 @@ def test_fortios_end_to_end(client):
     f = body["fields"]
     assert f["AC.telnet_enabled"] is True and f["AC.session_idle_timeout_minutes"] == 480
     assert f["AU.logging_enabled"] is True and f["AC.snmp_community_strings"] == ["public"]
-    assert _eval(client, body["config_id"])["NIST-AC-17-2"]["result"] == "FAIL"
+    r = _eval(client, body["config_id"])
+    assert r["NIST-AC-17-2"]["result"] == "FAIL"
+    # firewall policies reassembled: accept-ALL policy 1 shadows the telnet deny in policy 2
+    assert f["AC.acl_rules"] == ["access-list fortios-wan1 permit ip any any", "access-list fortios-wan1 deny tcp any any eq 23"]
+    assert r["NIST-AC-4"]["result"] == "FAIL" and r["NIST-AC-4"]["evidence"]["first_match"].endswith("permit ip any any")
 
 
 def test_new_vendor_secrets_never_survive_redaction():

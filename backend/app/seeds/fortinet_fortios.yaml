@@ -5,8 +5,9 @@
 #
 # Patterns follow the FortiOS CLI reference (config system global, system
 # interface allowaccess, log syslogd setting, system snmp community).
-# Firewall policies are not reassembled into ACL lines yet (a policy's
-# fields are separate `set` lines), so policy checks go to the AI/human.
+# Firewall policies are reassembled by units.py into ordered
+# `access-list fortios-<srcintf> ...` lines (one per service), so the same
+# ordered first-match rules apply as on Cisco, pfSense and SONiC.
 
 fingerprint:
   format: cli
@@ -31,6 +32,9 @@ entries:
   - {syntax_pattern: '^log syslogd setting set server "?([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
   - {syntax_pattern: '^system snmp community edit \S+ set name "?(public|private)\b', pattern_type: regex, canonical_field: AC.snmp_community_strings, value: "$1"}
   - {syntax_pattern: '^system ntp set authentication enable\b', pattern_type: regex, canonical_field: AU.ntp_authentication_enabled, value: true}
+
+  - {syntax_pattern: '^access-list fortios-\S+ (permit|deny) ', pattern_type: regex, canonical_field: AC.acl_rules}
+  - {syntax_pattern: '^firewall policy edit \S+ set (name|comments|srcintf|dstintf|srcaddr|dstaddr|action|schedule|service|status|nat|logtraffic) ', pattern_type: regex, canonical_field: NOT_SECURITY}
 
   # Known non-security structure.
   - {syntax_pattern: '^system global set (hostname|timezone|alias|gui-theme) ', pattern_type: regex, canonical_field: NOT_SECURITY}
