@@ -56,6 +56,7 @@ class Device(Base):
     tenant_id = Column(String, nullable=False, default="default")
     hostname = Column(String, nullable=True)
     serial_number = Column(String, nullable=True)
+    input_sha256 = Column(String, nullable=True)  # SHA-256 of the uploaded file, printed on the report
     model = Column(String, nullable=True)
     firmware_version = Column(String, nullable=True)
     source_file = Column(String, nullable=True)

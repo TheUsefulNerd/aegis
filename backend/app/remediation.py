@@ -15,10 +15,11 @@ from typing import Optional
 # set for the seeded demo rules; grows as the cybersecurity teammate authors
 # more rule YAML.
 TEMPLATES: dict[tuple[str, str], str] = {
-    ("cisco_ios", "CIS-1.2.2"): "line vty 0 4\n transport input ssh",
+    # `line vty 0 15`, not 0 4: telnet left open on vty 5-15 is still open.
+    ("cisco_ios", "CIS-1.2.2"): "line vty 0 15\n transport input ssh",
     ("cisco_ios", "CIS-2.1.1.2"): "ip ssh version 2",
     ("cisco_ios", "CIS-1.4.2"): "service password-encryption",
-    ("cisco_ios", "CIS-2.2.4"): "logging host {syslog_server}",
+    ("cisco_ios", "CIS-2.2.4"): "logging host <syslog-server-ip>",
     # PDF's actual remediation for "Set 'logging enable'" goes through the
     # config-archive feature, not a bare top-level command - copied exactly
     # as written, not simplified.
@@ -31,17 +32,22 @@ TEMPLATES: dict[tuple[str, str], str] = {
     # Not a CIS-numbered control (see cis_ios_xe_17.yaml's own comment on
     # CIS-SUPPLEMENT-ACL-TELNET) - but the fix itself is standard, correct
     # Cisco IOS ACL-ordering guidance regardless of the citation gap.
+    # Inserted at sequence 5, i.e. BEFORE the ACL's existing entries (10, 20,
+    # ...). Appending `access-list 101 deny ...` would land after the
+    # permit-all and stay dead code - the exact failure being fixed. {acl}
+    # is the device's own failing ACL, filled in from the finding.
     ("cisco_ios", "CIS-SUPPLEMENT-ACL-TELNET"): (
-        "access-list 101 deny tcp any any eq 23\n"
-        "access-list 101 permit ip any any\n"
-        "! ensure the deny line is ABOVE any broader permit line - order matters"
+        "ip access-list extended {acl}\n"
+        " 5 deny tcp any any eq telnet log"
     ),
-    ("cisco_ios", "CIS-1.4.1"): "enable secret 9 <strong-password>",
-    ("cisco_ios", "CIS-1.2.8"): "line vty 0 4\n exec-timeout 10 0",
+    # `enable secret 9 <text>` expects an already-hashed value; this form
+    # takes the plaintext and stores it as scrypt (type 9).
+    ("cisco_ios", "CIS-1.4.1"): "enable algorithm-type scrypt secret <strong-password>\nno enable password",
+    ("cisco_ios", "CIS-1.2.8"): "line vty 0 15\n exec-timeout 10 0",
     ("cisco_ios", "CIS-1.5.2"): "no snmp-server community private",
     ("cisco_ios", "CIS-1.5.3"): "no snmp-server community public",
     ("cisco_ios", "CIS-1.3.2"): "banner login c\n<legal notice text>\nc",
-    ("cisco_ios", "CIS-1.2.5"): "line vty 0 4\n access-class 10 in",
+    ("cisco_ios", "CIS-1.2.5"): "line vty 0 15\n access-class <mgmt-acl> in",
 
     # "Batch 2" (2026-09-15) - 4 more CIS Cisco IOS XE controls.
     ("cisco_ios", "CIS-2.3.1.1"): "ntp authenticate",
@@ -121,13 +127,28 @@ class Remediation:
     source: str  # "template" - the only value this build ever produces
 
 
-def get_remediation(vendor: str, rule_id: str, template_ref: Optional[str] = None) -> Optional[Remediation]:
+_PROSE = ("Configure ", "Edit ", "In ", "#")
+
+
+def _wrap(vendor: str, text: str) -> str:
+    """Cisco CLI fixes are shown as a complete, paste-able change: enter
+    config mode, apply, leave, save."""
+    if vendor == "cisco_ios" and not text.startswith(_PROSE):
+        return f"configure terminal\n{text}\nend\nwrite memory"
+    return text
+
+
+def get_remediation(vendor: str, rule_id: str, template_ref: Optional[str] = None,
+                    context: Optional[dict] = None) -> Optional[Remediation]:
     """A rule's own id first, then its `remediation_template_ref` - several
     NIST/ISO rules deliberately point at the equivalent CIS control's fix
-    (e.g. NIST-IA-7 -> CIS-2.1.1.2, "ip ssh version 2"). Before that
+    (e.g. NIST-SC-8 -> CIS-2.1.1.2, "ip ssh version 2"). Before that
     fallback existed, a failed NIST rule on a Cisco device showed "no
     template available" although the exact fix was on file."""
+    ctx = {"acl": "<ACL_NAME>", **{k: v for k, v in (context or {}).items() if v and v != "_"}}
     for key in (rule_id, template_ref):
         if key and (text := TEMPLATES.get((vendor, key))) is not None:
-            return Remediation(text=text, source="template")
+            if "{acl}" in text:
+                text = text.replace("{acl}", ctx["acl"])
+            return Remediation(text=_wrap(vendor, text), source="template")
     return None

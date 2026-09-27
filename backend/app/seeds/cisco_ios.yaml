@@ -104,3 +104,15 @@ entries:
   - syntax_pattern: '^(permit|deny) (ip|tcp|udp|icmp|\d+) '
     pattern_type: regex
     canonical_field: AC.acl_rules
+
+  # Sequence-numbered named-ACL entries (`10 permit tcp ...`), same reason.
+  - syntax_pattern: '^\d+ (permit|deny) (ip|tcp|udp|icmp|\d+) '
+    pattern_type: regex
+    canonical_field: AC.acl_rules
+
+  # A login/MOTD banner header. units.py keeps only this header line (banner
+  # text is prose and never classified), so its presence is the fact.
+  - syntax_pattern: '^banner (login|motd|exec) '
+    pattern_type: regex
+    canonical_field: AC.login_banner_configured
+    value: true

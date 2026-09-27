@@ -36,23 +36,39 @@ def evaluate(check_type: str, predicate: dict, fields: dict) -> EvalResult:
     return evaluator(predicate, fields)
 
 
-def _coerce_bool(v) -> bool:
+_TRUE_STR = ("true", "1", "yes", "enabled", "enable", "on")
+_FALSE_STR = ("false", "0", "no", "disabled", "disable", "off")
+
+
+def _coerce_bool(v) -> Optional[bool]:
     """Values reaching here can be a real bool, or a string typed into a
     plain HTML input by a reviewer (e.g. "false") - naive `bool(v)` would
-    silently misread the non-empty string "false" as truthy. Coerce known
-    string forms explicitly instead of trusting Python truthiness."""
+    silently misread the non-empty string "false" as truthy. Known string
+    forms are coerced explicitly; anything else is None (not understood),
+    never quietly False: an unrecognized "on" read as False once passed a
+    telnet check."""
     if isinstance(v, bool):
         return v
+    if isinstance(v, (int, float)) and v in (0, 1):
+        return bool(v)
     if isinstance(v, str):
-        return v.strip().lower() in ("true", "1", "yes", "enabled")
-    return bool(v)
+        s = v.strip().lower()
+        if s in _TRUE_STR:
+            return True
+        if s in _FALSE_STR:
+            return False
+    return None
 
 
 def _eval_boolean(predicate: dict, fields: dict) -> EvalResult:
     value, present = _get(fields, predicate["field"])
     if not present:
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"]})
-    ok = _coerce_bool(value) == _coerce_bool(predicate["equals"])
+    actual = _coerce_bool(value)
+    if actual is None:
+        return EvalResult(NOT_EVALUATED, {"field": predicate["field"], "reason": "value not understood",
+                                          "actual": value})
+    ok = actual == _coerce_bool(predicate["equals"])
     return EvalResult(PASS if ok else FAIL, {"field": predicate["field"], "actual": value})
 
 
@@ -142,51 +158,213 @@ def _eval_set_membership(predicate: dict, fields: dict) -> EvalResult:
 # Simulates first-match ACL evaluation order, because a membership check
 # alone ("does a deny-23 rule exist somewhere") would score a config as safe
 # even when an earlier permissive rule makes that deny rule dead code.
-# Scope note: this parses simple Cisco-style extended-ACL text lines
-# specifically. Cross-reference reassembly of multi-line structured formats
-# (e.g. SONiC's flattened ACL_RULE table entries) is the deferred §3.5
-# cross-reference-linking work - out of scope for this predicate today.
+#
+# Fail-closed by design (hardened 2026-09-27 after an adversarial review
+# found false PASSes): every line is parsed with a small grammar
+# (`action proto src [src-ports] dst [dst-ports] ...`); a line that has an
+# action but can't be fully understood (object-groups, unknown port names)
+# makes the verdict NOT_EVALUATED if it comes before the decision, never a
+# silent skip. A deny only decides the question if it COVERS all of the
+# traffic in question; any permit that OVERLAPS it is a violation.
+# ACLs are evaluated one list at a time (lines are keyed `access-list <id>`
+# or `[<name>]`), and only lists that are actually applied, when the config
+# says which ones are (field AC.acl_bindings) - an unapplied ACL's deny must
+# not hide a permit-all on the list that is really in use.
 
-# `[access-list N] permit|deny <proto> <src...> <dst...> [eq <port>]`. The
-# address specs are deliberately not parsed: an earlier regex tried to, and
-# `\S+(?:\s+\S+)?` for each address was ambiguous - for `permit tcp any any
-# eq 22` it read the source as "any any" and the destination as "eq 22", so
-# the port was silently never parsed whenever both addresses were `any`
-# (the most common shape there is). Only action, protocol and destination
-# port matter to the evaluator; the destination port is the LAST `eq`.
-_ACL_HEAD_RE = re.compile(r"\b(?P<action>permit|deny)\s+(?P<proto>\w+)\b(?P<rest>.*)$", re.IGNORECASE)
-_ACL_EQ_RE = re.compile(r"\beq\s+(\S+)", re.IGNORECASE)
-_NAMED_PORTS = {"telnet": 23, "ssh": 22, "www": 80, "http": 80, "https": 443, "ftp": 21, "smtp": 25, "snmp": 161}
+_PROTO_NUM = {"0": "ip", "1": "icmp", "6": "tcp", "17": "udp", "47": "gre", "50": "esp", "51": "ahp", "89": "ospf"}
+_PROTOCOLS = {"ip", "tcp", "udp", "icmp", "gre", "esp", "ahp", "ospf", "eigrp", "pim", "igmp", "ipinip", "sctp", "any"}
+_NAMED_PORTS = {"telnet": 23, "ssh": 22, "www": 80, "http": 80, "https": 443, "ftp": 21, "ftp-data": 20, "smtp": 25,
+                "snmp": 161, "snmptrap": 162, "domain": 53, "tftp": 69, "ntp": 123, "bgp": 179, "ldap": 389,
+                "syslog": 514, "pop3": 110, "imap": 143, "cmd": 514, "login": 513, "exec": 512, "sunrpc": 111,
+                "netbios-ns": 137, "netbios-dgm": 138, "netbios-ss": 139, "bootps": 67, "bootpc": 68, "isakmp": 500}
+_PORT_OPS = ("eq", "neq", "gt", "lt", "range")
+_TRAILERS = ("log", "log-input", "established", "time-range", "dscp", "precedence", "fragments", "tos", "ttl")
+_IPV4 = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+_GROUP_RE = re.compile(r"^\s*(?:access-list\s+(\S+)|\[([^\]]+)\])", re.IGNORECASE)
+_ACTION_RE = re.compile(r"\b(permit|deny)\b", re.IGNORECASE)
 
 
-def _parse_acl_line(line: str) -> Optional[dict]:
+class _Unparsed(Exception):
+    pass
+
+
+def _port_token(t: str) -> Optional[int]:
+    if t.isdigit():
+        return int(t)
+    return _NAMED_PORTS.get(t.lower())
+
+
+def _parse_addr(toks: list, i: int):
+    """-> (kind, next_index); kind is 'any' or 'specific'."""
+    if i >= len(toks):
+        raise _Unparsed("missing address")
+    t = toks[i].lower()
+    if t in ("any", "any4", "any6", "0.0.0.0/0", "::/0"):
+        return "any", i + 1
+    if t == "host":
+        return "specific", i + 2
+    if t in ("object-group", "addrgroup", "net-group", "object"):
+        raise _Unparsed("object-group address, group contents not modeled")
+    if t.startswith("not-"):
+        raise _Unparsed("negated address")
+    if _IPV4.match(t):
+        if i + 1 < len(toks) and _IPV4.match(toks[i + 1]):
+            if t == "0.0.0.0" and toks[i + 1] == "255.255.255.255":
+                return "any", i + 2
+            return "specific", i + 2
+        return "specific", i + 1
+    if "/" in t or ":" in t or re.match(r"^[a-z][\w.-]*$", t):
+        # CIDR, IPv6, or a named network/alias (pfSense "lan", "wan", ...)
+        return "specific", i + 1
+    raise _Unparsed(f"address {t!r}")
+
+
+def _is_port_word(t: str) -> bool:
+    return _port_token(t) is not None
+
+
+def _parse_ports(toks: list, i: int):
+    """-> (portspec, next_index); portspec None means every port."""
+    if i >= len(toks) or toks[i].lower() not in _PORT_OPS:
+        return None, i
+    op = toks[i].lower()
+    i += 1
+    if op == "range":
+        if i + 1 >= len(toks):
+            raise _Unparsed("incomplete range")
+        a, b = _port_token(toks[i]), _port_token(toks[i + 1])
+        if a is None or b is None:
+            raise _Unparsed("unknown port name in range")
+        return ("range", a, b), i + 2
+    if op in ("gt", "lt"):
+        if i >= len(toks) or _port_token(toks[i]) is None:
+            raise _Unparsed(f"unknown port after {op}")
+        return (op, _port_token(toks[i])), i + 1
+    ports = set()
+    while i < len(toks):
+        t = toks[i].lower()
+        if t in ("any", "host") or t in _TRAILERS or t in _PORT_OPS or _IPV4.match(t):
+            break
+        p = _port_token(t)
+        if p is None:
+            if not ports:
+                raise _Unparsed(f"unknown port name {t!r}")
+            break
+        ports.add(p)
+        i += 1
+    if not ports:
+        raise _Unparsed(f"no port after {op}")
+    return (op, frozenset(ports)), i
+
+
+def _port_covers(spec, port: int) -> bool:
+    if spec is None:
+        return True
+    op = spec[0]
+    if op == "eq":
+        return port in spec[1]
+    if op == "neq":
+        return port not in spec[1]
+    if op == "gt":
+        return port > spec[1]
+    if op == "lt":
+        return port < spec[1]
+    return spec[1] <= port <= spec[2]  # range
+
+
+def _acl_group(line: str) -> str:
+    m = _GROUP_RE.match(line)
+    return (m.group(1) or m.group(2)) if m else "_"
+
+
+def _parse_acl_line(line: str):
+    """-> dict for a rule; None for a line that is not a rule at all (a
+    remark, an `ip access-group` binding); a dict with "unparsed" for a
+    rule that can't be fully understood."""
     if not isinstance(line, str):
         return None
-    m = _ACL_HEAD_RE.search(line)
+    m = _ACTION_RE.search(line)
     if not m:
         return None
-    if re.search(r"\brange\s", m.group("rest")):
-        # A port range isn't modeled - skip the line rather than misread it
-        # as covering every port (which would change a first-match verdict).
-        return None
-    ports = _ACL_EQ_RE.findall(m.group("rest"))
-    port = None
-    if ports:
-        token = ports[-1].lower()
-        port = int(token) if token.isdigit() else _NAMED_PORTS.get(token)
-        if port is None:
-            return None  # a named port we don't know - don't guess its number
-    tokens = m.group("rest").split()
-    return {
-        "action": m.group("action").lower(),
-        "protocol": m.group("proto").lower(),
-        "port": port,
-        # Only "is the source literally any" is modeled - enough for the
-        # "no allow rule from Any source" checks; specific sources, hosts
-        # and object-groups all read as not-any.
-        "src_any": bool(tokens) and tokens[0].lower() == "any",
-        "raw": line,
-    }
+    if "remark" in line[: m.start()].lower().split():
+        return None  # `access-list 101 remark deny telnet` is a comment
+    toks = line[m.end():].split()
+    base = {"action": m.group(1).lower(), "raw": line, "group": _acl_group(line)}
+    try:
+        if not toks:
+            raise _Unparsed("empty rule")
+        proto = _PROTO_NUM.get(toks[0].lower(), toks[0].lower())
+        if proto in _PROTOCOLS:
+            i = 1
+        elif _IPV4.match(proto) or proto in ("host",):
+            proto, i = "ip", 0  # standard ACL: `permit 10.0.0.0 0.0.0.255`
+        elif proto.isdigit():
+            proto, i = f"proto-{proto}", 1
+        else:
+            raise _Unparsed(f"protocol {proto!r}")
+        if proto == "any":
+            proto = "ip"
+        src, i = _parse_addr(toks, i)
+        src_ports, i = _parse_ports(toks, i)
+        if i < len(toks) and toks[i].lower() not in _TRAILERS:
+            dst, i = _parse_addr(toks, i)
+            dst_ports, i = _parse_ports(toks, i)
+        else:
+            dst, dst_ports = "any", None  # standard ACL: source only
+    except _Unparsed as e:
+        return {**base, "unparsed": str(e)}
+    return {**base, "protocol": proto, "src": src, "src_ports": src_ports, "dst": dst, "dst_ports": dst_ports,
+            "src_any": src == "any"}
+
+
+def _proto_overlaps(rule_proto: str, want: str) -> bool:
+    return want in ("any", "ip") or rule_proto in ("ip", want)
+
+
+def _proto_covers(rule_proto: str, want: str) -> bool:
+    return rule_proto == "ip" or (want not in ("any", "ip") and rule_proto == want)
+
+
+def _overlaps(p: dict, match: dict) -> bool:
+    """Could this rule apply to ANY of the traffic in question?"""
+    if not _proto_overlaps(p["protocol"], match["protocol"]):
+        return False
+    if match.get("source") == "any" and p["src"] != "any":
+        return False  # a rule for specific sources is not "from any source"
+    if match.get("any_port"):
+        return True
+    if match.get("port") is None:
+        # "Arbitrary traffic of this protocol" (deny-by-default): a permit
+        # for specific ports is an allowed exception, not a violation.
+        return p["dst_ports"] is None
+    return _port_covers(p["dst_ports"], match["port"])
+
+
+def _covers(p: dict, match: dict) -> bool:
+    """Does this rule decide ALL of the traffic in question?"""
+    if not _proto_covers(p["protocol"], match["protocol"]):
+        return False
+    if p["src"] != "any" or p["dst"] != "any" or p["src_ports"] is not None:
+        return False
+    if match.get("any_port") or match.get("port") is None:
+        return p["dst_ports"] is None
+    return _port_covers(p["dst_ports"], match["port"])
+
+
+def _first_match_one(parsed: list, match: dict, wanted: str) -> EvalResult:
+    for p in parsed:
+        if "unparsed" in p:
+            if p["action"] == wanted:
+                continue  # an unreadable deny can never make this PASS; at worst a safe false FAIL
+            return EvalResult(NOT_EVALUATED, {"reason": f"ACL line not understood ({p['unparsed']}) before any "
+                                                        f"rule decided this", "unparsed_line": p["raw"]})
+        if p["action"] == wanted:
+            if _covers(p, match):
+                return EvalResult(PASS, {"first_match": p["raw"]})
+        elif _overlaps(p, match):
+            return EvalResult(FAIL, {"first_match": p["raw"]})
+    return EvalResult(NOT_EVALUATED, {"reason": "no rule decides this traffic (only the implicit end-of-list "
+                                                "default, not verified)", "no_decision": True})
 
 
 def _eval_ordered_first_match(predicate: dict, fields: dict) -> EvalResult:
@@ -194,54 +372,55 @@ def _eval_ordered_first_match(predicate: dict, fields: dict) -> EvalResult:
     if not present:
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"]})
     rules = rules if isinstance(rules, list) else [rules]
-
-    match = predicate["match"]  # {"protocol": "tcp", "port": 23}
-    parsed = [_parse_acl_line(r) for r in rules]
+    match = predicate["match"]  # e.g. {"protocol": "tcp", "port": 23, "source": "any"}
     wanted = predicate.get("want_action_if_matched", "deny")
 
-    def matches(p) -> bool:
-        if match.get("source") == "any" and not p["src_any"]:
-            return False
-        if match["protocol"] not in ("any", "ip") and p["protocol"] not in ("ip", match["protocol"]):
-            return False
-        if match.get("any_port"):
-            return True
-        if match.get("port") is None:
-            # The question is "what happens to ARBITRARY traffic of this
-            # protocol" (e.g. deny-by-default) - only a rule covering every
-            # port answers that. Counting a port-specific line here let
-            # `[deny tcp any any eq 23, permit ip any any]` PASS a
-            # deny-by-default check although the ACL ends in permit-all.
-            return p["port"] is None
-        return p["port"] is None or p["port"] == match["port"]
+    groups: dict = {}
+    for r in rules:
+        p = _parse_acl_line(r)
+        if p is not None:
+            groups.setdefault(p["group"], []).append(p)
+    if not groups:
+        return EvalResult(NOT_EVALUATED, {"reason": "no ACL line could be parsed", "raw_rules": rules})
+    bindings = fields.get("AC.acl_bindings") or []
+    applied = [g for g in groups if g in bindings]
+    if bindings and not applied:
+        return EvalResult(NOT_EVALUATED, {"reason": "the ACLs this device applies are not defined in the config",
+                                          "applied": bindings})
+    considered = applied if bindings else list(groups)
+    unapplied = [g for g in groups if g not in considered]
 
     if predicate.get("scope") == "all_matches":
         # "No rule of this shape may exist with the wrong action" - e.g.
         # CIS pfSense 4.1.2, no allow rule from Any source ANYWHERE in the
         # list. Order is irrelevant here; every matching rule must comply.
-        live = [p for p in parsed if p is not None]
-        if not live:
-            return EvalResult(NOT_EVALUATED, {"reason": "no ACL line could be parsed", "raw_rules": rules})
-        offending = [p["raw"] for p in live if matches(p) and p["action"] != wanted]
-        return EvalResult(FAIL if offending else PASS, {"offending_rules": offending})
+        live = [p for g in considered for p in groups[g]]
+        offending = [p["raw"] for p in live if "unparsed" not in p and p["action"] != wanted and _overlaps(p, match)]
+        if offending:
+            return EvalResult(FAIL, {"offending_rules": offending})
+        unparsed = [p["raw"] for p in live if "unparsed" in p and p["action"] != wanted]
+        if unparsed:
+            return EvalResult(NOT_EVALUATED, {"reason": "ACL lines not understood", "unparsed_lines": unparsed})
+        return EvalResult(PASS, {"offending_rules": []})
 
-    for p in parsed:
-        if p is None:
-            continue
-        if matches(p):
-            # First matching rule in sequence - its action decides this,
-            # regardless of any later rule that also happens to match.
-            ok = p["action"] == wanted
-            return EvalResult(PASS if ok else FAIL, {"first_match": p["raw"]})
-
-    if not any(parsed):
-        # Nothing parsed at all - can't honestly claim to have evaluated this,
-        # rather than assume an implicit-deny default we can't verify we
-        # actually captured every rule for.
-        return EvalResult(NOT_EVALUATED, {"reason": "no ACL line could be parsed", "raw_rules": rules})
-    # Rules parsed, but none matched the protocol/port in question -
-    # no rule addresses this traffic at all.
-    return EvalResult(NOT_EVALUATED, {"reason": "no rule matches the given protocol/port", "raw_rules": rules})
+    per_group = {g: _first_match_one(groups[g], match, wanted) for g in considered}
+    # A list where no rule touches this traffic permits none of it (the
+    # default is deny), so it neither fails nor passes the device: FAIL if
+    # any list fails, NOT_EVALUATED if any list has an unreadable line in the
+    # way, PASS if some list explicitly decides it, else NOT_EVALUATED.
+    kind = {g: ("NONE" if r.evidence.get("no_decision") else r.result) for g, r in per_group.items()}
+    for verdict in (FAIL, NOT_EVALUATED, PASS, "NONE"):
+        hit = [g for g, k in kind.items() if k == verdict]
+        if hit:
+            ev = dict(per_group[hit[0]].evidence)
+            ev["acl"] = hit[0]
+            if len(per_group) > 1:
+                ev["per_acl"] = {g: r.result for g, r in per_group.items()}
+            ev.pop("no_decision", None)
+            if unapplied:
+                ev["not_applied"] = unapplied
+            return EvalResult(NOT_EVALUATED if verdict == "NONE" else verdict, ev)
+    return EvalResult(NOT_EVALUATED, {})
 
 
 _EVALUATORS = {

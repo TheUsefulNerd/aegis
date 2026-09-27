@@ -97,10 +97,11 @@ def test_deny_by_default_is_not_satisfied_by_a_port_specific_deny():
 
 def test_acl_parser_reads_port_when_both_addresses_are_any():
     from app.rule_engine import _parse_acl_line
-    assert _parse_acl_line("access-list 101 permit tcp any any eq 22")["port"] == 22
-    assert _parse_acl_line("access-list 101 deny tcp host 10.0.0.1 any eq telnet")["port"] == 23
-    assert _parse_acl_line("deny   ip object-group BLACKBALLED any log")["port"] is None
-    assert _parse_acl_line(" permit tcp 10.0.0.0 0.0.0.255 any eq 443")["port"] == 443
+    assert _parse_acl_line("access-list 101 permit tcp any any eq 22")["dst_ports"] == ("eq", frozenset({22}))
+    p = _parse_acl_line("access-list 101 deny tcp host 10.0.0.1 any eq telnet")
+    assert p["dst_ports"] == ("eq", frozenset({23})) and p["src"] == "specific"
+    assert "unparsed" in _parse_acl_line("deny   ip object-group BLACKBALLED any log")
+    assert _parse_acl_line(" permit tcp 10.0.0.0 0.0.0.255 any eq 443")["dst_ports"] == ("eq", frozenset({443}))
 
 
 def test_unparseable_acl_is_not_evaluated_not_pass():

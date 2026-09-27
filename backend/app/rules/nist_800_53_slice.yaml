@@ -30,28 +30,29 @@ rules:
     severity: CAT_I
     remediation_template_ref: CIS-1.2.2
 
-  - id: NIST-IA-7
-    title: "Cryptographic module authentication - SSHv2 minimum (IA-7)"
-    control_family: IA
+  - id: NIST-SC-8
+    title: "Transmission confidentiality and integrity - SSH version 2 for remote management (SC-8)"
+    control_family: SC
     check_type: range
     predicate: { field: IA.ssh_version, min: 2, max: 2 }
     severity: CAT_I
     remediation_template_ref: CIS-2.1.1.2
-    # Same min/max fix as CIS-2.1.1.2 - not part of her batch (she didn't
-    # touch this rule specifically) but the same underlying bug applies.
+    # Was cited as IA-7 (cryptographic MODULE authentication), which is not
+    # what an SSH protocol version shows. SSHv1's integrity and key-exchange
+    # weaknesses are a transmission-protection question: SC-8.
 
   - id: NIST-IA-5-1-d
-    title: "Password-based authenticators must receive approved cryptographic protection (IA-5(1)(d))"
+    title: "Passwords stored with an approved salted key-derivation function (IA-5(1)(d))"
     control_family: IA
-    check_type: boolean
-    predicate: { field: IA.password_encryption_enabled, equals: true }
+    check_type: set-membership
+    predicate: { field: AC.privileged_password_type, mode: all_in, values: ["secret_type_8", "secret_type_9"] }
     severity: CAT_II
-    remediation_template_ref: CIS-1.4.2
-    # Caution carried over from her notes: don't present Cisco's
-    # `service password-encryption` as if it satisfies this NIST requirement
-    # on its own - the CIS benchmark itself calls that mechanism weak
-    # (reversible, not modern hashing). This rule checks the same field as a
-    # starting point, not a claim of equivalence.
+    remediation_template_ref: CIS-1.4.1
+    # Rev 5 IA-5(1)(d) requires passwords be stored using an approved salted
+    # key-derivation function. It used to check `service password-encryption`
+    # (Cisco type 7), which is reversible - a PASS by construction on a
+    # control it cannot satisfy. Type 8 (PBKDF2-SHA256) and type 9 (scrypt)
+    # are the salted KDFs.
 
   - id: NIST-AU-2
     title: "Security-relevant events must be logged (AU-2)"

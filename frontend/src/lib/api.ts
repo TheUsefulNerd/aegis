@@ -1,5 +1,18 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Reviewer token for a backend running with AEGIS_REVIEWERS set (verified
+// reviewer identity). From the build env, or per browser via
+// localStorage "aegis:token". Absent = open demo mode.
+function authHeaders(): Record<string, string> {
+  let token: string | null | undefined = process.env.NEXT_PUBLIC_AEGIS_TOKEN;
+  try {
+    token = (typeof window !== "undefined" && window.localStorage.getItem("aegis:token")) || token;
+  } catch {
+    // storage unavailable - fall back to the build-time token, if any
+  }
+  return token ? { "X-AEGIS-Token": token } : {};
+}
+
 export type IngestResult = {
   device_id: string;
   config_id: string;
@@ -7,7 +20,14 @@ export type IngestResult = {
   format: string;
   fingerprint_confidence: string;
   total_units: number;
-  tier_counts: { tier1: number; tier2_accepted: number; tier3_pending: number; not_security?: number };
+  tier_counts: {
+    tier1: number;
+    tier3_human_confirmed?: number;
+    tier2_accepted: number;
+    tier3_pending: number;
+    not_security?: number;
+  };
+  input_sha256?: string;
   parse_coverage_pct: number;
   redaction_hits: { type: string; count: number }[];
   redaction_examples: { type: string; unit: string }[];
@@ -59,7 +79,7 @@ async function handle<T>(res: Response): Promise<T> {
 export async function ingestConfig(file: File): Promise<IngestResult> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_BASE}/ingest`, { method: "POST", body: form });
+  const res = await fetch(`${API_BASE}/ingest`, { method: "POST", body: form, headers: authHeaders() });
   return handle<IngestResult>(res);
 }
 
@@ -82,7 +102,7 @@ export async function confirmReviewItem(
 ) {
   const res = await fetch(`${API_BASE}/review-queue/${id}/confirm`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
   return handle<{ kb_entry_id: string; review_queue_id: string; status: string }>(res);
@@ -91,7 +111,7 @@ export async function confirmReviewItem(
 export async function rejectReviewItem(id: string, body: { reviewer_id: string; reason?: string; reviewer_notes?: string | null }) {
   const res = await fetch(`${API_BASE}/review-queue/${id}/reject`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
   return handle<{ review_queue_id: string; status: string }>(res);
@@ -100,7 +120,7 @@ export async function rejectReviewItem(id: string, body: { reviewer_id: string; 
 export async function dismissNotSecurity(body: { reviewer_id: string; reviewer_notes?: string | null }) {
   const res = await fetch(`${API_BASE}/review-queue/dismiss-not-security`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
   });
   return handle<{ dismissed: number }>(res);
@@ -133,7 +153,8 @@ export type Finding = {
   severity: string;
   result: "PASS" | "FAIL" | "NOT_EVALUATED";
   confidence_tier: ConfidenceTier;
-  evidence: Record<string, unknown>;
+  evidence: Record<string, unknown> & { would_be?: string; reason?: string };
+  source_lines?: string[];
   remediation: string | null;
   remediation_source: string | null;
 };

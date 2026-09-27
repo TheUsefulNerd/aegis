@@ -21,28 +21,37 @@ CONTROL_FAMILIES = {
     "CM": "Configuration Management",
 }
 
+# "insecure" (bool fields) / "worse" (number fields): the direction that is
+# LESS secure. When one config sets the same field more than once (two
+# `line vty` blocks, one with telnet and one without), the least secure
+# value is the device's real posture - a last-line-wins merge once passed a
+# telnet check because the second VTY block said ssh.
 FIELD_METADATA = {
     "AC.telnet_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": True,
         "label": "Telnet access",
         "description": "Whether unencrypted Telnet remote-access is enabled on this device.",
     },
     "IA.ssh_version": {
         "type": "scalar",
         "value_kind": "number",
+        "worse": "lower",
         "label": "SSH version",
         "description": "Which version of SSH is required for encrypted remote access (should be 2, not 1).",
     },
     "IA.password_encryption_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Password encryption",
         "description": "Whether stored passwords/secrets in the config are encrypted rather than plain text.",
     },
     "AU.logging_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Logging enabled",
         "description": "Whether administrative activity logging is turned on.",
     },
@@ -70,6 +79,7 @@ FIELD_METADATA = {
     "AC.session_idle_timeout_minutes": {
         "type": "scalar",
         "value_kind": "number",
+        "worse": "higher_or_zero",
         "label": "Session idle timeout",
         "description": "How many minutes an idle administrative session is left open before being disconnected.",
     },
@@ -81,84 +91,98 @@ FIELD_METADATA = {
     "AC.login_banner_configured": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Login banner",
         "description": "Whether a legal/warning banner is shown before a user logs in.",
     },
     "AC.vty_access_class": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "VTY management restriction",
         "description": "Whether remote-management (VTY) lines are restricted to specific hosts/networks via an access-class.",
     },
     "AU.log_access_restricted": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Log access restricted",
         "description": "Whether access to stored audit logs and logging configuration is itself restricted to authorized administrators.",
     },
     "AU.ntp_authentication_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "NTP authentication",
         "description": "Whether time-sync (NTP) messages are cryptographically authenticated, preventing a spoofed time source from skewing logs/certs.",
     },
     "SC.ip_source_routing_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": True,
         "label": "IP source routing",
         "description": "Whether the device honors source-routed packets (attacker-specified paths) - should be disabled.",
     },
     "SC.proxy_arp_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": True,
         "label": "Proxy ARP",
         "description": "Whether the device answers ARP requests on behalf of other hosts - normally should be disabled on external-facing interfaces.",
     },
     "SC.pad_enabled": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": True,
         "label": "PAD service",
         "description": "Whether the legacy Packet Assembler/Disassembler (X.25) service is enabled - should be disabled if unused.",
     },
     "SC.webgui_protocol": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Web management protocol",
         "description": "Whether the device's web-based admin interface enforces HTTPS (true) rather than allowing plain HTTP (false).",
     },
     "AU.firewall_rule_logging": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Firewall rule logging",
         "description": "Whether individual firewall/filter rules are configured to log matching traffic.",
     },
     "SC.routing_authentication": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Routing protocol authentication",
         "description": "Whether routing-protocol neighbor sessions require cryptographic authentication.",
     },
     "SC.control_plane_protection": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Control plane protection",
         "description": "Whether Control Plane Policing/Protection is configured to shield the device's own management/routing processes from excessive or unauthorized traffic.",
     },
     "SC.ipv6_ra_suppression": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "IPv6 router advertisement suppression",
         "description": "Whether the device is configured to suppress outgoing IPv6 Router Advertisements on external-facing interfaces.",
     },
     "SC.external_interface_cdp": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": True,
         "label": "CDP on external interfaces",
         "description": "Whether Cisco Discovery Protocol is enabled on interfaces facing outside the organization's network (should be disabled - CDP leaks device details to anything listening).",
     },
     "SC.network_segmentation": {
         "type": "scalar",
         "value_kind": "bool",
+        "insecure": False,
         "label": "Network segmentation",
         "description": "Whether security-sensitive networks/systems are logically separated (VLANs, zones, ACLs) rather than sharing one flat network.",
     },

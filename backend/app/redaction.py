@@ -36,6 +36,9 @@ class RedactionResult:
 # characters that matter across CLI/XML/JSON, so only the actual value is
 # captured and structure around it survives untouched.
 _VALUE = r"[^\s<>\"']+"
+# CLI-only rules may keep an apostrophe inside the value (`My'Secret`): with
+# _VALUE the part after the quote stayed visible. Never used on XML/JSON.
+_CLIVAL = r"[^\s<>\"]+"
 # Cisco-style "encryption type" digit that sits between a keyword and its
 # secret (`key 7 <hex>`, `password 0 <plain>`, `secret 9 <hash>`). It's kept
 # visible - it says HOW the secret is stored, which compliance rules need -
@@ -58,6 +61,9 @@ _RULES = [
     # (it's what AC.privileged_password_type needs to read) while only the
     # hash (group 2) is redacted.
     ("ENABLE_SECRET_HASH", re.compile(r"\benable secret (\d+) (" + _VALUE + r")"), None, 2),
+    # `enable secret <plaintext>` (no type digit): IOS hashes it on entry,
+    # but the export under review may be a hand-written or pre-deploy file.
+    ("ENABLE_SECRET_HASH", re.compile(r"\benable secret (?!\d+ |level )(" + _CLIVAL + r")"), None, 1),
     # Local user accounts: `username X [privilege N] [role R] secret <type>
     # <hash>` (IOS type 5/8/9, EOS `secret 5` / `secret sha512`).
     ("USER_SECRET_HASH",
@@ -70,8 +76,8 @@ _RULES = [
     # that merely contains the word (a banner, a description) isn't touched.
     # `password encryption aes` is an IOS-XE command, not a secret.
     ("CLI_PASSWORD",
-     re.compile(r"(?m)^[ \t]*(?:(?:enable|username|ip|neighbor|ppp)\b[^\n]*?" + _WS + r")?password"
-                + _WS + _TYPE + r"(" + _VALUE + r")"),
+     re.compile(r"(?m)^[ \t]*(?:(?:enable|username|ip|neighbor|ppp|l2tp)\b[^\n]*?" + _WS + r")?password"
+                + _WS + _TYPE + r"(" + _CLIVAL + r")"),
      {"encryption"}, 1),
     # "public"/"private" are the well-known CIS-flagged DEFAULT community
     # strings (CIS-1.5.2/1.5.3) - not real secrets, so there's nothing to
@@ -79,7 +85,16 @@ _RULES = [
     # checks: once redacted to a generic placeholder, the compliance check
     # can never again tell a default string apart from a real custom one.
     # Any other community string still gets redacted normally.
-    ("SNMP_COMMUNITY", re.compile(r"\bsnmp-server community (" + _VALUE + r")"), {"public", "private"}, 1),
+    ("SNMP_COMMUNITY", re.compile(r"\bsnmp-server community (" + _CLIVAL + r")"), {"public", "private"}, 1),
+    # The community is also the secret on a trap/inform destination:
+    # `snmp-server host H [traps|informs] [version 1|2c|3 auth] <community>`.
+    ("SNMP_COMMUNITY",
+     re.compile(r"\bsnmp-server host" + _WS + r"\S+" + _WS + r"(?:(?:traps|informs)" + _WS + r")?"
+                r"(?:version" + _WS + r"(?:1|2c|3" + _WS + r"\w+)" + _WS + r")?(?!version\b)(" + _CLIVAL + r")"),
+     {"public", "private"}, 1),
+    # Junos: `set snmp community S3cret ...` / `community S3cret {`.
+    ("SNMP_COMMUNITY", re.compile(r"(?m)^[ \t]*(?:set snmp )?community" + _WS + r"\"?(" + _VALUE + r")"),
+     {"public", "private"}, 1),
     # SNMPv3 users: `snmp-server user U G v3 auth sha AUTHPASS priv aes 128 PRIVPASS`.
     ("SNMPV3_SECRET",
      re.compile(r"(?m)^[ \t]*snmp-server user\b[^\n]*?\bauth" + _WS + r"\S+" + _WS + r"(" + _VALUE + r")"),
@@ -105,6 +120,24 @@ _RULES = [
                 re.IGNORECASE),
      None, 1),
     ("AAA_KEY", re.compile(r"(?m)^[ \t]+key" + _WS + _TYPE + r"(?!\d+[ \t]*$)(" + _VALUE + r")"), None, 1),
+    # IOS-XE `server-private A key [7] X` inside an AAA server group.
+    ("AAA_KEY", re.compile(r"\bserver-private\b[^\n]*?\bkey" + _WS + _TYPE + r"(" + _CLIVAL + r")"), None, 1),
+    # FortiOS: `set password ENC <blob>`, `set psksecret ENC ...`,
+    # `set passwd ...`, SNMPv3 `set auth-pwd ...`.
+    ("FORTIOS_SECRET",
+     re.compile(r"(?m)^[ \t]*set" + _WS + r"(?:password|passwd|psksecret|secret|key|auth-pwd|priv-pwd|ppk-secret"
+                r"|auth-password|priv-password)" + _WS + r"(?:ENC" + _WS + r")?\"?(" + _VALUE + r")"),
+     None, 1),
+    # Junos quoted secrets: `secret "$9$..."`, `encrypted-password "$6$..."`,
+    # `authentication-key "..."`, `pre-shared-key ascii-text "..."`.
+    ("JUNOS_SECRET",
+     re.compile(r"\b(?:secret|encrypted-password|authentication-key|ascii-text|hexadecimal)" + _WS
+                + r"\"([^\"\n]+)\""),
+     None, 1),
+    # Wi-Fi and other plain shared keys: `wpa-psk ascii 0 X`, `authentication text X`.
+    ("PRE_SHARED_KEY", re.compile(r"\bwpa-psk" + _WS + r"(?:ascii|hex)" + _WS + _TYPE + r"(" + _CLIVAL + r")"),
+     None, 1),
+    ("ROUTING_AUTH_KEY", re.compile(r"\bauthentication text" + _WS + r"(" + _CLIVAL + r")"), None, 1),
     # Routing-protocol authentication: key-chain `key-string`, OSPF
     # `message-digest-key N md5 X` / `authentication-key X`.
     # NTP orders it differently - `ntp authentication-key <id> <algo> <key>
@@ -127,7 +160,8 @@ _RULES = [
     # the keyword and the colon, and without allowing it this rule never
     # matched real JSON at all.
     ("GENERIC_SECRET_FIELD",
-     re.compile(r"\b[\w-]*?(?:secret|password|passwd|passkey|psk|shared_key)[\"']?\s*[:=]\s*[\"']?(" + _VALUE + r")",
+     re.compile(r"\b[\w-]*?(?:secret|password|passwd|passkey|passphrase|psk|shared_key|auth_key|authkey|"
+                r"private_key|api_key|apikey)[\"']?\s*[:=]\s*[\"']?(" + _VALUE + r")",
                 re.IGNORECASE),
      None, 1),
     # XML *elements* use a completely different separator than the rule
@@ -146,7 +180,7 @@ _RULES = [
     # setting the cipher rules read), hence "-hash" only as a suffix.
     ("XML_ELEMENT_SECRET",
      re.compile(r"<([\w-]*(?:secret|password|passwd|passkey|passphrase|psk|shared[_-]key|auth_pass)[\w-]*"
-                r"|[\w]+-hash)>([^<]+)</\1>", re.IGNORECASE),
+                r"|[\w]+-hash|phash|key|prv|private-key)>([^<]+)</\1>", re.IGNORECASE),
      None, 2),
 ]
 
@@ -154,7 +188,7 @@ _RULES = [
 # check would catch: a vendor-proprietary obfuscated blob with no recognizable
 # keyword next to it. Used deliberately in rehearsal (architecture-document.md
 # §7/§11) to show the gap honestly rather than only the happy path.
-DEMO_UNCAUGHT_EXAMPLE = "set system root-authentication encrypted-password \"$6$abcXYZ123$notReallyRedacted\""
+DEMO_UNCAUGHT_EXAMPLE = "vendor-blob Qm9ndXNWZW5kb3JTZWNyZXRCbG9iMTIz"
 
 
 def redact(text: str) -> RedactionResult:

@@ -32,12 +32,22 @@ def extract(raw_text: str, fmt: str) -> DeviceIdentity:
 
 
 def _extract_cli(raw_text: str) -> DeviceIdentity:
-    hostname = _search(r"^hostname\s+(\S+)", raw_text)
-    firmware_version = _search(r"^version\s+(\S+)", raw_text)
-    # Best-effort only - real running-config exports rarely carry these;
-    # covers the rare case a comment/banner does (e.g. "! Model: WS-C3560").
-    model = _search(r"^!\s*Model:\s*(\S+)", raw_text, extra=re.IGNORECASE)
-    serial = _search(r"^!\s*Serial(?:\s*Number)?:\s*(\S+)", raw_text, extra=re.IGNORECASE)
+    hostname = (_search(r"^hostname\s+\"?([^\"\s]+)", raw_text)
+                or _search(r"^\s*(?:set system )?host-name\s+\"?([^\";\s]+)", raw_text)       # Junos
+                or _search(r"^\s*set hostname\s+\"?([^\"\s]+)", raw_text))                  # FortiOS
+    firmware_version = (_search(r"^version\s+([^;\s]+)", raw_text)
+                        or _search(r"^!\s*device:.*\(\s*[^,]+,\s*([^)\s]+)", raw_text)      # Arista header
+                        or _search(r"^#config-version=[^-]+-([\d.]+)", raw_text))              # FortiOS header
+    model = (_search(r"^license udi pid\s+(\S+)", raw_text)                                   # Cisco UDI line
+             or _search(r"^cisco\s+(\S+)\s+.*processor", raw_text, extra=re.IGNORECASE)        # show version
+             or _search(r"^Model number\s*:\s*(\S+)", raw_text, extra=re.IGNORECASE)
+             or _search(r"^!\s*device:.*\(\s*([^,)]+)", raw_text)                            # Arista header
+             or _search(r"^#config-version=([^-]+)-", raw_text)                                 # FortiOS header
+             or _search(r"^!\s*Model:\s*(\S+)", raw_text, extra=re.IGNORECASE))
+    serial = (_search(r"^license udi pid\s+\S+\s+sn\s+(\S+)", raw_text)                    # Cisco UDI line
+              or _search(r"Processor board ID\s+(\S+)", raw_text)                             # show version
+              or _search(r"^System serial number\s*:\s*(\S+)", raw_text, extra=re.IGNORECASE)
+              or _search(r"^!\s*Serial(?:\s*Number)?:\s*(\S+)", raw_text, extra=re.IGNORECASE))
     return DeviceIdentity(hostname=hostname, model=model, firmware_version=firmware_version, serial_number=serial)
 
 
@@ -71,5 +81,7 @@ def _extract_xml(raw_text: str) -> DeviceIdentity:
         return DeviceIdentity()
     system = root.find("system")
     hostname = system.findtext("hostname") if system is not None else None
-    version = root.findtext("version")
+    if not hostname:  # e.g. PAN-OS keeps it under devices/entry/deviceconfig/system
+        hostname = next((e.text.strip() for e in root.iter("hostname") if e.text and e.text.strip()), None)
+    version = root.findtext("version") or root.get("version")
     return DeviceIdentity(hostname=hostname, firmware_version=version, model=None, serial_number=None)

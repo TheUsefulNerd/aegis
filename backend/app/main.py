@@ -1,7 +1,9 @@
 import datetime as dt
+import hashlib
+import os
 import re
 
-from fastapi import Depends, FastAPI, HTTPException, Response, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -25,12 +27,41 @@ def _iso_utc(d: dt.datetime | None) -> str | None:
 
 
 app = FastAPI(title="AEGIS")
+# Only the AEGIS frontend may call this API from a browser. With "*", any web
+# page the analyst had open could read the review queue from localhost and
+# post confirmations into the knowledge base.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tightened once the Next.js origin is fixed for the demo
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[o.strip() for o in os.environ.get(
+        "AEGIS_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-AEGIS-Token"],
 )
+
+MAX_UPLOAD_BYTES = int(os.environ.get("AEGIS_MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
+
+
+def _reviewers() -> dict:
+    """AEGIS_REVIEWERS="name:token,name2:token2" turns on verified reviewer
+    identity: every write must carry a valid X-AEGIS-Token, and the reviewer
+    recorded in the audit trail is the token's owner, not a name the client
+    claims. Unset = open demo mode (the claimed name is recorded as given)."""
+    out = {}
+    for pair in os.environ.get("AEGIS_REVIEWERS", "").split(","):
+        name, _, token = pair.strip().partition(":")
+        if name and token:
+            out[token] = name
+    return out
+
+
+def _verified_reviewer(request: Request, claimed: str | None) -> str:
+    tokens = _reviewers()
+    if not tokens:
+        return claimed or "unverified"
+    who = tokens.get(request.headers.get("X-AEGIS-Token", ""))
+    if who is None:
+        raise HTTPException(401, "a valid reviewer token (X-AEGIS-Token) is required")
+    return who
 
 
 @app.on_event("startup")
@@ -54,7 +85,7 @@ def _startup():
 
 
 @app.post("/ingest")
-def ingest(file: UploadFile, db: Session = Depends(get_db)):
+def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
     # Deliberately a plain `def`, not `async def`: everything inside this
     # (Tier-2 LLM calls, embedding computation) is blocking, synchronous work.
     # An async route runs directly on the single event loop, so a blocking
@@ -63,12 +94,23 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
     # the whole app appeared to hang during a slow ingest. A plain `def`
     # route is automatically dispatched to FastAPI's thread pool instead, so
     # the event loop stays free and other requests keep being served.
-    raw_bytes = file.file.read()
+    _verified_reviewer(request, None)
+    raw_bytes = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"config file larger than {MAX_UPLOAD_BYTES} bytes")
     raw_text = raw_bytes.decode("utf-8", errors="replace")
+    # Fingerprint of exactly what was uploaded, printed on the report so an
+    # auditor can tie a report to one specific config export.
+    input_sha256 = hashlib.sha256(raw_bytes).hexdigest()
 
     redacted = redaction.redact(raw_text)
     fp = fingerprint.fingerprint(redacted.text)
-    unit_list = units_mod.split_into_units(redacted.text, fp["format"])
+    try:
+        unit_list = units_mod.split_into_units(redacted.text, fp["format"])
+    except units_mod.UnparseableConfig as e:
+        # A file that can't be read is reported as such - never analyzed as
+        # an empty config whose every rule silently shows as "unknown".
+        raise HTTPException(400, f"could not parse this {fp['format'].upper()} file: {e}")
     # Runs independently of whether the security-relevant syntax resolves
     # (architecture-document.md §3 step 3b) - even a wholly unknown vendor's
     # report still carries device info if the raw file has any.
@@ -84,6 +126,7 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
         # fingerprint's coarse vendor-family label (e.g. "ios").
         firmware_version=identity.firmware_version or fp["version_family"],
         redaction_hits=redacted.hits,
+        input_sha256=input_sha256,
     )
     db.add(device)
     db.commit()
@@ -91,7 +134,8 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
 
     fields = {}
     provenance = {}
-    tier_counts = {"tier1": 0, "tier2_accepted": 0, "tier3_pending": 0, "not_security": 0}
+    tier_counts = {"tier1": 0, "tier3_human_confirmed": 0, "tier2_accepted": 0, "tier3_pending": 0,
+                   "not_security": 0}
     pending_review_ids = []
     sanity_gate_hits = []
 
@@ -148,53 +192,50 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
                                                           device_id=device.id)))
 
         # Pass 3 - apply results in the file's own order (ACL order matters).
-        for i in clean:
-            unit_text, result = unit_list[i], resolved[i]
+        acl_name = None  # the named ACL whose entries follow (`ip access-list extended NAME`)
+        for i, unit_text in enumerate(unit_list):
+            header = _NAMED_ACL_RE.match(unit_text)
+            if header:
+                acl_name = header.group(1)
+            elif not _ACL_ENTRY_RE.match(unit_text):
+                acl_name = None
+            if i in flagged:
+                continue
+            result = resolved[i]
             tier_counts[result.tier] += 1
-            if result.tier in ("tier1", "tier2_accepted") and result.canonical_field:
+            if result.tier in _ACCEPTED_TIERS and result.canonical_field:
                 value = result.value if result.value is not None else True
+                source = {"kb_entry_id": result.kb_entry_id, "kb_entry_version": result.kb_entry_version,
+                          "confidence_tier": result.tier, "source_unit": unit_text}
                 if CANONICAL_FIELDS.get(result.canonical_field) == "list":
-                    # Accumulate, don't overwrite - multiple ACL rules (etc.)
-                    # all map to the same field, and dropping all but the
-                    # last one silently would gut the ordered/first-match
-                    # rule check, which needs the FULL rule list to mean
-                    # anything (architecture-document.md §3 step 6).
-                    fields.setdefault(result.canonical_field, [])
-                    if value not in fields[result.canonical_field]:
-                        fields[result.canonical_field].append(value)
+                    if result.canonical_field == "AC.acl_rules":
+                        # Keep every ACL line, in order, tagged with its list:
+                        # rules are evaluated per ACL, never merged across lists.
+                        if acl_name and value == unit_text:
+                            value = f"[{acl_name}] {unit_text}"
+                        fields.setdefault("AC.acl_rules", []).append(value)
+                    else:
+                        # Accumulate, don't overwrite - several lines (logging
+                        # hosts, SNMP communities) all feed the same list.
+                        fields.setdefault(result.canonical_field, [])
+                        if value not in fields[result.canonical_field]:
+                            fields[result.canonical_field].append(value)
                     provenance.setdefault(result.canonical_field, {"entries": []})
-                    provenance[result.canonical_field]["entries"].append({
-                        "kb_entry_id": result.kb_entry_id,
-                        "kb_entry_version": result.kb_entry_version,
-                        "confidence_tier": result.tier,
-                        "source_unit": unit_text,
-                    })
+                    provenance[result.canonical_field]["entries"].append(source)
                 else:
-                    # A deterministic Tier-1 value is never overwritten by a
-                    # later Tier-2 guess for the same scalar field. Found on
-                    # a real config: `enable secret 9` (Tier 1 ->
-                    # secret_type_9) was overwritten by the AI's reading of
-                    # `username ... secret 9` as "secret", turning a correct
-                    # CIS-1.4.1 PASS into a FAIL.
-                    prior = provenance.get(result.canonical_field)
-                    if prior and prior.get("confidence_tier") == "tier1" and result.tier != "tier1":
-                        continue
-                    fields[result.canonical_field] = value
-                    provenance[result.canonical_field] = {
-                        "kb_entry_id": result.kb_entry_id,
-                        "kb_entry_version": result.kb_entry_version,
-                        "confidence_tier": result.tier,
-                        "source_unit": unit_text,
-                    }
+                    _merge_scalar(fields, provenance, result.canonical_field, value, source)
             elif result.tier == "tier3_pending":
                 pending_review_ids.append(result.review_queue_id)
+        bindings = _acl_bindings(unit_list)
+        if bindings:
+            fields["AC.acl_bindings"] = bindings
         ingest_span.update(output={"tier_counts": tier_counts})
     langfuse.flush()
 
     total = len(unit_list) or 1
     # "Understood" includes lines recognized as not-a-security-setting.
-    coverage_pct = round(100.0 * (tier_counts["tier1"] + tier_counts["tier2_accepted"]
-                                  + tier_counts["not_security"]) / total, 1)
+    coverage_pct = round(100.0 * (tier_counts["tier1"] + tier_counts["tier3_human_confirmed"]
+                                  + tier_counts["tier2_accepted"] + tier_counts["not_security"]) / total, 1)
 
     config = CanonicalConfig(
         device_id=device.id,
@@ -218,6 +259,7 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
         "model": device.model,
         "serial_number": device.serial_number,
         "firmware_version": device.firmware_version,
+        "input_sha256": input_sha256,
         "total_units": len(unit_list),
         "tier_counts": tier_counts,
         "parse_coverage_pct": coverage_pct,
@@ -227,6 +269,76 @@ def ingest(file: UploadFile, db: Session = Depends(get_db)):
         "fields": fields,
         "pending_review_ids": pending_review_ids,
     }
+
+
+_ACCEPTED_TIERS = ("tier1", "tier3_human_confirmed", "tier2_accepted")
+_TIER_RANK = {"tier1": 3, "tier3_human_confirmed": 2, "tier2_accepted": 1}
+_NAMED_ACL_RE = re.compile(r"^ip(?:v6)? access-list (?:extended |standard )?(\S+)$", re.IGNORECASE)
+_ACL_ENTRY_RE = re.compile(r"^(\d+\s+)?(permit|deny|remark)\b", re.IGNORECASE)
+_ACL_BIND_RE = re.compile(r"^(?:ip access-group|access-class|ipv6 traffic-filter|ipv6 access-class)\s+(\S+)\s+(in|out)\b",
+                          re.IGNORECASE)
+
+
+def _acl_bindings(unit_list: list) -> list:
+    """ACLs the config actually applies (to an interface or a VTY line).
+    Read deterministically from the config, not classified: which lists are
+    in force decides which lists the ACL rules are evaluated against."""
+    out = []
+    for u in unit_list:
+        m = _ACL_BIND_RE.match(u)
+        if m and m.group(1) not in out:
+            out.append(m.group(1))
+    return out
+
+
+def _coerce(v, kind):
+    if kind == "bool":
+        return rule_engine._coerce_bool(v)
+    if kind == "number":
+        try:
+            return None if isinstance(v, bool) else float(v)
+        except (TypeError, ValueError):
+            return None
+    return v
+
+
+def _less_secure(field: str, new, old) -> bool | None:
+    """True/False when the field has a known insecure direction, else None."""
+    meta = FIELD_METADATA.get(field, {})
+    kind = meta.get("value_kind")
+    n, o = _coerce(new, kind), _coerce(old, kind)
+    if n is None or o is None:
+        return None
+    if kind == "bool" and "insecure" in meta:
+        return n == meta["insecure"] and o != meta["insecure"]
+    if kind == "number" and meta.get("worse") == "lower":
+        return n < o
+    if kind == "number" and meta.get("worse") == "higher_or_zero":
+        return (n == 0 and o != 0) or (o != 0 and n > o)
+    return None
+
+
+def _merge_scalar(fields: dict, provenance: dict, field: str, value, source: dict) -> None:
+    """One value per scalar field, but every line that set it is kept as
+    evidence. When lines disagree, the LEAST secure value wins for fields
+    with a known direction (two VTY blocks, one allowing telnet: telnet is
+    enabled). For other fields a deterministic value is never overwritten by
+    an AI reading of a later line (`enable secret 9` vs an AI reading of
+    `username ... secret 9`)."""
+    prior = provenance.get(field)
+    if prior is None:
+        fields[field] = value
+        provenance[field] = {**source, "all_sources": [source["source_unit"]]}
+        return
+    prior["all_sources"].append(source["source_unit"])
+    worse = _less_secure(field, value, fields[field])
+    if worse is None:
+        replace = _TIER_RANK.get(source["confidence_tier"], 0) >= _TIER_RANK.get(prior["confidence_tier"], 0)
+    else:
+        replace = worse
+    if replace:
+        fields[field] = value
+        provenance[field] = {**source, "all_sources": prior["all_sources"]}
 
 
 _REDACTED_MARKER = re.compile(r"\[REDACTED:(\w+)\]")
@@ -277,6 +389,25 @@ def _finding_tier(prov: dict, evidence: dict) -> str | None:
     return min(tiers, key=lambda t: _TIER_STRENGTH.get(t, -1))
 
 
+def _source_lines(prov: dict | None, evidence: dict) -> list:
+    """The config lines a finding rests on, for the report's evidence column:
+    the deciding ACL line(s) when there is one, else every line that set the
+    field. Post-redaction text only - secrets never appear here."""
+    if evidence.get("first_match"):
+        return [evidence["first_match"]]
+    if evidence.get("offending_rules"):
+        return list(evidence["offending_rules"])
+    if evidence.get("unparsed_line"):
+        return [evidence["unparsed_line"]]
+    if not prov:
+        return []
+    if prov.get("all_sources"):
+        return list(prov["all_sources"])
+    if prov.get("source_unit"):
+        return [prov["source_unit"]]
+    return [e["source_unit"] for e in prov.get("entries", []) if e.get("source_unit")]
+
+
 def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None = None) -> dict:
     """Deterministic rule evaluation - architecture-document.md §3 step 6.
     No LLM involvement in producing PASS/FAIL/NOT_EVALUATED; every finding
@@ -287,11 +418,15 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
     brief's "multi-framework compliance engine" (feature 3) needs a user
     able to pick one, so this is also exposed as an explicit filter."""
     query = db.query(Rule)
-    if framework:
-        query = query.filter(Rule.framework == framework)
+    wanted = [f.strip() for f in (framework or "").split(",") if f.strip()]
+    if wanted:
+        query = query.filter(Rule.framework.in_(wanted))
     # Vendor-specific benchmarks (CIS Cisco IOS XE, CIS pfSense, the Cisco
     # STIG) only apply to their own vendor; NIST/ISO apply to everything.
     rules = [r for r in query.all() if not r.applies_to_vendors or config.vendor in r.applies_to_vendors]
+    # One evaluation replaces the device's previous one (re-checking or
+    # downloading the PDF used to append a full new set of findings each time).
+    db.query(Finding).filter(Finding.device_id == config.device_id).delete()
     counts = {"PASS": 0, "FAIL": 0, "NOT_EVALUATED": 0}
     # Stratified by severity, not just one aggregate number - a NOT_EVALUATED
     # rate concentrated in CAT_I is a very different report than one spread
@@ -301,17 +436,24 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
 
     for rule in rules:
         eval_result = rule_engine.evaluate(rule.check_type, rule.predicate, config.fields or {})
+        field_name = rule.predicate.get("field") if isinstance(rule.predicate, dict) else None
+        prov = (config.provenance or {}).get(field_name) if field_name else None
+        confidence_tier = _finding_tier(prov, eval_result.evidence) if prov else None
+        if eval_result.result == rule_engine.PASS and rule.severity == "CAT_I" and confidence_tier == "tier2_accepted":
+            # Asymmetric trust: AI-derived evidence may FAIL a control on its
+            # own, but it never PASSES a CAT_I control without a human. The
+            # auditor sees exactly what the AI read and confirms it once.
+            eval_result = rule_engine.EvalResult(rule_engine.NOT_EVALUATED, {
+                **eval_result.evidence, "reason": "needs human confirmation: the only evidence is an AI reading",
+                "would_be": "PASS"})
         counts[eval_result.result] += 1
         sev_bucket = counts_by_severity.setdefault(rule.severity, {"PASS": 0, "FAIL": 0, "NOT_EVALUATED": 0})
         sev_bucket[eval_result.result] += 1
 
-        field_name = rule.predicate.get("field") if isinstance(rule.predicate, dict) else None
-        prov = (config.provenance or {}).get(field_name) if field_name else None
-        confidence_tier = _finding_tier(prov, eval_result.evidence) if prov else None
-
         remediation_text = remediation_source = None
         if eval_result.result == rule_engine.FAIL:
-            rem = remediation.get_remediation(config.vendor, rule.standard_ref, rule.remediation_template_ref)
+            rem = remediation.get_remediation(config.vendor, rule.standard_ref, rule.remediation_template_ref,
+                                              context={"acl": eval_result.evidence.get("acl")})
             if rem:
                 remediation_text, remediation_source = rem.text, rem.source
 
@@ -336,6 +478,7 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
             "result": eval_result.result,
             "confidence_tier": confidence_tier,
             "evidence": eval_result.evidence,
+            "source_lines": _source_lines(prov, eval_result.evidence),
             "remediation": remediation_text,
             "remediation_source": remediation_source,
         })
@@ -355,6 +498,16 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
         "counts_by_severity": counts_by_severity,
         "findings": findings,
     }
+
+
+@app.post("/rules/reload")
+def reload_rules(request: Request, db: Session = Depends(get_db)):
+    """Re-read backend/app/rules/*.yaml and the seed KB without restarting:
+    a new framework or a corrected rule is a new file, not a redeploy."""
+    _verified_reviewer(request, None)
+    added = load_rule_files(db)
+    seeds = load_seed_kb(db)
+    return {"rules_added": added, "rules_total": db.query(Rule).count(), "seed_entries_added": seeds}
 
 
 @app.get("/frameworks")
@@ -450,14 +603,21 @@ def list_review_queue(status: str = "pending", db: Session = Depends(get_db)):
 
 
 @app.post("/review-queue/{item_id}/confirm")
-def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depends(get_db)):
+def confirm_review_item(item_id: str, body: ConfirmMapping, request: Request, db: Session = Depends(get_db)):
+    reviewer = _verified_reviewer(request, body.reviewer_id)
     item = db.get(ReviewQueueItem, item_id)
     if item is None:
         raise HTTPException(404, "review queue item not found")
+    if item.status != "pending":
+        raise HTTPException(409, f"this item was already {item.status}")
+    meta = FIELD_METADATA.get(body.canonical_field)
+    if meta is None:
+        raise HTTPException(422, f"unknown field {body.canonical_field!r}")
+    value = _validated_value(body.value, meta)
+    pattern = _validated_pattern(body.pattern_type, body.syntax_pattern, item.raw_unit)
 
     device = db.get(Device, item.device_id) if item.device_id else None
     vendor = device.vendor if device else "unknown"
-    pattern = body.syntax_pattern or item.raw_unit
 
     entry = KnowledgeBaseEntry(
         tenant_id=item.tenant_id,
@@ -465,11 +625,11 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depend
         pattern_type=body.pattern_type,
         syntax_pattern=pattern,
         canonical_field=body.canonical_field,
-        value=body.value,
+        value=value,
         embedding_vector=resolve.embed(pattern),
         confidence=1.0,
         source="tier3_human",
-        confirmed_by=body.reviewer_id,
+        confirmed_by=reviewer,
         confirmed_at=dt.datetime.utcnow(),
         langfuse_trace_id=item.langfuse_trace_id,
         is_security_relevant=body.is_security_relevant,
@@ -478,7 +638,7 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depend
     db.add(entry)
 
     item.status = "confirmed"
-    item.reviewer_id = body.reviewer_id
+    item.reviewer_id = reviewer
     item.is_security_relevant = body.is_security_relevant
     item.reviewer_notes = body.reviewer_notes
     item.resolved_at = dt.datetime.utcnow()
@@ -495,11 +655,65 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, db: Session = Depend
             name="human_review",
             value=1.0,
             data_type="BOOLEAN",
-            comment=f"confirmed as {body.canonical_field} by {body.reviewer_id}",
+            comment=f"confirmed as {body.canonical_field} by {reviewer}",
         )
         langfuse.flush()
 
     return {"kb_entry_id": entry.id, "review_queue_id": item.id, "status": "confirmed"}
+
+
+_NESTED_QUANTIFIER = re.compile(r"\([^)]*[+*][^)]*\)\s*[+*{]")
+
+
+def _validated_value(value, meta: dict):
+    """A reviewer's value must have the field's declared type - the same
+    contract the AI validator enforces. An unrecognized "on" for a boolean
+    once reached the rule engine and was read as False."""
+    kind = meta.get("value_kind")
+    if meta.get("type") == "list":
+        if value in (None, "") or isinstance(value, (dict, list)):
+            raise HTTPException(422, "a list field needs one non-empty value")
+        return value
+    if kind == "bool":
+        b = rule_engine._coerce_bool(value)
+        if b is None:
+            raise HTTPException(422, f"{value!r} is not true/false")
+        return b
+    if kind == "number":
+        try:
+            if isinstance(value, bool):
+                raise ValueError
+            n = float(value)
+        except (TypeError, ValueError):
+            raise HTTPException(422, f"{value!r} is not a number")
+        return int(n) if n.is_integer() else n
+    if value in (None, ""):
+        raise HTTPException(422, "a value is required")
+    return str(value)
+
+
+def _validated_pattern(pattern_type: str, syntax_pattern: str | None, raw_unit: str) -> str:
+    """Exact patterns are the reviewed line itself. A regex (to generalize
+    one decision to similar lines) must still match the line the reviewer
+    actually looked at, be short, and avoid nested quantifiers - otherwise
+    one confirmation could silently remap unrelated lines on every future
+    device (a regex like `^transport input` mapped to telnet=off) or hang
+    the matcher."""
+    if pattern_type == "exact":
+        if syntax_pattern and syntax_pattern.strip() != raw_unit.strip():
+            raise HTTPException(422, "an exact pattern must be the reviewed line itself")
+        return raw_unit
+    if pattern_type != "regex":
+        raise HTTPException(422, "pattern_type must be exact or regex")
+    if not syntax_pattern or len(syntax_pattern) > 200 or _NESTED_QUANTIFIER.search(syntax_pattern):
+        raise HTTPException(422, "regex must be 1-200 characters without nested quantifiers")
+    try:
+        compiled = re.compile(syntax_pattern)
+    except re.error as e:
+        raise HTTPException(422, f"invalid regex: {e}")
+    if not compiled.search(raw_unit):
+        raise HTTPException(422, "the regex must match the line being reviewed")
+    return syntax_pattern
 
 
 def _ai_says_not_security(item: ReviewQueueItem) -> bool:
@@ -542,12 +756,13 @@ def _remember_not_security(db: Session, item: ReviewQueueItem, reviewer_id: str,
 
 
 @app.post("/review-queue/dismiss-not-security")
-def dismiss_not_security(body: RejectMapping, db: Session = Depends(get_db)):
+def dismiss_not_security(body: RejectMapping, request: Request, db: Session = Depends(get_db)):
     """One reviewer action for the bulk of a new vendor's queue: every
     pending line the AI judged not security-relevant is rejected as
     not-applicable. Each item still records WHO dismissed it and that it was
     judged not security-relevant, so nothing becomes silent. Never touches
     blocked (sanity-gate) items or items with a real suggestion."""
+    body.reviewer_id = _verified_reviewer(request, body.reviewer_id)
     items = [
         i for i in db.query(ReviewQueueItem).filter(ReviewQueueItem.status == "pending").all()
         if not i.flag_type and _ai_says_not_security(i)
@@ -565,10 +780,13 @@ def dismiss_not_security(body: RejectMapping, db: Session = Depends(get_db)):
 
 
 @app.post("/review-queue/{item_id}/reject")
-def reject_review_item(item_id: str, body: RejectMapping, db: Session = Depends(get_db)):
+def reject_review_item(item_id: str, body: RejectMapping, request: Request, db: Session = Depends(get_db)):
+    body.reviewer_id = _verified_reviewer(request, body.reviewer_id)
     item = db.get(ReviewQueueItem, item_id)
     if item is None:
         raise HTTPException(404, "review queue item not found")
+    if item.status != "pending":
+        raise HTTPException(409, f"this item was already {item.status}")
     item.status = "rejected"
     item.reviewer_id = body.reviewer_id
     item.reviewer_notes = body.reviewer_notes

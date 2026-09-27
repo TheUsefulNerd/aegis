@@ -11,13 +11,14 @@ import os
 import yaml
 from sqlalchemy.orm import Session
 
-from .models import Rule
+from .models import Finding, Rule
 
 _RULES_DIR = os.path.join(os.path.dirname(__file__), "rules")
 
 
 def load_rule_files(db: Session) -> int:
     loaded = 0
+    seen = set()
     for path in sorted(glob.glob(os.path.join(_RULES_DIR, "*.yaml"))):
         with open(path, "r", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
@@ -25,6 +26,7 @@ def load_rule_files(db: Session) -> int:
         standard_version = doc["standard_version"]
         applies_to_vendors = doc.get("applies_to_vendors")  # None = vendor-neutral
         for r in doc["rules"]:
+            seen.add((framework, r["id"], standard_version))
             existing = (
                 db.query(Rule)
                 .filter(
@@ -52,5 +54,11 @@ def load_rule_files(db: Session) -> int:
             else:
                 db.add(Rule(**fields))
                 loaded += 1
+    # A rule removed or renamed in YAML is removed here too (with its stored
+    # findings), so the rule set in force is always exactly the files on disk.
+    for rule in db.query(Rule).all():
+        if (rule.framework, rule.standard_ref, rule.standard_version) not in seen:
+            db.query(Finding).filter(Finding.rule_id == rule.id).delete()
+            db.delete(rule)
     db.commit()
     return loaded

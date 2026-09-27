@@ -21,7 +21,7 @@ CASES = [
     ((DEMO, "03_sonic_spine_linecard_config_db.json"), "sonic", 70, set()),
     ((DEMO, "04_cisco_csr1000v_edge_misconfigured.txt"), "cisco_ios", 55, {"CLI_PASSWORD"}),
     ((DEMO, "05_arista_veos_unseen_vendor.txt"), "unknown", 18, {"USER_SECRET_HASH"}),
-    ((DEMO, "06_cisco_csr1000v_edge_remediated.txt"), "cisco_ios", 64,
+    ((DEMO, "06_cisco_csr1000v_edge_remediated.txt"), "cisco_ios", 62,
      {"ENABLE_SECRET_HASH", "USER_SECRET_HASH", "SNMP_COMMUNITY"}),
 ]
 
@@ -83,8 +83,16 @@ def test_pfsense_filter_rules_are_reassembled_in_order():
 
 
 def test_reassembled_pfsense_rules_evaluate_first_match():
-    from app.rule_engine import FAIL, PASS, evaluate
-    telnet = {"field": "AC.acl_rules", "match": {"protocol": "tcp", "port": 23}, "want_action_if_matched": "deny"}
-    acl = ["access-list pfsense-wan deny tcp any wanip eq 23", "access-list pfsense-lan permit ip lan any"]
+    from app.rule_engine import FAIL, NOT_EVALUATED, PASS, evaluate
+    telnet = {"field": "AC.acl_rules", "match": {"protocol": "tcp", "port": 23, "source": "any"},
+              "want_action_if_matched": "deny"}
+    acl = ["access-list pfsense-wan deny tcp any any eq 23", "access-list pfsense-lan permit ip lan any"]
+    # Each interface's list is evaluated on its own; the LAN list allows only
+    # LAN sources, so it doesn't permit telnet "from any source".
     assert evaluate("ordered-first-match", telnet, {"AC.acl_rules": acl}).result == PASS
-    assert evaluate("ordered-first-match", telnet, {"AC.acl_rules": acl[::-1]}).result == FAIL
+    # Order matters within one list.
+    wan = ["access-list pfsense-wan permit tcp any any", "access-list pfsense-wan deny tcp any any eq 23"]
+    assert evaluate("ordered-first-match", telnet, {"AC.acl_rules": wan}).result == FAIL
+    # A deny for one destination doesn't stop telnet to everything else.
+    only_fw = ["access-list pfsense-wan deny tcp any wanip eq 23"]
+    assert evaluate("ordered-first-match", telnet, {"AC.acl_rules": only_fw}).result == NOT_EVALUATED

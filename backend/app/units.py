@@ -10,6 +10,7 @@ between units (e.g. an AAA method-list name, or one security-group rule
 pointing at another). Demo control sets are chosen to not need it.
 """
 import json
+import re
 import xml.etree.ElementTree as ET
 
 # SONiC's ACL_RULE table (config_db.json) - action/protocol vocab mapped to
@@ -21,19 +22,50 @@ _SONIC_PROTO_NUM_TO_NAME = {"1": "icmp", "6": "tcp", "17": "udp"}
 _SONIC_ACTION_MAP = {"FORWARD": "permit", "ACCEPT": "permit", "DROP": "deny", "REJECT": "deny", "DENY": "deny"}
 
 
+class UnparseableConfig(ValueError):
+    """A file whose detected format can't be read. Raised instead of
+    returning zero units: an empty unit list looks like a config with no
+    settings, and every rule would quietly come back "unknown"."""
+
+
 def split_into_units(raw_text: str, fmt: str) -> list:
     if fmt == "json":
-        return _flatten_json(json.loads(raw_text))
+        try:
+            return _flatten_json(json.loads(raw_text))
+        except json.JSONDecodeError as e:
+            raise UnparseableConfig(str(e))
     if fmt == "xml":
         return _flatten_xml(raw_text)
     return _split_cli(raw_text)
 
 
+_BANNER_RE = re.compile(r"^banner\s+(\S+)\s+(\S)(\S?)(.*)$")
+
+
 def _split_cli(raw_text: str) -> list:
+    """One unit per config line, except inside a banner. Banner text is
+    operator prose: a banner containing `transport input ssh` must not be
+    read as the device's real VTY setting (found in review: it was, and three
+    CIS checks passed on words inside a banner). Only the banner's header
+    line is kept, which records that a banner exists."""
     units = []
-    for line in raw_text.splitlines():
-        stripped = line.strip()
+    lines = raw_text.splitlines()
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        i += 1
         if not stripped or stripped.startswith("!"):
+            continue
+        m = _BANNER_RE.match(stripped)
+        if m:
+            # Delimiter is one char, or the two-char caret form `^C`.
+            delim = m.group(2) + m.group(3) if m.group(2) == "^" and m.group(3) else m.group(2)
+            rest = stripped[m.start(2) + len(delim):]
+            units.append(f"banner {m.group(1)} {delim}")
+            if delim not in rest:  # multi-line banner: skip until the closing delimiter
+                while i < len(lines) and delim not in lines[i]:
+                    i += 1
+                i += 1
             continue
         units.append(stripped)
     return units
@@ -167,10 +199,14 @@ def _flatten_xml(raw_text: str) -> list:
     via real testing against a pfSense-style two-rule filter block, not
     theoretical."""
     units = []
+    if "<!DOCTYPE" in raw_text or "<!ENTITY" in raw_text:
+        # Device config exports never need a DTD; refusing one closes the
+        # entity-expansion ("billion laughs") family of XML attacks.
+        raise UnparseableConfig("DTD/entity declarations are not accepted")
     try:
         root = ET.fromstring(raw_text)
-    except ET.ParseError:
-        return units
+    except ET.ParseError as e:
+        raise UnparseableConfig(str(e))
 
     def walk(elem, path):
         text = (elem.text or "").strip()

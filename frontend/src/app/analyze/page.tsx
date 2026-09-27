@@ -160,11 +160,10 @@ export default function AnalyzePage() {
     }
   }, [hydrated, result, evaluation, selectedFrameworks, activeTab, batch]);
 
-  // Only a single named framework or "no filter" (= every loaded framework)
-  // is meaningful to the backend today - with exactly the frameworks that
-  // exist right now, any selected set is either "all of them" or "exactly
-  // one", so this mapping is always exact, not an approximation.
-  const effectiveFramework = selectedFrameworks.length === frameworks.length ? undefined : selectedFrameworks[0];
+  // Every selected framework is sent (comma-separated); "all selected" is
+  // sent as no filter. It used to send only the first of a partial
+  // selection, so choosing CIS + NIST silently evaluated CIS alone.
+  const effectiveFramework = selectedFrameworks.length === frameworks.length ? undefined : selectedFrameworks.join(",");
   const frameworkLabel = selectedFrameworks.length === frameworks.length
     ? "All loaded frameworks"
     : selectedFrameworks.join(", ") || "None selected";
@@ -246,7 +245,7 @@ export default function AnalyzePage() {
   }
 
   const understood = result
-    ? result.tier_counts.tier1 + result.tier_counts.tier2_accepted + (result.tier_counts.not_security ?? 0)
+    ? result.tier_counts.tier1 + (result.tier_counts.tier3_human_confirmed ?? 0) + result.tier_counts.tier2_accepted + (result.tier_counts.not_security ?? 0)
     : 0;
   const needsReview = result?.tier_counts.tier3_pending ?? 0;
 
@@ -666,7 +665,7 @@ function BatchPanel({
                 </Td>
                 <Td className="text-right tabular-nums">
                   {b.result
-                    ? `${b.result.tier_counts.tier1 + b.result.tier_counts.tier2_accepted + (b.result.tier_counts.not_security ?? 0)} / ${b.result.total_units}`
+                    ? `${b.result.tier_counts.tier1 + (b.result.tier_counts.tier3_human_confirmed ?? 0) + b.result.tier_counts.tier2_accepted + (b.result.tier_counts.not_security ?? 0)} / ${b.result.total_units}`
                     : "-"}
                 </Td>
                 <Td className="text-right tabular-nums">{b.result ? b.result.tier_counts.tier3_pending : "-"}</Td>
@@ -776,7 +775,18 @@ function FindingsPanel({
                   )}
                   {f.result === "NOT_EVALUATED" && (
                     <div className="mt-1 text-xs text-slate-500">
-                      Not enough information to check this. Reported as unknown, never assumed to pass.
+                      {f.evidence?.would_be === "PASS"
+                        ? "Needs human confirmation: the only evidence is an AI reading, and AI evidence never passes a CAT I control on its own."
+                        : typeof f.evidence?.reason === "string" && f.evidence.reason.startsWith("ACL line not understood")
+                        ? "An ACL line couldn't be fully read before the decision, so this is reported as unknown, never assumed to pass."
+                        : "Not found in this config, or still waiting in the review queue. Reported as unknown, never assumed to pass."}
+                    </div>
+                  )}
+                  {f.source_lines && f.source_lines.length > 0 && (
+                    <div className="mt-1 text-[11px] text-slate-500">
+                      Evidence:{" "}
+                      <span className="font-mono text-slate-600">{f.source_lines.slice(0, 3).join("  |  ")}</span>
+                      {f.source_lines.length > 3 && ` (+${f.source_lines.length - 3} more)`}
                     </div>
                   )}
                 </Td>

@@ -81,6 +81,19 @@ def _tier1_entries(db: Session, vendor: str, tenant_id: str) -> list:
     )
 
 
+_FREE_TEXT = re.compile(
+    r"^(description|remark|alias)\b"            # interface / ACL prose
+    r"|^access-list\s+\S+\s+remark\b"
+    r"|^\d+\s+remark\b"                          # sequenced named-ACL remark
+    r"|\.(descr|description|alias|comment)=",    # XML/JSON prose fields
+    re.IGNORECASE,
+)
+
+
+def is_free_text(unit_text: str) -> bool:
+    return bool(_FREE_TEXT.search(unit_text.strip()))
+
+
 def _match_tier1(entries: list, unit_text: str) -> Optional[KnowledgeBaseEntry]:
     for entry in entries:
         if entry.pattern_type == "exact" and entry.syntax_pattern.strip() == unit_text.strip():
@@ -147,6 +160,13 @@ def resolve_units(
     results: list = [None] * len(unit_texts)
     misses: dict = {}  # unit text -> [indexes]
     for i, text in enumerate(unit_texts):
+        if is_free_text(text):
+            # Operator-written prose never reaches the AI: it describes
+            # nothing about the device's security state, and it is exactly
+            # where an attacker hides instructions. The sanity gate has
+            # already scanned it (an injection there is still flagged).
+            results[i] = ResolveResult(tier="not_security", confidence=1.0)
+            continue
         hit = _match_tier1(entries, text)
         if hit is not None and hit.canonical_field == NOT_SECURITY:
             # Known structure, or a line a human already judged irrelevant:
@@ -154,7 +174,10 @@ def resolve_units(
             results[i] = ResolveResult(tier="not_security", kb_entry_id=hit.id, confidence=1.0)
         elif hit is not None:
             results[i] = ResolveResult(
-                tier="tier1",
+                # A pattern a reviewer taught is reported as human-confirmed
+                # evidence, not as a built-in pattern: the audit trail must
+                # say who decided it.
+                tier="tier3_human_confirmed" if hit.source == "tier3_human" else "tier1",
                 canonical_field=hit.canonical_field,
                 # A regex entry for a list field (e.g. "any numbered ACL line")
                 # carries no fixed value - the matched line IS the value.
