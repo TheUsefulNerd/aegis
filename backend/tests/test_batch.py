@@ -66,18 +66,18 @@ def test_one_resolve_call_per_file_and_answers_are_cached(db, monkeypatch):
 
     def fake_batch(units, similar=None):
         calls.append(list(units))
-        return [_cand() if u == "transport input none" else None for u in units]
+        return [_cand() if u == "transport preferred none" else None for u in units]
     monkeypatch.setattr(llm_client, "classify_batch", fake_batch)
 
-    units = ["transport input none", "service password-encryption", "weird-line", "transport input none"]
+    units = ["transport preferred none", "service password-encryption", "weird-line", "transport preferred none"]
     first = resolve.resolve_units(db, units, "cisco_ios")
     assert [r.tier for r in first] == ["tier2_accepted", "tier1", "tier3_pending", "tier2_accepted"]
-    assert calls == [["transport input none", "weird-line"]]  # one batch, each distinct miss once, Tier-1 skipped
+    assert calls == [["transport preferred none", "weird-line"]]  # one batch, each distinct miss once, Tier-1 skipped
 
     # Second device: the accepted answer is served from the cache (still
     # labeled tier2, never promoted to Tier 1), and the line already waiting
     # for a human is not re-sent - zero AI calls for a repeat config.
-    second = resolve.resolve_units(db, ["transport input none", "weird-line"], "cisco_ios")
+    second = resolve.resolve_units(db, ["transport preferred none", "weird-line"], "cisco_ios")
     assert second[0].tier == "tier2_accepted"
     assert second[1].tier == "tier3_pending" and second[1].review_queue_id == first[2].review_queue_id
     assert calls[-1] == []
@@ -87,6 +87,6 @@ def test_one_resolve_call_per_file_and_answers_are_cached(db, monkeypatch):
 def test_cache_is_per_vendor(db, monkeypatch):
     calls = []
     monkeypatch.setattr(llm_client, "classify_batch", lambda units, similar=None: calls.append(list(units)) or [_cand() for _ in units])
-    resolve.resolve_units(db, ["transport input none"], "cisco_ios")
-    resolve.resolve_units(db, ["transport input none"], "sonic")
-    assert calls == [["transport input none"], ["transport input none"]]
+    resolve.resolve_units(db, ["transport preferred none"], "cisco_ios")
+    resolve.resolve_units(db, ["transport preferred none"], "sonic")
+    assert calls == [["transport preferred none"], ["transport preferred none"]]

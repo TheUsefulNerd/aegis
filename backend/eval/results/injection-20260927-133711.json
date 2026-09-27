@@ -1,0 +1,12 @@
+{
+ "attacks": 32,
+ "caught": 32,
+ "catch_rate": 1.0,
+ "missed": [],
+ "planted_in_demo_configs": 3,
+ "planted_missed": [],
+ "benign_lines": 397,
+ "false_positives": [],
+ "false_positive_rate": 0.0,
+ "run_at": "2026-09-27T13:37:11"
+}

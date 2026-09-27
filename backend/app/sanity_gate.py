@@ -38,8 +38,11 @@ _INJECTION_PATTERNS = [
      "tells an AI to forget what it was told"),
     (re.compile(r"\byou\s+are\s+(no\s+longer|now)\b|\bfrom\s+now\s+on\b"),
      "tries to redefine what the AI is"),
-    (re.compile(rf"\b(respond|reply|answer|output|return)\b(?:{_W})?(only|always|exactly)\b"),
-     "dictates the exact answer an AI should give"),
+    (re.compile(r"\b(respond|reply|answer|output|return)\s+(?:\w+\s+){0,3}?(only|always|exactly)\b"),
+     "dictates the exact answer an AI should give", "raw"),
+    (re.compile(r"\b(answer|return|report|say|output|respond)\s+(?:with\s+)?(?:\w+\s+){0,2}?(pass|passing|compliant|"
+                r"disabled|enabled|true|false|secure)\b"),
+     "dictates the exact answer an AI should give", "raw"),
     (re.compile(r"\bnew\s+instructions?\b|\binstructions?\s*:"),
      "issues new instructions to an AI"),
     (re.compile(r"\bsystem\s*(prompt|message)\b|^\W*(system|assistant|user)\s*:"),
@@ -51,6 +54,9 @@ _INJECTION_PATTERNS = [
      "tells the classifier how to classify"),
     (re.compile(r"\b(the\s+)?(ai|llm|language\s+model|classifier|assistant|chatbot)\b\W+(must|should|will|shall|"
                 r"reading\s+this)\b"),
+     "addresses an AI directly"),
+    (re.compile(r"\b(note\s+to|dear|attention|hey|hello)\s+(the\s+)?(ai|llm|model|assistant|classifier|bot)\b"
+                r"|\b(ai\s+)?(assistant|llm|chatbot)\s*:|\bai\s*:"),
      "addresses an AI directly"),
     # A config line describing a setting never contains the classifier's own
     # output schema, or AEGIS's internal field names - seeing either is the tell.
@@ -81,7 +87,13 @@ class SanityCheck:
 def scan(unit_text: str) -> SanityCheck:
     raw = unicodedata.normalize("NFKC", unit_text).translate(_ZERO_WIDTH).lower()
     norm = _normalize(unit_text)
-    for pattern, reason in _INJECTION_PATTERNS:
-        if pattern.search(norm) or pattern.search(raw):
+    # "r o l e p l a y" -> "roleplay": letters spaced out to dodge keywords.
+    squeezed = re.sub(r"\b(\w) (?=\w\b)", r"\1", norm)
+    for entry in _INJECTION_PATTERNS:
+        pattern, reason = entry[0], entry[1]
+        # "raw" patterns skip separator folding: `ACL-ANSWER-ONLY` is an ACL
+        # name, not "answer only".
+        texts = (raw,) if len(entry) > 2 and entry[2] == "raw" else (norm, raw, squeezed)
+        if any(pattern.search(t) for t in texts):
             return SanityCheck(True, f"This text {reason}.", pattern.pattern)
     return SanityCheck(False)

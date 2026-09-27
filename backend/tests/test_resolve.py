@@ -33,7 +33,7 @@ def test_tier1_is_vendor_scoped(db):
 
 def test_tier2_accepted_at_threshold(db, monkeypatch):
     monkeypatch.setattr(llm_client, "classify", lambda *a, **k: _candidate(confidence=0.6))
-    r = resolve.resolve_unit(db, "transport input none", "cisco_ios")
+    r = resolve.resolve_unit(db, "transport preferred none", "cisco_ios")
     assert r.tier == "tier2_accepted" and r.canonical_field == "AC.telnet_enabled"
 
 

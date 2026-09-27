@@ -64,7 +64,9 @@ def _eval_boolean(predicate: dict, fields: dict) -> EvalResult:
     value, present = _get(fields, predicate["field"])
     if not present:
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"]})
-    actual = _coerce_bool(value)
+    # A boolean check on a list field asks "is at least one configured?"
+    # (e.g. a remote log host).
+    actual = bool(value) if isinstance(value, list) else _coerce_bool(value)
     if actual is None:
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"], "reason": "value not understood",
                                           "actual": value})

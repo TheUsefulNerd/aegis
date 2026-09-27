@@ -1,0 +1,80 @@
+# Verdict-level ground truth for the demo configs (2026-09-27).
+#
+# Each label is the correct verdict for THAT device, decided by reading its
+# configuration text (and vendor defaults where the config is silent and the
+# default is unambiguous), independently of what AEGIS outputs. A rule whose
+# correct answer can't be settled from the text is left out, not guessed.
+#
+# verdict_eval.py measures, per label: correct, WRONG (a false PASS or a false
+# FAIL), or undecided (AEGIS said NOT_EVALUATED). Undecided is safe by design;
+# a false PASS is the error that matters most for a compliance tool.
+
+samples_dir: ../../samples/sample_input_config_files
+
+devices:
+  01_cisco_ios_branch_router_hardened.txt:
+    CIS-1.2.2: PASS            # line vty 0 15: transport input ssh
+    NIST-AC-17-2: PASS
+    CIS-2.1.1.2: PASS          # ip ssh version 2
+    NIST-SC-8: PASS
+    CIS-1.4.2: PASS            # service password-encryption
+    CIS-1.4.1: PASS            # enable secret 9
+    NIST-IA-5-1-d: PASS
+    CIS-2.2.4: PASS            # logging host 192.168.1.50
+    NIST-AU-4-1: PASS
+    CIS-1.5.2: PASS            # only a custom community
+    CIS-1.5.3: PASS
+    CIS-1.2.5: PASS            # access-class VTY_LINES in
+    CIS-3.1.1: PASS            # no ip source-route
+    CIS-2.1.7: PASS            # no service pad
+    CIS-1.3.2: FAIL            # no banner configured
+    CIS-2.3.1.1: FAIL          # ntp servers without `ntp authenticate`
+    CIS-SUPPLEMENT-ACL-TELNET: FAIL   # applied VTY_LINES ends `permit ip any any`
+    STIG-V-216662: FAIL        # applied ACL ends in permit-all
+
+  04_cisco_csr1000v_edge_misconfigured.txt:
+    CIS-1.2.2: FAIL            # transport input telnet
+    NIST-AC-17-2: FAIL
+    CIS-1.4.2: FAIL            # no service password-encryption
+    CIS-1.4.1: FAIL            # enable password, no enable secret
+    NIST-IA-5-1-d: FAIL
+    CIS-1.5.3: FAIL            # snmp-server community public
+    CIS-1.5.2: PASS            # no `private` community
+    CIS-2.2.4: FAIL            # no logging host
+    NIST-AU-4-1: FAIL
+    CIS-SUPPLEMENT-ACL-TELNET: FAIL   # 101: permit ip any any BEFORE deny 23
+    ISO-A.8.20: FAIL
+    NIST-AC-4: FAIL
+    STIG-V-216662: FAIL
+    STIG-V-216650: FAIL        # bare `control-plane`, no service-policy
+
+  06_cisco_csr1000v_edge_remediated.txt:
+    CIS-1.2.2: PASS            # vty 0 4: transport input ssh
+    NIST-AC-17-2: PASS
+    CIS-2.1.1.2: PASS
+    NIST-SC-8: PASS
+    CIS-1.4.2: PASS
+    CIS-1.4.1: PASS            # enable secret 9
+    NIST-IA-5-1-d: PASS
+    CIS-2.2.4: PASS            # logging host 192.168.35.50
+    NIST-AU-4-1: PASS
+    CIS-1.5.2: PASS
+    CIS-1.5.3: PASS
+    CIS-1.3.2: PASS            # banner login
+    CIS-1.2.8: PASS            # exec-timeout 5 0
+    CIS-3.1.1: PASS            # no ip source-route
+    CIS-SUPPLEMENT-ACL-TELNET: PASS   # deny 23 comes first
+    ISO-A.8.20: PASS
+    NIST-AC-4: PASS
+    STIG-V-216662: FAIL        # still ends in permit ip any any
+    STIG-V-216650: FAIL        # bare `control-plane`
+
+  07_juniper_srx_branch.conf:
+    NIST-AC-17-2: FAIL         # system services telnet
+    NIST-SC-8: PASS            # ssh protocol-version v2
+    NIST-AU-4-1: PASS          # syslog host 10.20.0.15
+
+  08_fortigate_60f_edge.conf:
+    NIST-AC-17-2: FAIL         # admin-telnet enable; allowaccess telnet on wan1
+    NIST-AU-4-1: PASS          # syslogd server 10.30.0.25
+    NIST-AU-2: PASS            # syslogd status enable

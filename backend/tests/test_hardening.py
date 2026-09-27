@@ -290,3 +290,9 @@ def test_human_decisions_are_hash_chained_and_tampering_is_detected(client):
     db.commit()
     report = client.get("/audit/verify").json()
     assert report["ok"] is False and report["broken_at"] == 1
+
+
+def test_boolean_check_on_a_list_field_means_at_least_one_configured():
+    pred = {"field": "AU.logging_host", "equals": True}
+    assert evaluate("boolean", pred, {"AU.logging_host": ["10.0.0.5"]}).result == PASS
+    assert evaluate("boolean", pred, {"AU.logging_host": []}).result == FAIL

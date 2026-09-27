@@ -128,3 +128,25 @@ entries:
     pattern_type: regex
     canonical_field: AC.login_banner_configured
     value: true
+
+  # Unambiguous global/line commands, deterministically (added 2026-09-27 so
+  # verdicts on these no longer depend on the AI; measured with
+  # eval/verdict_eval.py against hand-labelled configs).
+  - {syntax_pattern: '^transport input (.* )?telnet\b', pattern_type: regex, canonical_field: AC.telnet_enabled, value: true}
+  - {syntax_pattern: '^transport input all$', pattern_type: regex, canonical_field: AC.telnet_enabled, value: true}
+  - {syntax_pattern: '^transport input (none|ssh)$', pattern_type: regex, canonical_field: AC.telnet_enabled, value: false}
+  - {syntax_pattern: '^no service password-encryption$', pattern_type: regex, canonical_field: IA.password_encryption_enabled, value: false}
+  - {syntax_pattern: '^enable password ', pattern_type: regex, canonical_field: AC.privileged_password_type, value: enable_password}
+  - {syntax_pattern: '^ip ssh version 1$', pattern_type: regex, canonical_field: IA.ssh_version, value: 1}
+  - {syntax_pattern: '^no ip source-route$', pattern_type: regex, canonical_field: SC.ip_source_routing_enabled, value: false}
+  - {syntax_pattern: '^ip source-route$', pattern_type: regex, canonical_field: SC.ip_source_routing_enabled, value: true}
+  - {syntax_pattern: '^no service pad$', pattern_type: regex, canonical_field: SC.pad_enabled, value: false}
+  - {syntax_pattern: '^service pad$', pattern_type: regex, canonical_field: SC.pad_enabled, value: true}
+  - {syntax_pattern: '^exec-timeout (\d+)( \d+)?$', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}
+  - {syntax_pattern: '^logging host ([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
+  - {syntax_pattern: '^logging (\d{1,3}(?:\.\d{1,3}){3})$', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
+  - {syntax_pattern: '^ntp authenticate$', pattern_type: regex, canonical_field: AU.ntp_authentication_enabled, value: true}
+  - {syntax_pattern: '^access-class \S+ in', pattern_type: regex, canonical_field: AC.vty_access_class, value: true}
+  - {syntax_pattern: '^no ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: false}
+  - {syntax_pattern: '^ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: true}
+  - {syntax_pattern: '^service-policy input \S+$', pattern_type: regex, canonical_field: SC.control_plane_protection, value: true}
