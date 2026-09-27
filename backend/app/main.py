@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import audit_chain, vendor_defaults, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
+from . import audit_chain, catalog_rules, vendor_defaults, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
@@ -563,6 +563,20 @@ def name_vendor(device_id: str, body: NameVendor, request: Request, db: Session 
             moved += 1
     db.commit()
     return {"device_id": device.id, "vendor": vendor, "signature": signal, "patterns_moved": moved}
+
+
+@app.get("/frameworks/coverage")
+def framework_coverage(db: Session = Depends(get_db)):
+    """How much of each imported benchmark AEGIS evaluates automatically,
+    stated against the whole official benchmark, plus hand-authored rule
+    files. Mappings whose upstream check text changed are listed as needing
+    re-review, not counted."""
+    hand = {}
+    for r in db.query(Rule).filter(Rule.framework == "STIG").all():
+        if r.standard_version.startswith("Cisco IOS XE Router RTR STIG") and "catalog" not in (r.standard_version or ""):
+            hand.setdefault("Cisco_IOS_XE_Router_RTR", []).append(r.standard_ref)
+    return {"benchmarks": catalog_rules.coverage(hand),
+            "rules_evaluated_total": db.query(Rule).count()}
 
 
 @app.get("/audit/verify")

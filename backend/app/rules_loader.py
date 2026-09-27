@@ -11,6 +11,7 @@ import os
 import yaml
 from sqlalchemy.orm import Session
 
+from . import catalog_rules
 from .models import Finding, Rule
 
 _RULES_DIR = os.path.join(os.path.dirname(__file__), "rules")
@@ -54,6 +55,18 @@ def load_rule_files(db: Session) -> int:
             else:
                 db.add(Rule(**fields))
                 loaded += 1
+    # Reviewed mappings of imported benchmark catalogs (catalog_rules.py).
+    for fields in catalog_rules.rule_rows():
+        seen.add((fields["framework"], fields["standard_ref"], fields["standard_version"]))
+        existing = db.query(Rule).filter(Rule.standard_ref == fields["standard_ref"],
+                                         Rule.standard_version == fields["standard_version"],
+                                         Rule.framework == fields["framework"]).first()
+        if existing:
+            for k, v in fields.items():
+                setattr(existing, k, v)
+        else:
+            db.add(Rule(**fields))
+            loaded += 1
     # A rule removed or renamed in YAML is removed here too (with its stored
     # findings), so the rule set in force is always exactly the files on disk.
     for rule in db.query(Rule).all():

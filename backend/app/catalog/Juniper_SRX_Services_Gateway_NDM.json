@@ -1,0 +1,873 @@
+{
+ "benchmark": "Juniper_SRX_Services_Gateway_NDM",
+ "title": "Juniper SRX Services Gateway NDM Security Technical Implementation Guide",
+ "version": "3",
+ "release": "3",
+ "released": "30 Jan 2025",
+ "fetched": "2026-09-27",
+ "source": "https://cyber.trackr.live/stig/Juniper_SRX_Services_Gateway_NDM/3/3 (DISA STIG content)",
+ "rules": {
+  "V-223180": {
+   "rule": "SV-223180r960735_rule",
+   "stig_id": "JUSX-DM-000001",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must limit the number of concurrent sessions to a maximum of 10 or less for remote access using SSH.",
+   "check": "Verify the Juniper SRX sets a connection-limit for the SSH protocol.\n\nShow system services ssh\n\nIf the SSH connection-limit is not set to 10 or less, this is a finding.",
+   "fix": "Configure the SSH protocol to limit connection and sessions per connection.\n\n[edit]\nset system services ssh connection-limit 10\nset system services ssh max-sessions-per-connection 1",
+   "cci": [
+    "CCI-000054"
+   ],
+   "check_sha": "880934572e59d58b"
+  },
+  "V-223181": {
+   "rule": "SV-223181r960777_rule",
+   "stig_id": "JUSX-DM-000015",
+   "severity": "medium",
+   "title": "For local accounts created on the device, the Juniper SRX Services Gateway must automatically generate log records for account creation events.",
+   "check": "Verify the device logs change-log events of severity info or any to an external syslog server.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\n-OR-\n\nhost <syslog server address> {\n  change-log <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log facility change-log severity <info | any>, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host is configured to log facility change-log or any, and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any> \n\n -OR-\n\n[edit]\nset host <syslog server address> change-log <info | any>",
+   "cci": [
+    "CCI-000018"
+   ],
+   "check_sha": "10d0786ea5b96949"
+  },
+  "V-223182": {
+   "rule": "SV-223182r960780_rule",
+   "stig_id": "JUSX-DM-000016",
+   "severity": "medium",
+   "title": "For local accounts created on the device, the Juniper SRX Services Gateway must automatically generate log records for account modification events.",
+   "check": "Verify the device logs change-log events of severity info or any to an external syslog server.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\n-OR-\n\nhost <syslog server address> {\n  change-log <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log facility change-log severity <info | any>, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host is configured to log facility change-log or any, and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any> \n\n -OR-\n\n[edit]\nset host <syslog server address> change-log <info | any>",
+   "cci": [
+    "CCI-001403"
+   ],
+   "check_sha": "10d0786ea5b96949"
+  },
+  "V-223183": {
+   "rule": "SV-223183r960783_rule",
+   "stig_id": "JUSX-DM-000017",
+   "severity": "medium",
+   "title": "For local accounts created on the device, the Juniper SRX Services Gateway must automatically generate log records for account disabling events.",
+   "check": "Verify the device logs change-log events of severity info or any to an external syslog server.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\n-OR-\n\nhost <syslog server address> {\n  change-log <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log facility change-log severity <info | any>, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host is configured to log facility change-log or any, and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any> \n\n -OR-\n\n[edit]\nset host <syslog server address> change-log <info | any>",
+   "cci": [
+    "CCI-001404"
+   ],
+   "check_sha": "10d0786ea5b96949"
+  },
+  "V-223184": {
+   "rule": "SV-223184r960786_rule",
+   "stig_id": "JUSX-DM-000018",
+   "severity": "medium",
+   "title": "For local accounts created on the device, the Juniper SRX Services Gateway must automatically generate log records for account removal events.",
+   "check": "Verify the device logs change-log events of severity info or any to an external syslog server.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\n-OR-\n\nhost <syslog server address> {\n  change-log <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log facility change-log severity <info | any>, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host is configured to log facility change-log or any, and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any> \n\n -OR-\n\n[edit]\nset host <syslog server address> change-log <info | any>",
+   "cci": [
+    "CCI-001405"
+   ],
+   "check_sha": "10d0786ea5b96949"
+  },
+  "V-223185": {
+   "rule": "SV-223185r961290_rule",
+   "stig_id": "JUSX-DM-000023",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must automatically generate a log event when accounts are enabled.",
+   "check": "Verify the device is configured to display change-log events of severity info.\n\n[edit]\nshow system syslog\n\nIf the system is not configured to generate a log record when account enabling actions occur, this is a finding.",
+   "fix": "The following commands configure the device to immediately display a message to any currently logged on administrator's console when changes are made to the configuration.\n\n[edit]\nset system syslog host <IP-syslog-server> any any\nset system syslog file account-actions change-log any any",
+   "cci": [
+    "CCI-002130"
+   ],
+   "check_sha": "511f624690aea4ca"
+  },
+  "V-223186": {
+   "rule": "SV-223186r960792_rule",
+   "stig_id": "JUSX-DM-000025",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must enforce the assigned privilege level for each administrator and authorizations for access to all commands by assigning a login class to all AAA-authenticated users.",
+   "check": "Verify all accounts are assigned a user-defined (not built-in) login class with appropriate permissions configured. If the remote user is configured, it may have a user-defined, or the built-in unauthorized login class.\n\n[edit]\nshow system login\n\n Junos OS supports groups, which are centrally located snippets of code. This allows common configuration to be applied at one or more hierarchy levels without requiring duplicated stanzas. If there are no login-classes defined at [edit system login], then check for an apply-groups statement and verify appropriate configuration at the [edit groups] level.\n\n[edit]\nshow groups\n\nIf one or more account templates are not defined with an appropriate login class, this is a finding.\n\nIf more than one local account has an authentication stanza and is not documented, this is a finding.\n\nNote: Template accounts are differentiated from local accounts by the presence of an authentication stanza.",
+   "fix": "User accounts, including the account of last resort must be assigned to a login class. \n\nConfigure the class parameters and privileges.\n\n[edit]\nSet system login class <class name> idle-timeout 10\nset system login class <class name> permissions <appropriate permissions>\n\nCommit for the changes to take effect.\n\nCreate and configure template user (s).\n\n[edit]\nset system login user <template account name> login-class <appropriate class>\n\nNote: Junos does not permit account creation without login-class assignment.\n\nNote: There are 4 pre-defined classes which should not be uses used for <class name>: Super-user, Operator, Read-only, and unauthorized. However, the Unauthorized class may be used for the remote user account to prevent logins from externally-authenticated users when a VSA is not returned from the AAA server.",
+   "cci": [
+    "CCI-000213"
+   ],
+   "check_sha": "2718edc4a4b2d43d"
+  },
+  "V-223187": {
+   "rule": "SV-223187r961362_rule",
+   "stig_id": "JUSX-DM-000029",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate a log event when privileged commands are executed.",
+   "check": "Verify the device generates a log event when privileged commands are executed.\n\n[edit] \nshow system syslog\n\nIf a valid syslog host server and the syslog file names are not configured to capture \"any\" facility and \"any\" event, this is a finding.",
+   "fix": "Along with the other commands that constitute a complete DoD syslog configuration, the following command must be ensure privileged commands are sent to the Syslog Server. \n\n[edit]\nset system syslog host <IP-syslog-server> any any",
+   "cci": [
+    "CCI-002234"
+   ],
+   "check_sha": "fb08215ad497f100"
+  },
+  "V-223188": {
+   "rule": "SV-223188r1018645_rule",
+   "stig_id": "JUSX-DM-000030",
+   "severity": "low",
+   "title": "For local accounts created on the device, the Juniper SRX Services Gateway must enforce the limit of three consecutive invalid logon attempts by a user during a 15-minute time period.",
+   "check": "Verify the number of unsuccessful logon attempts is set to 3.\n\n[edit]\nshow system login retry-options \n\nIf the number of unsuccessful logon attempts is not set to 3, this is a finding.",
+   "fix": "Configure the number of unsuccessful logon attempts for all login account, globally.\n\n[edit]\nset system login retry-options tries-before-disconnect 3",
+   "cci": [
+    "CCI-000044"
+   ],
+   "check_sha": "a44f4a4097c18f94"
+  },
+  "V-223189": {
+   "rule": "SV-223189r960843_rule",
+   "stig_id": "JUSX-DM-000032",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must display the Standard Mandatory DoD Notice and Consent Banner before granting access.",
+   "check": "Verify the Standard Mandatory DoD Notice and Consent Banner is displayed before the user has been authenticated either locally or by the AAA server by typing the following command at the [edit system login] hierarchy level.\n\n[edit]\nshow system login message\n\nIf the Standard Mandatory DoD Notice and Consent Banner is not displayed before the user has been authenticated, this is a finding.",
+   "fix": "To configure a system login message, include the message statement at the [edit] hierarchy level.\nThis is the approved verbiage for applications that can accommodate banners of 1300 characters:\n\n[edit]\nset system login message \"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\\by using this IS (which includes any device attached to this IS), you consent to the following conditions:\\n-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\\n-At any time, the USG may inspect and seize data stored on this IS.\\n-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\\n-This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\\n-Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\\n\\n\"\n\nOR\n\n[edit]\nUse the following verbiage for operating systems that have severe limitations on the number of characters that can be displayed in the banner:\n\nset system login message \"I've read & consent to terms in IS user agreem't>\\n\\n\"\n\nNote: Use \\n to insert a line between paragraphs where needed.",
+   "cci": [
+    "CCI-000048"
+   ],
+   "check_sha": "47fbcdcbb7a9a8ad"
+  },
+  "V-223191": {
+   "rule": "SV-223191r960885_rule",
+   "stig_id": "JUSX-DM-000040",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records when successful attempts to configure the device and use commands occur.",
+   "check": "Verify logging has been enabled and configured.\n\n[edit] \nshow system syslog\n\nIf a valid syslog host server and the syslog file names are not configured to capture \"any\" facility and \"any\" event, this is a finding.",
+   "fix": "The following example commands configure Syslog and local backup files to capture DoD-defined auditable events. \n\n[edit]\nset system syslog user * any emergency\nset system syslog host <IP-syslog-server> any any\nset system syslog host <IP-syslog-server> source-address <MGT-IP-Address>\nset system syslog host <IP-syslog-server> log-prefix <host-name>\nset system syslog file messages any info\nset system syslog file messages authorization none\nset system syslog file messages interactive-commands none \nset system syslog file messages daemon none \nset system syslog file User-Auth authorization any\nset system syslog file interactive-commands interactive-commands any\nset system syslog file processes daemon any\nset system syslog file account-actions change-log any any\nset file account-actions match “system login user”\nset system syslog console any any",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "bdd448ebe879c4f4"
+  },
+  "V-223192": {
+   "rule": "SV-223192r961800_rule",
+   "stig_id": "JUSX-DM-000041",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records when changes are made to administrator privileges.",
+   "check": "Verify the device logs change-log events of severity info or any to an external syslog server.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\n-OR-\n\nhost <syslog server address> {\n  change-log <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log facility change-log severity <info | any>, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host is configured to log facility change-log or any, and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any> \n\n -OR-\n\n[edit]\nset host <syslog server address> change-log <info | any>",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "10d0786ea5b96949"
+  },
+  "V-223193": {
+   "rule": "SV-223193r961812_rule",
+   "stig_id": "JUSX-DM-000042",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records when administrator privileges are deleted.",
+   "check": "Verify the device logs change-log events of severity info or any to an external syslog server.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\n-OR-\n\nhost <syslog server address> {\n  change-log <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log facility change-log severity <info | any>, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host is configured to log facility change-log or any, and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any> \n\n -OR-\n\n[edit]\nset host <syslog server address> change-log <info | any>",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "10d0786ea5b96949"
+  },
+  "V-223194": {
+   "rule": "SV-223194r961824_rule",
+   "stig_id": "JUSX-DM-000043",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records when logon events occur.",
+   "check": "Verify the device generates a log when login events occur.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any <info | any>;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log, or configured for facility any severity <info | any>, this is a finding.",
+   "fix": "Configure at least one external syslog host to log facility any and severity info or any. \n\n[edit system syslog]\nset host <syslog server address> any <info | any>",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "ece5940334b2f07b"
+  },
+  "V-223195": {
+   "rule": "SV-223195r961827_rule",
+   "stig_id": "JUSX-DM-000044",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records when privileged commands are executed.",
+   "check": "Verify the device generates a log when login events occur.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any any;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log, or configured for facility any severity any, this is a finding.",
+   "fix": "Configure at least one external syslog host to log facility any and severity info or any. There are multiple ways to accomplish this, the following is an example.\n\n[edit system syslog]\nset host <syslog server address> any any",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "29868ec0e381f50d"
+  },
+  "V-223196": {
+   "rule": "SV-223196r961833_rule",
+   "stig_id": "JUSX-DM-000046",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records when concurrent logons from different workstations occur.",
+   "check": "Verify the device generates a log when login events occur.\n\n[edit]\nshow system syslog\n\nhost <syslog server address> {\n  any any;\n  source-address <device address>;\n}\n\nIf an external syslog host is not configured to log, or configured for facility any severity any, this is a finding.",
+   "fix": "Configure at least one external syslog host to log facility any and severity info or any. There are multiple ways to accomplish this, the following is an example.\n\n[edit system syslog]\nset host <syslog server address> any any",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "29868ec0e381f50d"
+  },
+  "V-223197": {
+   "rule": "SV-223197r960909_rule",
+   "stig_id": "JUSX-DM-000055",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must generate log records containing the full-text recording of privileged commands.",
+   "check": "Verify logging has been enabled and configured.\n\n[edit] \nshow system syslog\n\nIf at least one valid syslog host server and the syslog file names are not configured to capture \"any\" facility and \"any\" event, this is a finding.",
+   "fix": "The following commands configure syslog to record any use of any command, including privileged commands. Configure Syslog and local backup files to capture DoD-defined auditable events. \n\n[edit]\nset system syslog user * any emergency\nset system syslog host <IP-syslog-server> any any\nset system syslog host <IP-syslog-server> source-address <MGT-IP-Address>\nset system syslog host <IP-syslog-server> log-prefix <host-name>\nset system syslog file messages any info\nset system syslog file messages authorization none\nset system syslog file messages interactive-commands none \nset system syslog file messages daemon none \nset system syslog file User-Auth authorization any\n\nset system syslog file interactive-commands interactive-commands any\nset system syslog file processes daemon any\nset system syslog file account-actions change-log any any\nset file account-actions match “system login user”\nset system syslog console any any",
+   "cci": [
+    "CCI-000135"
+   ],
+   "check_sha": "0fbe02a65e0c7b51"
+  },
+  "V-223198": {
+   "rule": "SV-223198r961392_rule",
+   "stig_id": "JUSX-DM-000056",
+   "severity": "medium",
+   "title": "For local log files, the Juniper SRX Services Gateway must allocate log storage capacity in accordance with organization-defined log record storage requirements so that the log files do not grow to a size that causes operational issues.",
+   "check": "To verify the file size for the local system log is set.\n\n[edit]\nshow system syslog\n\nView the archive size setting of the local log files.\n\nIf all local log files are not set to an organizational-defined size, this is a finding.",
+   "fix": "Enter the following commands in the [edit system syslog] hierarchy.\n\n[edit system syslog] \nset file <log filename> any any archive size <file size> file <number of archives>",
+   "cci": [
+    "CCI-001849"
+   ],
+   "check_sha": "009873b87ca1b4ba"
+  },
+  "V-223199": {
+   "rule": "SV-223199r961401_rule",
+   "stig_id": "JUSX-DM-000059",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must generate an immediate system alert message to the management console when a log processing failure is detected.",
+   "check": "Verify the system Syslog has been configured to display an alert on the console for the emergency and critical levels of the daemon facility.\n\n[edit] \nshow system syslog\n\nIf the system is not configured to generate a system alert message when a component failure is detected, this is a finding.",
+   "fix": "The following commands configure syslog to immediately display any emergency level or daemon alert events to the management console. The message will display on any currently logged on administrator's console. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). \n\n[edit]\nset system syslog user * any emergency\nset system syslog user * daemon alert\nset system syslog user * daemon critical",
+   "cci": [
+    "CCI-001858"
+   ],
+   "check_sha": "df6e7bbcf049022e"
+  },
+  "V-223201": {
+   "rule": "SV-223201r961443_rule",
+   "stig_id": "JUSX-DM-000065",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must record time stamps for log records using Coordinated Universal Time (UTC).",
+   "check": "Verify the time zone is set to UTC.\n\n[edit]\nshow system time-zone\n\nIf the time zone is not set to UTC, this is a finding.",
+   "fix": "The following command sets the time zone to UTC.\n\n[edit]\nset system time-zone UTC",
+   "cci": [
+    "CCI-001890"
+   ],
+   "check_sha": "2395afc837c49681"
+  },
+  "V-223202": {
+   "rule": "SV-223202r1015750_rule",
+   "stig_id": "JUSX-DM-000077",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must implement logon roles to ensure only authorized roles are allowed to install software and updates.",
+   "check": "To verify role-based access control has been configured, view the settings for each login class defined.\n\n[edit]\nshow system login\n\nView all login classes to see which roles are assigned the \"Maintenance\" or \"request system software add\" permissions. \n\nIf login classes for user roles that are not authorized to install and update software are configured, this is a finding.",
+   "fix": "Configure the Juniper SRX to allow only the information system security manager (ISSM) user account (or administrators/roles appointed by the ISSM) to select which auditable events are to be audited. To ensure this is the case, each ISSM-appointed role on the AAA must be configured for least privilege using the following stanzas for each role.\n\n[edit]\nshow system login\n\nUse the delete command or retype the command to remove the permission \"Maintenance\" or \"request system software add\" from any class that is not authorized to upgrade software on the device. An explicitly Deny for the command \"request system software add\" can also be used if some Maintenance commands are permitted.",
+   "cci": [
+    "CCI-003980",
+    "CCI-001812"
+   ],
+   "check_sha": "0d9b0353220e13db"
+  },
+  "V-223203": {
+   "rule": "SV-223203r961863_rule",
+   "stig_id": "JUSX-DM-000084",
+   "severity": "medium",
+   "title": "If the loopback interface is used, the Juniper SRX Services Gateway must protect the loopback interface with firewall filters for known attacks that may exploit this interface.",
+   "check": "If the loopback interface is not used, this is not applicable.\n\nVerify the loopback interface is protected by firewall filters.\n\n[edit]\nshow interfaces lo0\n\nIf the loopback interface is not configured with IPv6 and IPv4 firewall filters, this is a finding.",
+   "fix": "If the loopback interface is used, configure firewall filters. The following is an example of configuring a loopback address with filters on the device. It shows the format of both IPv4 and IPv6 addresses being applied to the interface. The first two commands show firewall filters being applied to the interface.\n\n[edit]\nset interfaces lo0 unit 0 family inet filter input protect_re\nset interfaces lo0 unit 0 family inet6 filter input protect_re-v6\nset interfaces lo0 unit 0 family inet address 1.1.1.250/32\nset interfaces lo0 unit 0 family inet6 address 2100::250/128",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "930eac61207ea1e3"
+  },
+  "V-223204": {
+   "rule": "SV-223204r961863_rule",
+   "stig_id": "JUSX-DM-000087",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must have the number of rollbacks set to 5 or more.",
+   "check": "To view the current setting for maximum number of rollbacks enter the following command.\n\n[edit]\nshow system max-configuration-rollbacks\n\nIf the number of back up configurations is not set to an organization-defined value which is 5 or more, this is a finding.",
+   "fix": "To configure number of backup configurations to be stored in the configuration partition enter the following command at the configuration hierarchy.\n\n[edit]\nset system max-configuration-rollbacks <organization-defined number>",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "98e8e80e0f06343f"
+  },
+  "V-223205": {
+   "rule": "SV-223205r1015751_rule",
+   "stig_id": "JUSX-DM-000094",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must be configured to synchronize internal information system clocks with the primary and secondary NTP servers for the network.",
+   "check": "Verify the Juniper SRX is configured to synchronize internal information system clocks with the primary and secondary NTP sources.\n\n[edit]\nshow system ntp\n\nIf the Juniper SRX is not configured to synchronize internal information system clocks with an NTP server, this is a finding.",
+   "fix": "The following commands allow the device to keep time synchronized with the network. To designate a primary NTP server, add the “prefer” keyword to the server statement.\n\n[edit]\nset system ntp server <NTP-server1-IP> prefer\nset system ntp source-address <MGT-IP-Address>\nset system ntp server <NTP-server2-IP>\nset system ntp source-address <MGT-IP-Address>",
+   "cci": [
+    "CCI-000366",
+    "CCI-004928",
+    "CCI-004922",
+    "CCI-001893"
+   ],
+   "check_sha": "71cefa11d7cc29a5"
+  },
+  "V-223206": {
+   "rule": "SV-223206r997567_rule",
+   "stig_id": "JUSX-DM-000095",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must be configured to use an authentication server to centrally manage authentication and logon settings for remote and nonlocal access.",
+   "check": "Verify the Juniper SRX is configured to support the use of AAA services to centrally manage user authentication and logon settings. \n\nFrom the CLI operational mode enter: \nshow system radius-server \nor \nshow system tacplus-server\n\nIf the Juniper SRX has not been configured to support the use RADIUS and/or TACACS+ servers to centrally manage authentication and logon settings for remote and nonlocal access, this is a finding.",
+   "fix": "Configure the Juniper SRX to support the use of AAA services to centrally manage user authentication and logon settings. To completely set up AAA authentication, use a user template account (the default name is remote) and specify a system authentication server and an authentication order. \n\n[edit]\nset system tacplus-server address <server ipaddress> port 1812 secret <shared secret> \n\nor \n\n[edit]\nset system radius-server address <server ipaddress> port 1812 secret <shared secret> \n\nNote: DOD policy is that redundant AAA servers are required to mitigate the risk of a failure of the primary AAA device. Also see CCI-000213 for further details.",
+   "cci": [
+    "CCI-000366",
+    "CCI-000370",
+    "CCI-003627",
+    "CCI-003628",
+    "CCI-003831",
+    "CCI-004046",
+    "CCI-004047",
+    "CCI-004058",
+    "CCI-004059",
+    "CCI-004060",
+    "CCI-004061",
+    "CCI-004063",
+    "CCI-004064",
+    "CCI-004065",
+    "CCI-004068"
+   ],
+   "check_sha": "831e807a608c0e28"
+  },
+  "V-223207": {
+   "rule": "SV-223207r997572_rule",
+   "stig_id": "JUSX-DM-000105",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must use DOD-approved PKI rather than proprietary or self-signed device certificates.",
+   "check": "To validate that the certificate was loaded, type the following command:\n\nshow security pki local-certificate\n\nView the installed device certificates.\n\nIf any of the certificates have the name or identifier of a nonapproved source in the Issuer field, this is a finding.",
+   "fix": "Generate a new key-pair from a DOD-approved certificate issuer. Sites must consult the PKI/PKI pages on the https://cyber.mil/ website for procedures for NIPRNet and SIPRNet.\n\nRSA:\nrequest security pki generate-key-pair certificate-id <cert name> type rsa size <512 | 1024 | 2048 | 4096>\n\nECDSA:\nrequest security pki generate-key-pair certificate-id <cert_name> type ecdsa size <256 | 384>\n\nGenerate a CSR from RSA key-pair using the following command and options.\n\nrequest security generate-certificate-request certificate-id <cert_name_from_key_file> digest <sha1 | sha256> domain <FQDN> email <admin_email> ip-address <ip_address> subject “CN=<hostname>,DC=<domain_part>,DC=<TLD_domain>,O=<organization>,OU=<organization_dept>,\nL=<city>,ST=<state>,C=<us>” filename <path/filename>\n\nGenerate a CSR from ECDSA key-pair use the following command and options.\n\nrequest security generate-certificate-request certificate-id <cert_name_from_key_file> digest <sha256 | sha384> domain <FQDN> email <admin_email> ip-address <ip_address> subject “CN=<hostname>,DC=<domain_part>,DC=<TLD_domain>,O=<organization>,OU=<organization_dept>,\nL=<city>,ST=<state>,C=<us>” filename <path/filename>\n\nIf no filename is specified, the CSR is displayed on the standard out (terminal)\n\nAfter receiving the approved certificate from the CA, enter the following command and options to upload the certificate.\n\nrequest security pki local-certificate certificate-id <cert_name_from_key_file> filename <path/filename_of_uploaded_certificate>\n\nFrom the operational mode of the hierarchy:\n\nset security certificates local new load-key-file /var/tmp/new.pem \n\nType the following command to load the X.509 certificate into the certificate store in operations mode.\n\n>request security pki local-certificate load certificate-id <ID> filename <PATH TO CERTIFICATE FILE>\n\nFor this example, assume the transferred the X.509 certificate called \"device-cert.crt\" to the /var/tmp directory on the SRXD. The following command will load the device-cert.crt certificate file and associate it with the public/private keypair named “device-keypair” generated in a previous step.\n\n>request security pki local-certificate load certificate-id device-keypair filename /var/tmp/device-cert.crt",
+   "cci": [
+    "CCI-000366",
+    "CCI-001159",
+    "CCI-004068"
+   ],
+   "check_sha": "347592e9e417735e"
+  },
+  "V-223208": {
+   "rule": "SV-223208r1043177_rule",
+   "stig_id": "JUSX-DM-000108",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must be configured to prohibit the use of unnecessary and/or nonsecure functions, ports, protocols, and/or services, as defined in the PPSM CAL and vulnerability assessments.",
+   "check": "Entering the following commands from the configuration level of the hierarchy.\n\n[edit]\nshow system services\n\nIf functions, ports, protocols, and services identified on the PPSM CAL are not disabled, this is a finding.",
+   "fix": "Ensure functions, ports, protocols, and services identified on the PPSM CAL are not used for system services configuration.\n\n[edit]\nshow system services\n\nCompare the services that are enabled, including the port, services, protocols, and functions.\n\nConsult the Juniper knowledge base and configuration guides to determine the commands for disabling each port, protocol, service, or function that is not in compliance with the PPSM CAL and vulnerability assessments.",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "091ebd45699b9110"
+  },
+  "V-223209": {
+   "rule": "SV-223209r1043177_rule",
+   "stig_id": "JUSX-DM-000109",
+   "severity": "medium",
+   "title": "For nonlocal maintenance sessions, the Juniper SRX Services Gateway must remove or explicitly deny the use of nonsecure protocols.",
+   "check": "Verify nonsecure protocols are not enabled for management access by viewing the enabled system services.\n\nFrom the operational hierarchy:\n\n> show config | match \"set system services\" | display set \n\nFrom the configuration hierarchy:\n\n[edit]\nshow snmp\nshow system services telnet\nshow system services ftp\nshow system services ssh\n\nIf nonsecure protocols and protocol versions such as Telnet, FTP, SNMPv1, SNMPv2c, or SSHv1 are enabled, this is a finding.",
+   "fix": "Remove or deny nonsecure protocols to prevent their usage for nonlocal management and diagnostic communications.\n\nUse the delete command to disable services that should not be enabled.\n\nExample deletion commands:\n\n[edit]\ndelete system services telnet\ndelete system services ftp\ndelete snmp v1\ndelete snmp v2c\ndelete set system services ssh protocol-version v1",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "654e1fcc128cc28b"
+  },
+  "V-223211": {
+   "rule": "SV-223211r1056173_rule",
+   "stig_id": "JUSX-DM-000111",
+   "severity": "high",
+   "title": "The Juniper SRX Services Gateway must use and securely configure SNMPv3 if SNMP is enabled.",
+   "check": "If an SNMP stanza does not exist, this is not a finding.\n\nVerify SNMPv3 is enabled and configured.\n\n[edit]\nshow snmp\n\nIf versions earlier than SNMPv3 are enabled, this is a finding.",
+   "fix": "Enable and configure SNMPv3 and configure a trap and community string.\n\n[edit]\nset snmp location <LOCATION-NAME>\nset snmp v3 usm local-engine user <USER-NAME> privacy-AES128 authentication-sha256\nset snmp v3 vacm security-to-group security-model usm security-name <SECURITY-NAME> group <GROUP-NAME>\nset snmp v3 vacm access group <GROUP-NAME> default-context-prefix security-model usm\nsecurity-level privacy read-view all\nset snmp v3 vacm access group <GROUP-NAME> default-context-prefix security-model usm\nsecurity-level privacy notify-view all\nset snmp v3 target-address <target-address-name> tag-list <SNMP-trap-receiver>\nset snmp v3 target-address <TARGER-ADDRESS-NAME> target-parameters <PARMS-NAME>\nset snmp v3 target-parameters <PARMS-NAME> parameters message-processing-model v3\nset snmp v3 target-parameters <PARMS-NAME> parameters security-model usm\nset snmp v3 target-parameters <PARMS-NAME> parameters security-level privacy\nset snmp v3 target-parameters <PARMS-NAME> parameters security-name <SECURITY-NAME>\nset snmp v3 target-parameters <PARMS-NAME> notify-filter device-traps\nset snmp v3 notify <SNMP-TRAPS> type trap\nset snmp v3 notify <SNMP-TRAPS> tag <SNMP-TRAP-RECEIVER>\nset snmp v3 notify-filter device-traps oid jnxChassisTraps include\nset snmp v3 notify-filter device-traps oid jnxChassisOKTraps include\nset snmp v3 notify-filter device-traps oid system include\nset snmp v3 notify-filter device-traps oid .1 include\nset snmp v3 notify-filter device-traps oid snmpMIBObjects include\nset snmp engine-id use-mac-address\nset snmp view all oid .1 include\nset snmp view all oid system include\nset snmp view all oid jnxBoxAnatomy include\nset snmp view all oid snmpMIBObjects include",
+   "cci": [
+    "CCI-000382",
+    "CCI-001967"
+   ],
+   "check_sha": "a19783622c4b7d69"
+  },
+  "V-223212": {
+   "rule": "SV-223212r1043177_rule",
+   "stig_id": "JUSX-DM-000112",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must ensure SSH is disabled for root user logon to prevent remote access using the root account.",
+   "check": "Use the CLI to view this setting for disabled for SSH. \n\n[edit]\nshow system services ssh root-login\n\nIf SSH is not disabled for the root user, this is a finding.",
+   "fix": "From the configuration mode, enter the following commands to disable root-login using SSH.\n\n[edit]\nset system services ssh root-login deny",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "23347f31550cb32b"
+  },
+  "V-223213": {
+   "rule": "SV-223213r1043177_rule",
+   "stig_id": "JUSX-DM-000113",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must ensure access to start a UNIX-level shell is restricted to only the root account.",
+   "check": "Verify each login class is configured to deny access to the UNIX shell.\n\n[edit]\nshow system login\n\nIf each configured login class is not configured to deny access to the UNIX shell, this is a finding.",
+   "fix": "For each login class, add the following command to the stanza.\n\n[edit]\nset system login class <class name> deny-commands \"(start shell)\"",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "d99fe4870c156633"
+  },
+  "V-223214": {
+   "rule": "SV-223214r1043177_rule",
+   "stig_id": "JUSX-DM-000114",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must ensure TCP forwarding is disabled for SSH to prevent unauthorized access.",
+   "check": "Use the CLI to view this setting for disabled for SSH. \n\n[edit]\nshow system services ssh\n\nIf TCP forwarding is not disabled for the root user, this is a finding.",
+   "fix": "From the configuration mode, enter the following commands to disable TCP forwarding for the SSH protocol.\n\n[edit]\nset system services ssh no-tcp-forwarding",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "b4741e2a7d5f60cc"
+  },
+  "V-223215": {
+   "rule": "SV-223215r1043177_rule",
+   "stig_id": "JUSX-DM-000115",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must be configured with only one local user account to be used as the account of last resort.",
+   "check": "Verify only a single local account has an authentication stanza and that the name is the account of last resort.\n\n[edit]\nshow system login\n\nuser <account of last resort> {\n  uid 2001;\n  class <appropriate class name>;\n  authentication { <--- This stanza permits local login\n    encrypted-password \"$sha2$22895$aVBPaRVa$o6xIqNSYg9D7yt8pI47etAjZV9uuwHrhAFT6R021HNsy\"; ## SECRET-DATA\n  }\n}\n\nOR\n\nuser <template account> {\n  uid 2001;\n  class <appropriate class name>;\n}\n\nIf accounts other than the account of last resort contain an authentication stanza, and that account is not documented, this is a finding.",
+   "fix": "If more than one account has an authentication stanza, and it is not documented, delete the authentication stanza (if the account is a template account) or the entire account (if the account is unauthorized or no longer needed).\n\nTo delete a template account:\n\n[edit]\ndelete system login user <account name> authentication\ncommit\n\nTo delete an unneeded or unauthorized account:\n\n[edit]\ndelete system login user <account name>",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "89dcf0f1356c4a5c"
+  },
+  "V-223216": {
+   "rule": "SV-223216r960993_rule",
+   "stig_id": "JUSX-DM-000124",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must implement replay-resistant authentication mechanisms for network access to privileged accounts.",
+   "check": "Verify SSH is configured to use a replay-resistant authentication mechanism.\n\n[edit]\nshow system services ssh\n\nIf SSH is not configured to use the MAC authentication protocol, this is a finding.",
+   "fix": "Configure SSH to use a replay-resistant authentication mechanism. The following is an example stanza.\n\n[edit]\nset system services ssh macs hmac-sha2-512\nset system services ssh macs hmac-sha2-256\nset system services ssh macs hmac-sha1\nset system services ssh macs hmac-sha1-96",
+   "cci": [
+    "CCI-001941"
+   ],
+   "check_sha": "4669ba61f04ee683"
+  },
+  "V-223217": {
+   "rule": "SV-223217r1015752_rule",
+   "stig_id": "JUSX-DM-000128",
+   "severity": "medium",
+   "title": "For local accounts using password authentication (i.e., the root account and the account of last resort), the Juniper SRX Services Gateway must enforce a minimum 15-character password length.",
+   "check": "Verify the SRX password enforces this complexity requirement. In configuration mode, enter the following command.\n\n[edit]\nshow system login password\n\nIf the minimum password length for local accounts is not set to at least a 15-character length, this is a finding.",
+   "fix": "Set the global password option for all accounts created on the Juniper SRX.\n\n[edit]\nset system login password minimum-length 15\n\nNote: This setting only enforces the minimum character password length for newly created passwords. The password of the existing account must be changed if it is not already complaint.\n\nTo set or change the root user password, in configuration mode enter the following command.\n\n[edit]\nset system root-authentication plain-text-password\n\nWhen prompted, enter the password for the root user. \nRetype new password to confirm\n\nTo set or change the account of last resort, in configuration mode enter the following command.\n\n[edit]\nset system login user <name of the account of last resort> plain-text-password\n\nWhen prompted, enter the password for the root user. \nRetype new password to confirm.",
+   "cci": [
+    "CCI-004066",
+    "CCI-000205"
+   ],
+   "check_sha": "b9b4b8a6817f1bb5"
+  },
+  "V-223218": {
+   "rule": "SV-223218r1015753_rule",
+   "stig_id": "JUSX-DM-000129",
+   "severity": "medium",
+   "title": "For local accounts using password authentication (i.e., the root account and the account of last resort), the Juniper SRX Services Gateway must enforce password complexity by setting the password change type to character sets.",
+   "check": "Verify the default local password enforces password complexity by setting the password change type to character sets.\n\n[edit]\nshow system login password\n\nIf the password change-type is not set to character-sets, this is a finding.",
+   "fix": "Configure the default local password to enforce password complexity by setting the password change type to character sets.\n\n[edit]\nset system login password change-type character-sets",
+   "cci": [
+    "CCI-004066",
+    "CCI-000192"
+   ],
+   "check_sha": "0379a7bfe69ba58e"
+  },
+  "V-223219": {
+   "rule": "SV-223219r1015754_rule",
+   "stig_id": "JUSX-DM-000130",
+   "severity": "medium",
+   "title": "For local accounts using password authentication (i.e., the root account and the account of last resort), the Juniper SRX Services Gateway must enforce password complexity by requiring at least one uppercase character be used.",
+   "check": "Verify the default local password enforces password complexity by requiring at least one uppercase character be used.\n\n[edit]\nshow system login password\n\nIf the minimum-upper-cases is not set to at least 1, this is a finding.",
+   "fix": "Configure the default local password to enforce password complexity by requiring at least one uppercase character be used.\n\n[edit]\nset system login password minimum-upper-cases 1",
+   "cci": [
+    "CCI-004066",
+    "CCI-000192"
+   ],
+   "check_sha": "a3614382180a51f9"
+  },
+  "V-223220": {
+   "rule": "SV-223220r1015755_rule",
+   "stig_id": "JUSX-DM-000131",
+   "severity": "medium",
+   "title": "For local accounts using password authentication (i.e., the root account and the account of last resort), the Juniper SRX Services Gateway must enforce password complexity by requiring at least one lowercase character be used.",
+   "check": "Verify the default local password enforces password complexity by requiring at least one lowercase character be used.\n\n[edit]\nshow system login password\n\nIf the minimum-lower-cases is not set to at least 1, this is a finding.",
+   "fix": "Configure the default local password to enforce password complexity by requiring at least one lowercase character be used.\n\n[edit]\nset system login password minimum-lower-cases 1",
+   "cci": [
+    "CCI-004066",
+    "CCI-000193"
+   ],
+   "check_sha": "194c00f4e4a0f647"
+  },
+  "V-223221": {
+   "rule": "SV-223221r1015756_rule",
+   "stig_id": "JUSX-DM-000132",
+   "severity": "medium",
+   "title": "For local accounts using password authentication (i.e., the root account and the account of last resort), the Juniper SRX Services Gateway must enforce password complexity by requiring at least one numeric character be used.",
+   "check": "Verify the default local password enforces password complexity by requiring at least one numeric character be used.\n\n[edit]\nshow system login password\n\nIf the minimum numerics are not set to at least 1, this is a finding.",
+   "fix": "Configure the default local password to enforce password complexity by requiring at least one numeric character be used.\n\n[edit]\nset system login password minimum -numerics to 1",
+   "cci": [
+    "CCI-004066",
+    "CCI-000194"
+   ],
+   "check_sha": "515aaaf6535c13ec"
+  },
+  "V-223222": {
+   "rule": "SV-223222r1015757_rule",
+   "stig_id": "JUSX-DM-000133",
+   "severity": "medium",
+   "title": "For local accounts using password authentication (i.e., the root account and the account of last resort), the Juniper SRX Services Gateway must enforce password complexity by requiring at least one special character be used.",
+   "check": "Verify the default local password enforces password complexity by requiring at least one special character be used.\n\n[edit]\nshow system login password\n\nIf the minimum-punctuation is not set to at least 1, this is a finding.",
+   "fix": "Configure the default local password to enforce password complexity by requiring at least one special character be used.\n\n[edit]\nset system login password minimum-punctuations 1",
+   "cci": [
+    "CCI-004066",
+    "CCI-001619"
+   ],
+   "check_sha": "edd4754d50ea5b2f"
+  },
+  "V-223223": {
+   "rule": "SV-223223r1056174_rule",
+   "stig_id": "JUSX-DM-000136",
+   "severity": "high",
+   "title": "The Juniper SRX Services Gateway must use the SHA256 or later protocol for password authentication for local accounts using password authentication (i.e., the root account and the account of last resort).",
+   "check": "Verify the default local password enforces this requirement by entering the following in configuration mode.\n\n[edit]\nshow system login password\n\nIf the password format is not set to SHA256 or higher, this is a finding.",
+   "fix": "Enter the following example command from the configuration mode.\n \n[edit]\nset system login password format sha256",
+   "cci": [
+    "CCI-000197"
+   ],
+   "check_sha": "d95ddd26e4817724"
+  },
+  "V-223224": {
+   "rule": "SV-223224r1056178_rule",
+   "stig_id": "JUSX-DM-000146",
+   "severity": "high",
+   "title": "For nonlocal maintenance sessions using SNMP, the Juniper SRX Services Gateway must use and securely configure SNMPv3 with SHA256 or higher to protect the integrity of maintenance and diagnostic communications.",
+   "check": "Verify SNMP is configured for version 3.\n\n[edit]\nshow snmp v3\n \nIf SNMPv3 is not configured for version 3 using SHA256 or higher, this is a finding.",
+   "fix": "Configure snmp to use version 3 with SHA256 authentication.\n\n[edit]\nset snmp v3 usm local-engine user <NAME> authentication-sha256",
+   "cci": [
+    "CCI-002890"
+   ],
+   "check_sha": "2a3637e7fc67403c"
+  },
+  "V-223225": {
+   "rule": "SV-223225r1056185_rule",
+   "stig_id": "JUSX-DM-000147",
+   "severity": "high",
+   "title": "The Juniper SRX Services Gateway must securely configure SSHv2 FIPS 140-2/140-3 validated Keyed-Hash Message Authentication Code (HMAC) to protect the integrity of maintenance and diagnostic communications for nonlocal maintenance sessions.",
+   "check": "Verify SSHv2 and HMAC algorithms for integrity checking.\n\n[edit]\nshow system services ssh\n\nIf SSHv2 and integrity options are not configured in compliance with DOD requirements for nonlocal maintenance session, this is a finding.",
+   "fix": "Configure SSH integrity options.\n\n[edit]\nset system services ssh protocol-version v2\nset system services ssh macs hmac-sha2-512\nset system services ssh macs hmac-sha2-256",
+   "cci": [
+    "CCI-002890"
+   ],
+   "check_sha": "7d0ca1078f6dc81c"
+  },
+  "V-223226": {
+   "rule": "SV-223226r1056109_rule",
+   "stig_id": "JUSX-DM-000149",
+   "severity": "high",
+   "title": "The Juniper SRX Services Gateway must securely configure SNMPv3 with privacy options to protect the confidentiality of nonlocal maintenance and diagnostic communications using SNMP.",
+   "check": "Verify SNMPv3 is configured with privacy options.\n\n[edit]\nshow snmp v3\n \nIf SNMPv3 is not configured using AES, and other privacy options are not configured, this is a finding.",
+   "fix": "Configure SNMP to use version 3 with privacy options. The following is an example.\n\n[edit]\nset snmp location <NAME>\nset snmp v3 usm local-engine user <NAME> privacy-AES128\nset snmp v3 vacm security-to-group security-model usm security-name <NAME> group <NAMEGROUP>\nset snmp v3 vacm access group <NAME-GROUP> default-context-prefix security-model usm\nsecurity-level privacy read-view all\nset snmp v3 vacm access group <NAME-GROUP> default-context-prefix security-model usm\nsecurity-level privacy notify-view all",
+   "cci": [
+    "CCI-003123"
+   ],
+   "check_sha": "87cc9212be934538"
+  },
+  "V-223227": {
+   "rule": "SV-223227r1056177_rule",
+   "stig_id": "JUSX-DM-000150",
+   "severity": "high",
+   "title": "The Juniper SRX Services Gateway must use SSHv2 with privacy options to protect the confidentiality of maintenance and diagnostic communications for nonlocal maintenance sessions using SSH.",
+   "check": "Verify SSHv2, AES ciphers, and key-exchange commands are configured to protect confidentiality.\n\n[edit]\nshow system services ssh\n\nIf SSHv2 is not configured to use AES ciphers and key-exchange commands, this is a finding.",
+   "fix": "Configure SSH confidentiality options to comply with DOD requirements.\n\n[edit]\nset system services ssh protocol-version v2\nset system services ssh ciphers aes256-ctr\nset system services ssh ciphers aes192-ctr\nset system services ssh ciphers aes128-ctr\nset system services ssh macs hmac-sha2-512\nset system services ssh macs hmac-sha2-256\nset system services ssh key-exchange ecdh-sha2-nistp521\nset system services ssh key-exchange ecdh-sha2-nistp384\nset system services ssh key-exchange ecdh-sha2-nistp256",
+   "cci": [
+    "CCI-003123"
+   ],
+   "check_sha": "ce2aa57949adf0aa"
+  },
+  "V-223228": {
+   "rule": "SV-223228r961557_rule",
+   "stig_id": "JUSX-DM-000152",
+   "severity": "medium",
+   "title": "For nonlocal maintenance sessions, the Juniper SRX Services Gateway must ensure only zones where management functionality is desired have host-inbound-traffic system-services configured.",
+   "check": "Verify only those zones where management functionality is allowed have host-inbound-traffic system-services configured and that protocols such as HTTP and HTTPS are not assigned to these zones.\n\n[edit]\nshow security zones functional-zone management\n\nIf zones configured for host-inbound-traffic system-services have protocols other than SSH configured, this is a finding.",
+   "fix": "Remove host-inbound-traffic systems-services option from zones not authorized for management traffic.\n\nRemove unauthorized protocols (e.g., HTTP, HTTPS) from management zones that are configured to allow host-inbound-traffic system-services.",
+   "cci": [
+    "CCI-003123"
+   ],
+   "check_sha": "ac76b05db044e180"
+  },
+  "V-223231": {
+   "rule": "SV-223231r961068_rule",
+   "stig_id": "JUSX-DM-000156",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must terminate a device management session after 10 minutes of inactivity, except to fulfill documented and validated mission requirements.",
+   "check": "Verify idle-timeout is set for 10 minutes.\n\n[edit]\nshow system login\n\nIf a timeout value of 10 or less is not set for each class, this is a finding.",
+   "fix": "Configure all login classes with an idle timeout value. \n\n[edit]\nset system login-class <class name> idle-timeout 10\n\nAll users must be set to a login-class; however, to ensure that the CLI is set to a default timeout value, enter the following in operational mode: \n\nset cli idle-timeout 10",
+   "cci": [
+    "CCI-001133"
+   ],
+   "check_sha": "4ce1c36f9da523d7"
+  },
+  "V-223232": {
+   "rule": "SV-223232r961068_rule",
+   "stig_id": "JUSX-DM-000157",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must terminate a device management session if the keep-alive count is exceeded.",
+   "check": "Verify this setting by entering the following commands in configuration mode.\n\n[edit]\nshow system services ssh\n\nIf the keep-alive count and keep-alive interval is not set to an organization-defined value, this is a finding.",
+   "fix": "Configure this setting by entering the following commands in configuration mode.\n\n[edit]\nset system services ssh client-alive-count-max <organization-defined value>\nset system services ssh client-alive-interval <organization-defined value>",
+   "cci": [
+    "CCI-001133"
+   ],
+   "check_sha": "e0943c4d938d1425"
+  },
+  "V-223233": {
+   "rule": "SV-223233r961620_rule",
+   "stig_id": "JUSX-DM-000162",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must configure the control plane to protect against or limit the effects of common types of Denial of Service (DoS) attacks on the device itself by configuring applicable system options and internet-options.",
+   "check": "Verify the system options are configured to protect against DoS attacks.\n\n[edit]\nshow system\nshow system internet-options\n\nIf the system and system-options which limit the effects of common types of DoS attacks are not configured in compliance with DoD requirements, this is a finding.",
+   "fix": "Configure the system and system-options to protect against DoS attacks.\n\n[edit]\nset system no-redirects\nset system no-ping-record-route\nset system no-ping-time-stamp\nset system internet-options icmpv4-rate-limit packet-rate 50\nset system internet-options icmpv6-rate-limit packet-rate 50\nset system internet-options no-ipip-path-mtu-discovery\nset system internet-options no-source-quench\nset system internet-options tcp-drop-synfin-set\nset system internet-options no-ipv6-path-mtu-discovery\nset system internet-options no-tcp-reset drop-all-tcp",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "fc9e366e90385288"
+  },
+  "V-223234": {
+   "rule": "SV-223234r961620_rule",
+   "stig_id": "JUSX-DM-000163",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must limit the number of sessions per minute to an organization-defined number for SSH to protect remote access management from unauthorized access.",
+   "check": "Verify the Juniper SRX sets a connection-limit for the SSH protocol.\n\nShow system services ssh\n\nIf the SSH connection-limit is not set to 4 or an organization-defined value, this is a finding.",
+   "fix": "Configure the SSH protocol with a rate limit.\n\n[edit]\nset system services ssh rate-limit 4\n\nNote: Juniper Networks recommends a best practice of 4 for the rate limit; however, the limit should be as restrictive as operationally practical.",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "6c0c0c52f7d04c40"
+  },
+  "V-223235": {
+   "rule": "SV-223235r961620_rule",
+   "stig_id": "JUSX-DM-000164",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must implement service redundancy to protect against or limit the effects of common types of Denial of Service (DoS) attacks on the device itself.",
+   "check": "If service redundancy is not required by the organization's policy, this is not a finding.\n\nVerify the configuration is working properly: \n\n[edit]\nshow chassis cluster interfaces command.\n\nIf service redundancy is not configured, this is a finding.",
+   "fix": "Interfaces can be monitored by a redundancy group for automatic failover to another node. Assign a weight to the interface to be monitored.\n\nThis configuration is an extremely complex configuration. Consult the vendor documentation.\n\nSet the chassis cluster node ID and cluster ID. \nConfigure the chassis cluster management interface.\nConfigure the chassis cluster fabric.\nConfigure the chassis cluster redundancy group \nSpecify the interface to be monitored by a redundancy group. \n\nSpecify the interface to be monitored by a redundancy group. Example:\n[edit]\nset chassis cluster redundancy-group 1 interface-monitor ge-6/0/2 weight 255",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "ad4347694dd48a54"
+  },
+  "V-223236": {
+   "rule": "SV-223236r961863_rule",
+   "stig_id": "JUSX-DM-000166",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must be configured to use Junos 12.1 X46 or later to meet the minimum required version for DoD.",
+   "check": "Verify the version installed is Junos 12.1 X46 or later. In operational mode, type the following:\n\nshow version\n\nIf the Junos version installed is not 12.1 X46 or later, this is a finding.",
+   "fix": "Follow the manufacturer's instructions for upgrading the Junos version. Software updates must be from an approved site and follow approved DoD procedures and verification processes in accordance with site testing procedures.",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "dec7f142907215be"
+  },
+  "V-223237": {
+   "rule": "SV-223237r1043177_rule",
+   "stig_id": "JUSX-DM-000167",
+   "severity": "high",
+   "title": "For nonlocal maintenance sessions, the Juniper SRX Services Gateway must explicitly deny the use of J-Web.",
+   "check": "Verify web-management is not enabled.\n\n[edit]\nshow system services web-management\n\nIf a stanza exists that configures web-management service options, this is a finding.",
+   "fix": "Remove the web-management service.\n\n[edit]\ndelete system services web-management",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "d8b77b94ccefca22"
+  },
+  "V-229014": {
+   "rule": "SV-229014r961863_rule",
+   "stig_id": "JUSX-DM-000007",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must automatically terminate a network administrator session after organization-defined conditions or trigger events requiring session disconnect.",
+   "check": "If the organization does not have a requirement for triggered, automated logout, this is not a finding.\n\nObtain a list of organization-defined triggered, automated requirements that are required for the Juniper SRX. \n\nTo verify configuration of special user access controls.\n\n[edit]\nshow system login\n\nView time-based or other triggers which are configured to control automated logout.\n\nIf the organization has documented requirements for triggered, automated termination and they are not configured, this is a finding.",
+   "fix": "To configure user access on specific days of the week for a specified duration, include the allowed-days, access-start, and access-end statements. The following is an example of a configuration for a class which would automatically log out users. Consult the Juniper SRX documentation for other options.\n\n[edit system login]\nclass class-name allowed-days [ days-of-the-week ];\nclass class-name access-start HH:MM;\nclass class-name access-end HH:MM;",
+   "cci": [
+    "CCI-000169",
+    "CCI-000366"
+   ],
+   "check_sha": "9098ce199509c808"
+  },
+  "V-229015": {
+   "rule": "SV-229015r961863_rule",
+   "stig_id": "JUSX-DM-000019",
+   "severity": "medium",
+   "title": "For local accounts, the Juniper SRX Services Gateway must generate an alert message to the management console and generate a log event record that can be forwarded to the ISSO and designated system administrators when local accounts are created.",
+   "check": "Verify the device is configured to display change-log events of severity info.\n\n[edit]\nshow system syslog\n\nIf the system is not configured to display account creation actions on the management console and generate an event log message to the Syslog server and a local file, this is a finding.",
+   "fix": "Configure the Juniper SRX to generate and send a notification or log message immediately that can be forwarded via an event monitoring system (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). The NSM, Syslog, or SNMP server must then be configured to send the message.\n\nThe following commands configure the device to immediately display a message to any currently logged on administrator's console when changes are made to the configuration. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). \n\n[edit]\nset system syslog users * change-log <info | any> \nset system syslog host <IP-syslog-server> any any\nset system syslog file account-actions change-log any any",
+   "cci": [
+    "CCI-000171",
+    "CCI-000366"
+   ],
+   "check_sha": "53985457fd59cd23"
+  },
+  "V-229016": {
+   "rule": "SV-229016r961863_rule",
+   "stig_id": "JUSX-DM-000020",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must generate an alert message to the management console and generate a log event record that can be forwarded to the ISSO and designated system administrators when the local accounts (i.e., the account of last resort or root account) are modified.",
+   "check": "Verify the device is configured to display change-log events of severity info.\n\n[edit]\nshow system syslog\n\nIf the system does not display account modification actions on the management console and generate an event log message to the Syslog server and a local file, this is a finding.",
+   "fix": "Configure the Juniper SRX to generate and send a notification or log message immediately that can be forwarded via an event monitoring system (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). The NSM, Syslog, or SNMP server must then be configured to send the message.\n\nThe following commands configure the device to immediately display a message to any currently logged on administrator's console when changes are made to the configuration. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). \n\n[edit]\nset system syslog users * change-log <info | any> \nset system syslog host <IP-syslog-server> any any\nset system syslog file account-actions change-log any any",
+   "cci": [
+    "CCI-000139",
+    "CCI-000366"
+   ],
+   "check_sha": "478ad194de325239"
+  },
+  "V-229017": {
+   "rule": "SV-229017r961863_rule",
+   "stig_id": "JUSX-DM-000021",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must generate an alert message to the management console and generate a log event record that can be forwarded to the ISSO and designated system administrators when accounts are disabled.",
+   "check": "Verify the device is configured to display change-log events of severity info.\n\n[edit]\nshow system syslog\n\nIf the system does not display account disabling actions on the management console and generate an event log message to the Syslog server and a local file, this is a finding.",
+   "fix": "Configure the Juniper SRX to generate and send a notification or log message immediately that can be forwarded via an event monitoring system (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). The NSM, Syslog, or SNMP server must then be configured to send the message.\n\nThe following commands configure the device to immediately display a message to any currently logged on administrator's console when changes are made to the configuration. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system).\n\n[edit]\nset system syslog users * change-log <info | any> \nset system syslog host <IP-syslog-server> any any\nset system syslog file account-actions change-log any any",
+   "cci": [
+    "CCI-000140",
+    "CCI-000366"
+   ],
+   "check_sha": "0c3822f15d22738a"
+  },
+  "V-229018": {
+   "rule": "SV-229018r961863_rule",
+   "stig_id": "JUSX-DM-000022",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must generate alerts to the management console and generate a log record that can be forwarded to the ISSO and designated system administrators when the local accounts (i.e., the account of last resort or root account) are deleted.",
+   "check": "Verify the device is configured to display change-log events of severity info.\n\n[edit]\nshow system syslog\n\nIf the system is not configured to display account deletion actions on the management console and generate an event log message to the Syslog server and a local file, this is a finding.",
+   "fix": "The following commands configure the device to immediately display a message to any currently logged on administrator's console when changes are made to the configuration. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). \n\n[edit]\nset system syslog users * change-log <info | any> \nset system syslog host <IP-syslog-server> any any\nset system syslog file account-actions change-log any any",
+   "cci": [
+    "CCI-000366",
+    "CCI-001314"
+   ],
+   "check_sha": "8a970808629e7988"
+  },
+  "V-229019": {
+   "rule": "SV-229019r961863_rule",
+   "stig_id": "JUSX-DM-000024",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must generate an immediate alert message to the management console for account enabling actions.",
+   "check": "Verify the device is configured to display change-log events of severity info.\n\n[edit]\nshow system syslog\n\nIf the system is not configured to display account enabling actions on the management console, this is a finding.",
+   "fix": "The following commands configure the device to immediately display a message to any currently logged on administrator's console when changes are made to the configuration. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). \n\n[edit]\nset system syslog users * change-log <info | any>",
+   "cci": [
+    "CCI-000366",
+    "CCI-001328"
+   ],
+   "check_sha": "13650a5262891100"
+  },
+  "V-229021": {
+   "rule": "SV-229021r1015758_rule",
+   "stig_id": "JUSX-DM-000039",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must allow only the information system security manager (ISSM) (or administrators/roles appointed by the ISSM) to select which auditable events are to be generated and forwarded to the syslog and/or local logs.",
+   "check": "Verify only the ISSM (or administrators or roles appointed by the ISSM) have permission to configure and control audit events.\n\n[edit]\nshow system login class\nshow system login\n\nView permissions for the audit-admin class (audit-admin is an example class name; local policy may dictate another name). View class assignment for all users and template users configured on the Juniper SRX.\n\nIf user templates or users are other than the ISSM (or administrators or roles appointed by the ISSM) have permission to select which auditable events are to be audited, this is a finding.",
+   "fix": "Configure the Juniper SRX to allow only the ISSM user account (or administrators/roles appointed by the ISSM) to select which auditable events are to be audited. To ensure this is the case, each ISSM-appointed role on the AAA must be configured for least privilege using the following stanzas for each role.\n\nFor audit-admin role:\n\n[edit]\nset system login class audit-admin permissions [ security trace maintenance ]\nset system login class audit-admin allow-commands \"^clear (log|security log)\" \nset system login class audit-admin deny-commands \"^clear (security alarms|system login lockout)|^file (copy|delete|rename)|^request (security|system set-encryption-key)|^rollback|^set date|^show security (alarms|dynamic-policies|match-policies|policies)|^start shell\"\nset system login class audit-admin security-role audit-administrator \nset system login user audit-officer class audit-admin \n\nFor the crypto admin role:\n\n[edit]\nset system login class crypto-admin permissions [ admin-control configure maintenance security-control system-control trace ]\nset system login class crypto-admin allow-commands \"^request system set-encryption-key\" \nset system login class crypto-admin deny-commands \"^clear (log|security alarms|security log|system login lockout)|^file (copy|delete|rename)|^rollback|^set date|^show security (alarms|dynamic-policies|match-policies|policies)|^start shell\"\nset system login class crypto-admin allow-configuration-regexps \"security (ike|ipsec) (policy|proposal)\" \"security ipsec ^vpn$ .* manual (authentication|encryption|protocol|spi)\" \"system fips self-test after-key-generation\" \nset system login class crypto-admin security-role crypto-administrator \n\nFor the security-admin role:\n\n[edit]\nset system login class security-admin permissions all \nset system login class security-admin deny-commands \"^clear (log|security log)|^(clear|show) security alarms alarm-type idp|^request (security|system set-encryption-key)|^rollback|^start shell\"\nset system login class security-admin deny-configuration-regexps \"security alarms potential-violation idp\" \"security (ike|ipsec) (policy|proposal)\" \"security ipsec ^vpn$ .* manual (authentication| encryption|protocol|spi)\" \"security log cache\" \"security log exclude .* event-id IDP_.*\" \"system fips self-test after-key- generation\" \nset system login class security-admin security-role security-administrator \n\nFor the ids-admin role:\n\n[edit]\nset system login class ids-admin permissions [ configure maintenance security-control trace ]\nset system login class ids-admin allow-configuration-regexps \"security alarms potential-violation idp\" \"security log exclude .* event-id IDP_.*\" \nset system login class ids-admin deny-commands \"^clear log|^(clear|show) security alarms (alarm-id|all|newer-than|older- than|process|severity)|^(clear|show) security alarms alarm-type (authentication|cryptographic-self-test|decryption-failures|encryption-failures| ike-phase1-failures|ike-phase2-failures|key-generation-self-test| non-cryptographic-self-test|policy|replay-attacks)|^file (copy|delete|rename)|^request (security|system set-encryption-key)|^rollback|^set date|^show security (dynamic-policies|match-policies|policies)|^start shell\"\nset system login class ids-admin deny-configuration-regexps \"security alarms potential-violation (authentication|cryptographic-self-test|decryption-failures|encryption-failures|ike-phase1-failures|ike-phase2-failures|key-generation-self-test|non-cryptographic-self-test|policy|replay-attacks)\" \nset system login class ids-admin security-role ids-admin \n\nFor the crypto-officer class:\n\n[edit]\nset system login user crypto-officer class crypto-admin \nset system login user security-officer class security-admin\nset system login user ids-officer class ids-admin",
+   "cci": [
+    "CCI-000366",
+    "CCI-000015",
+    "CCI-001684"
+   ],
+   "check_sha": "3cd33e646bbdc283"
+  },
+  "V-229022": {
+   "rule": "SV-229022r1015759_rule",
+   "stig_id": "JUSX-DM-000060",
+   "severity": "low",
+   "title": "For local logging, the Juniper SRX Services Gateway must generate a message to the system management console when a log processing failure occurs.",
+   "check": "Verify the system Syslog has been configured to display an alert on the console for the emergency and alert levels of the daemon facility.\n\n[edit] \nshow system syslog\n\nIf the system is not configured to generate a message to the system management console when a log processing failure occurs, this is a finding.",
+   "fix": "The following commands configure syslog to immediately display any emergency level or daemon alert events to the management console. The message will display on any currently logged on administrator's console.\n\n[edit]\nset system syslog user * any emergency\nset system syslog user * daemon alert\nset system syslog user * daemon critical",
+   "cci": [
+    "CCI-000366",
+    "CCI-000015",
+    "CCI-001685"
+   ],
+   "check_sha": "41d8883435fee348"
+  },
+  "V-229023": {
+   "rule": "SV-229023r1015760_rule",
+   "stig_id": "JUSX-DM-000061",
+   "severity": "medium",
+   "title": "In the event that communications with the events server is lost, the Juniper SRX Services Gateway must continue to queue log records locally.",
+   "check": "Verify logging has been enabled and configured to capture to local log files in case connection with the primary and secondary log servers is lost.\n\n[edit] \nshow system syslog\n\nIf local log files are not configured to capture events, this is a finding.",
+   "fix": "The following example commands configure local backup files to capture DOD-defined auditable events. \n\n[edit]\nset system syslog file messages any info\nset system syslog file messages authorization none\nset system syslog file messages interactive-commands none \nset system syslog file messages daemon none \nset system syslog file User-Auth authorization any\nset system syslog file interactive-commands interactive-commands any\nset system syslog file processes daemon any\nset system syslog file account-actions change-log any any\nset file account-actions match \"system login user\"\nset system syslog console any any",
+   "cci": [
+    "CCI-000366",
+    "CCI-000015",
+    "CCI-001686"
+   ],
+   "check_sha": "b2142815dba8d3ff"
+  },
+  "V-229024": {
+   "rule": "SV-229024r961863_rule",
+   "stig_id": "JUSX-DM-000096",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must be configured to use an authentication server to centrally apply authentication and logon settings for remote and nonlocal access for device management.",
+   "check": "Verify the Juniper SRX is configured to support the use of AAA services to centrally apply user authentication and logon settings. \n\nFrom the CLI operational mode enter: \nshow system radius-server \nor \nshow system tacplus-server\n\nIf the Juniper SRX has not been configured to support the use of RADIUS and/or TACACS+ servers to centrally apply authentication and logon settings for remote and nonlocal access, this is a finding.",
+   "fix": "Configure the Juniper SRX to support the use of AAA services to centrally apply user authentication and logon settings. \n\n[edit]\nset system tacplus-server address <server ipaddress> port 1812 secret <shared secret> \n\nor \n\n[edit]\nset system radius-server address <server ipaddress> port 1812 secret <shared secret>",
+   "cci": [
+    "CCI-000366",
+    "CCI-002361"
+   ],
+   "check_sha": "10f3192ca0bfa5e7"
+  },
+  "V-229025": {
+   "rule": "SV-229025r1015761_rule",
+   "stig_id": "JUSX-DM-000097",
+   "severity": "high",
+   "title": "The Juniper SRX Services Gateway must be configured to use a centralized authentication server to authenticate privileged users for remote and nonlocal access for device management.",
+   "check": "Verify the Juniper SRX is configured to forward logon requests to a RADIUS or TACACS+. \n\nFrom the CLI operational mode enter: \nshow system radius-server \nor \nshow system tacplus-server\n\nIf the Juniper SRX is not configured to use at least one RADIUS or TACACS+ server, this is a finding.",
+   "fix": "Configure the Juniper SRX to forward logon requests to a RADIUS or TACACS+. Remove local users configured on the device (CCI-000213) so the AAA server cannot default to using a local account. \n\n[edit]\nset system tacplus-server address <server ipaddress> port 1812 secret <shared secret> \n\nor \n\n[edit]\nset system radius-server address <server ipaddress> port 1812 secret <shared secret> \n\nNote: DOD policy is that redundant AAA servers are required to mitigate the risk of a failure of the primary AAA device.",
+   "cci": [
+    "CCI-000366",
+    "CCI-000015",
+    "CCI-002132"
+   ],
+   "check_sha": "18ccd252de1a273d"
+  },
+  "V-229026": {
+   "rule": "SV-229026r961863_rule",
+   "stig_id": "JUSX-DM-000098",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must specify the order in which authentication servers are used.",
+   "check": "Verify a RADIUS or TACACS+ server order has been configured.\n\nFrom operational mode enter the command:\nshow system authentication-order\n\nIf the authentication-order for either or both RADIUS or TACACS+ server order has not been configured, this is a finding.\n\nIf the authentication-order includes the password method, this is a finding.",
+   "fix": "Add an external RADIUS or TACACS+ server, and specify the port number and shared secret of the server. Remote logon using password results in a CAT 1 finding (CCI-000765) for failure to use two-factor authentication. Thus, if the account of last resort uses only password authentication, this configuration prevents remote access. DoD policy is that redundant AAA servers are required to mitigate the risk of a failure of the primary AAA device.\n\n[edit]\nset system authentication-order tacplus\n\nor \n\n[edit]\nset system authentication-order radius\n\nFrom operational mode enter the command:\nshow system authentication-order\n\nIf password is set as an option, remove this command from the configuration.\n[edit]\ndelete system authentication-order password",
+   "cci": [
+    "CCI-000366",
+    "CCI-000371"
+   ],
+   "check_sha": "44996850d8941f10"
+  },
+  "V-229027": {
+   "rule": "SV-229027r961863_rule",
+   "stig_id": "JUSX-DM-000099",
+   "severity": "low",
+   "title": "The Juniper SRX Services Gateway must detect the addition of components and issue a priority 1 alert to the ISSM and SA, at a minimum.",
+   "check": "Verify SNMP is configured to capture chassis and device traps. If Syslog or a console method is used, verify that method instead.\n\n[edit]\nshow snmp v3\n \nIf an immediate alert is not sent via SNMPv3 or another method, this is a finding.",
+   "fix": "Update the SNMP configuration with the following device trap settings. This is an example method. Alerts must be sent immediately to the designated individuals (e.g., via Syslog configuration, SNMP trap, manned console message, or other events monitoring system). \n\nset snmp v3 notify-filter device-traps oid jnxChassisTraps include\nset snmp v3 notify-filter device-traps oid jnxChassisOKTraps include\nset snmp v3 notify-filter device-traps oid system include\nset snmp v3 notify-filter device-traps oid .1 include\nset snmp v3 notify-filter device-traps oid",
+   "cci": [
+    "CCI-000366",
+    "CCI-000372"
+   ],
+   "check_sha": "e9b95f8885b5a93d"
+  },
+  "V-229028": {
+   "rule": "SV-229028r961863_rule",
+   "stig_id": "JUSX-DM-000106",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must generate an alarm or send an alert message to the management console when a component failure is detected.",
+   "check": "Verify the system Syslog has been configured to display an alert on the console for the emergency and critical levels of the daemon facility.\n\n[edit] \nshow system syslog\n\nIf the system is not configured to generate a system alert message when a component failure is detected, this is a finding.",
+   "fix": "The following commands configure syslog to immediately display any emergency level or daemon alert events to the management console. The message will display on any currently logged on administrator's console.\n\n[edit]\nset system syslog user * any emergency\nset system syslog user * daemon critical\nset system syslog user * daemon alert",
+   "cci": [
+    "CCI-000366",
+    "CCI-000372"
+   ],
+   "check_sha": "df6e7bbcf049022e"
+  },
+  "V-229029": {
+   "rule": "SV-229029r961863_rule",
+   "stig_id": "JUSX-DM-000165",
+   "severity": "medium",
+   "title": "The Juniper SRX Services Gateway must reveal log messages or management console alerts only to the ISSO, ISSM, and SA roles).",
+   "check": "Obtain a list of authorized user names that are authorized to view the audit log and console notification messages. Verify classes are created that separate administrator roles based on authorization. View user classes and class members by typing the following commands.\n\n[edit]\nshow system login\n\nView class assignment for all users and template users configured on the Juniper SRX. Users with login classes audit-admin, security-admin, and system-admin have permission to view error message in logs and/or notifications. \n\nIf classes or users that are not authorized to have access to the logs (e.g., crypto-admin) have permissions to view or access error message in logs and/or notifications, this is a finding.",
+   "fix": "Configure login classes and permissions and assign only authorized users to each class.\n\n[edit]\nshow system login\n\nIf any classes  are mapped to the audit-admin, security-admin, or system-admin login templates, delete the command from the class by typing delete in front of the command or retyping the command with the permission removed from the list.\n\nExample configuration:\nset system login class audit-admin allow-commands \"(show log *)|(clear log *)|(monitor\nlog *)\"\nset system login class audit-admin allow-configuration \"(system syslog)\"\nset system login class emergency permissions all\nset system login class emergency login-alarms\nset system login class security-admin login-alarms\nset system login class system-admin login-alarms",
+   "cci": [
+    "CCI-000366",
+    "CCI-000416"
+   ],
+   "check_sha": "67d45883a8c0cea0"
+  }
+ }
+}

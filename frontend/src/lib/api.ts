@@ -118,6 +118,24 @@ export async function rejectReviewItem(id: string, body: { reviewer_id: string; 
   return handle<{ review_queue_id: string; status: string }>(res);
 }
 
+export type BenchmarkCoverage = {
+  benchmark: string;
+  name: string;
+  vendor: string;
+  release: string;
+  released: string | null;
+  source: string | null;
+  total: number;
+  automated: number;
+  needs_rereview: string[];
+  manual: number;
+};
+
+export async function getCoverage(): Promise<{ benchmarks: BenchmarkCoverage[]; rules_evaluated_total: number }> {
+  const res = await fetch(`${API_BASE}/frameworks/coverage`);
+  return handle<{ benchmarks: BenchmarkCoverage[]; rules_evaluated_total: number }>(res);
+}
+
 export async function nameVendor(deviceId: string, body: { vendor: string; signature: string; reviewer_id?: string }) {
   const res = await fetch(`${API_BASE}/devices/${deviceId}/vendor`, {
     method: "POST",

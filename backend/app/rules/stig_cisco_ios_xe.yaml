@@ -6,6 +6,10 @@
 # scheme - maximally traceable, and these are public/checkable at
 # cyber.trackr.live or stigviewer.com.
 #
+# 2026-09-27: all 5 V-numbers, titles and severities verified against the
+# official DISA catalog imported by app/stig_sync.py (Cisco IOS XE Router
+# RTR STIG V3R5, catalog/Cisco_IOS_XE_Router_RTR.json).
+#
 # Spot-checked 2026-09-15 via web search against public STIG references
 # (cyber.trackr.live, Tenable's audit library) - all 5 V-numbers below
 # confirmed to match their cited title/intent exactly. NOT the same as

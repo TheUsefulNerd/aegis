@@ -1,0 +1,740 @@
+{
+ "benchmark": "Fortinet_FortiGate_Firewall_NDM",
+ "title": "Fortinet FortiGate Firewall NDM Security Technical Implementation Guide",
+ "version": "1",
+ "release": "5",
+ "released": "05 Jan 2026",
+ "fetched": "2026-09-27",
+ "source": "https://cyber.trackr.live/stig/Fortinet_FortiGate_Firewall_NDM/1/5 (DISA STIG content)",
+ "rules": {
+  "V-234162": {
+   "rule": "SV-234162r960777_rule",
+   "stig_id": "FGFW-ND-000005",
+   "severity": "medium",
+   "title": "The FortiGate device must automatically audit account creation.",
+   "check": "If the System category of Event Logging is enabled, then account creation is audited. To check that System and Event Logging are enabled, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings.\n4. Verify Event Logging is set to \"All\" (for most verbose logging) or \"Customize\", and includes at least the System activity event.\n\nIf Event Logging is not set to \"All\" or \"Customize\" with System enabled, then account creation will not be audited, and this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\nThe output should be: \n     set event enable\n     set system enable\n\nIf event and system parameters are set to disable, the account creation is not audited, and this is a finding.",
+   "fix": "This fix can be performed on the FortiGate GUI or on the CLI. \nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings.\n4. For Event Logging options, click \"All\" (for most verbose logging) or \"Customize\", and include at least the System activity event.\n5. Click Apply.\n\nor\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     #    set endpoint enable\n     #    set user enable\n     # end",
+   "cci": [
+    "CCI-000018"
+   ],
+   "check_sha": "8cdf8b91fc420e65"
+  },
+  "V-234163": {
+   "rule": "SV-234163r960780_rule",
+   "stig_id": "FGFW-ND-000010",
+   "severity": "medium",
+   "title": "The FortiGate device must automatically audit account modification.",
+   "check": "If the System category of Event Logging is enabled, then account modification is audited. To check that Event and System Logging are enabled, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings.\n4. Verify Event Logging is set to \"All\" (for most verbose logging) or \"Customize\", and include at least the System activity event.\n\nIf Event Logging is not set to \"All\" or \"Customize\" with System enabled, then account modification is not audited, and this is a finding.\n\nor\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # show full-configuration log eventfilter | grep -i 'event\\|system\\|user'\nThe output should be:   \n     set event enable\n     set system enable\n     set user enable\n\nIf event, system, and user parameters are set to disable, then account modification is not audited, and this is a finding.",
+   "fix": "This fix can be performed on the FortiGate GUI or on the CLI. \nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings.\n4. For Event Logging options, click \"All\" (for most verbose logging, or \"Customize\" and include at least the System activity event.\n5. Click Apply.\n\nor\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     #    set user enable\n     # end",
+   "cci": [
+    "CCI-001403"
+   ],
+   "check_sha": "a9b81fe61ae60684"
+  },
+  "V-234164": {
+   "rule": "SV-234164r960786_rule",
+   "stig_id": "FGFW-ND-000020",
+   "severity": "medium",
+   "title": "The FortiGate device must automatically audit account removal actions.",
+   "check": "If the System category of Event Logging is enabled, then account removal is audited. To check that System and Event Logging is configured, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings.\n4. Verify Event Logging is set to \"All\" (for most verbose logging) or \"Customize\" and include at least the System activity event.\n\nIf the Event Logging is not set to \"All\" or \"Customize\" with System enabled, then account removal is not audited, and this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\nThe output should be:   \n     set event enable\n     set system enable\n\nIf event and system parameters are set to disable, then account removal is not audited, and this is a finding.",
+   "fix": "This fix can be performed on the FortiGate GUI or on the CLI. \nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings.\n4. For Event Logging options, click \"All\" (for most verbose logging) or \"Customize\" and include at least System activity event.\n5. Click Apply.\n\nor\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     #    set endpoint enable\n     #    set user enable\n     # end",
+   "cci": [
+    "CCI-001405"
+   ],
+   "check_sha": "dec97ebc3f06a6f8"
+  },
+  "V-234165": {
+   "rule": "SV-234165r1051115_rule",
+   "stig_id": "FGFW-ND-000030",
+   "severity": "medium",
+   "title": "The FortiGate device must have only one local account to be used as the account of last resort in the event the authentication server is unavailable.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Verify the admin account is the only account configured as Type Local.\n\nIf more than one local user account exists, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Review list of administrators and determine if any besides admin have Type listed as Local\n4. For any with type Local, click Administrator, and then click Edit to change to remote authentication, or Delete to remove the administrator\n5. To change the administrator to remote authentication, in Type select \"Match a user on a remote server group\".\n6. In Remote User Group, select the appropriate configured remote user group.\n7. Click OK.\n8. Repeat for all administrators, besides admin that have local authentication listed.\n9. Click OK.",
+   "cci": [
+    "CCI-001358",
+    "CCI-002111"
+   ],
+   "check_sha": "dad2948db3c98233"
+  },
+  "V-234166": {
+   "rule": "SV-234166r1137875_rule",
+   "stig_id": "FGFW-ND-000035",
+   "severity": "medium",
+   "title": "The FortiGate device must allow full access to only those individuals or roles designated by the ISSM.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Identify the administrator who is authorized to access System Settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to System is set to Read/Write.\n\nThen,\n1. Click System.\n2. Click Administrators.\n3. Click other administrators and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to System is set to Read or None.\n\nIf any low-privileged administrator not designated by the ISSM has Read/Write access to System, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nFirst, set a single admin profile with full System access.\n1. Click System.\n2. Click Admin Profiles.\n3. Click +Create New (Admin Profile).\n4. Assign a meaningful name to the Profile.\n5. Set System Access Permissions to Read/Write.\n6. Click OK to save this Profile.\n\nThen, \n1. Click System.\n2. Click Administrators.\n3. Click +Create New (Administrator).\n4. Configure Administrator settings with unique Username, Type, and Password.\n5. While assigning the Administrator Profile, use the Admin profile configured above with full access to System settings.\n6. Go to Restrict login to trusted hosts.\n7. Add appropriate IP address in the field Trusted Host 1.\n8. Click OK to save.\n\nNote: Do not assign this admin profile to any users other than designated administrators that are allowed full access to System Settings.\n\nTo limit the System access to existing low-privilege administrators:\n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that has unauthorized access to System settings.\n4. Select the admin role and hover over the profile assigned to the role.\n4. Click Edit.\n5. On System access permission, click None.\n6. Go to Restrict login to trusted hosts.\n7. Add appropriate IP address in the field Trusted Host 1.\n8. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege separation requirements for the organization.",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "7466afae7b7c4398"
+  },
+  "V-234167": {
+   "rule": "SV-234167r961362_rule",
+   "stig_id": "FGFW-ND-000040",
+   "severity": "medium",
+   "title": "The FortiGate device must audit the execution of privileged functions.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "This fix can be performed on the FortiGate GUI or on the CLI. \nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     # end",
+   "cci": [
+    "CCI-002234"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234168": {
+   "rule": "SV-234168r960840_rule",
+   "stig_id": "FGFW-ND-000045",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce the limit of three consecutive invalid logon attempts, after which time it must lock out the user account from accessing the device for 15 minutes.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Confirm the output from the following command:\n     # show full-configuration system global | grep -i admin-lockout\nThe output should be:          \n          set admin-lockout-duration 900\n          set admin-lockout-threshold 3\n\nIf the admin-lockout-duration is not set to 900 and admin-lockout-threshold is not set to 3, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n     # config system global\n     # set admin-lockout-duration 900\n     # set admin-lockout-threshold 3\n     # end",
+   "cci": [
+    "CCI-000044"
+   ],
+   "check_sha": "13ed9cc87ad1b290"
+  },
+  "V-234169": {
+   "rule": "SV-234169r960843_rule",
+   "stig_id": "FGFW-ND-000050",
+   "severity": "medium",
+   "title": "The FortiGate device must display the Standard Mandatory DoD Notice and Consent Banner before granting access to the device.",
+   "check": "Access the FortiGate GUI login page.\n\nVerify DoD-approved banner is displayed on the login landing page.\n\n\"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\nBy using this IS (which includes any device attached to this IS), you consent to the following conditions:\n-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n-At any time, the USG may inspect and seize data stored on this IS.\n-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n-This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\n-Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\"\n\nIf the correct DoD required banner text is not displayed, this is a finding.\n\nand\n\nOpen a CLI console via SSH and connect to the FortiGate device:\n\nVerify the FortiGate CLI displays the Standard Mandatory DoD Notice and Consent Banner before granting access to the system via SSH.\n\n\"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\nBy using this IS (which includes any device attached to this IS), you consent to the following conditions:\nThe USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\nAt any time, the USG may inspect and seize data stored on this IS.\nCommunications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\nThis IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\nNotwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\"\n\nIf the DoD-approved banner is not displayed before granting access, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n     # config system global\n     # set pre-login-banner enable\n     # end\n     # config system replacemsg admin pre_admin-disclaimer-text \n     # set buffer \"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\n\n          By using this IS (which includes any device attached to this IS), you consent to the following conditions:\n          The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n          At any time, the USG may inspect and seize data stored on this IS.\n          Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n          This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\n          Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\"\n         #end",
+   "cci": [
+    "CCI-000048"
+   ],
+   "check_sha": "2e42fa30e3981499"
+  },
+  "V-234170": {
+   "rule": "SV-234170r960846_rule",
+   "stig_id": "FGFW-ND-000055",
+   "severity": "medium",
+   "title": "The FortiGate device must retain the Standard Mandatory DoD Notice and Consent Banner on the screen until the administrator acknowledges the usage conditions and takes explicit actions to log on for further access.",
+   "check": "1. Attempt to access the FortiGate device using HTTPS URL.\n2. Verify Standard Mandatory DoD Notice and Consent Banner is displayed and retained on the screen.\n3. Verify a user has to explicitly ACCEPT the banner before to log on for further access.\n\nIf Standard Mandatory DoD Notice and Consent Banner is not retained, and a user is not forced to ACCEPT the banner to log on for further access, this is a finding.\n\nAnd, \n\n1. Attempt to login to the FortiGate via SSH:\n2. Enter username.\n3. Verify the Standard Mandatory DoD Notice and Consent Banner before prompting to enter a password.\n\nIf Standard Mandatory DoD Notice and Consent Banner is not retained before entering the password to log on for further access, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system global\n     #    set pre-login-banner enable\n     # end\n     #    config system replacemsg admin pre_admin-disclaimer-text \n     #    set buffer \"You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\n\n          By using this IS (which includes any device attached to this IS), you consent to the following conditions:\n          The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n          At any time, the USG may inspect and seize data stored on this IS.\n          Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n          This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\n          Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\"\n         # end",
+   "cci": [
+    "CCI-000050"
+   ],
+   "check_sha": "18bc2d29b41ff201"
+  },
+  "V-234171": {
+   "rule": "SV-234171r960864_rule",
+   "stig_id": "FGFW-ND-000060",
+   "severity": "medium",
+   "title": "The FortiGate device must log all user activity.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege:\nTo verify that logging is enabled:\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll down to Log Settings and ensure that Event Logging is set to \"All\" or \"Customize\" with System activity events checked.\n\nIf Event Logging is not set to ALL or Customize with System activity event checked, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n1. Click Log and Report.\n2. Click Log Settings.\n3. Scroll to Log Settings.\n4. For Event Logging, select ALL or Customize.\n5. If Customize is selected, ensure to configure, at least, System activity event.\n6. Click Apply.",
+   "cci": [
+    "CCI-000166"
+   ],
+   "check_sha": "839c1ca43da8ead5"
+  },
+  "V-234172": {
+   "rule": "SV-234172r961800_rule",
+   "stig_id": "FGFW-ND-000065",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records when successful/unsuccessful attempts to modify administrator privileges occur.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "When Event Logging is enabled, the device will audit attempts to modify administrator privileges. To enable event logging, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     #    end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234173": {
+   "rule": "SV-234173r961812_rule",
+   "stig_id": "FGFW-ND-000070",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records when successful/unsuccessful attempts to delete administrator privileges occur.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "When Event Logging is enabled, the device will audit attempts to delete administrator privileges. To enable event logging, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     # end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234174": {
+   "rule": "SV-234174r961824_rule",
+   "stig_id": "FGFW-ND-000075",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records when successful/unsuccessful logon attempts occur.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "When Event Logging is enabled, the device will audit successful/unsuccessful logon attempts. To enable event logging, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     #    end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234175": {
+   "rule": "SV-234175r961827_rule",
+   "stig_id": "FGFW-ND-000080",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records for privileged activities or other system-level access.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "When Event Logging is enabled, the device will audit privileged activities or other system-level access. To enable event logging, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     # end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234176": {
+   "rule": "SV-234176r961830_rule",
+   "stig_id": "FGFW-ND-000085",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records showing starting and ending time for administrator access to the system.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "When Event Logging is enabled the device will audit starting and ending time for administrator access to the system. To enable event logging, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     # end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234177": {
+   "rule": "SV-234177r961833_rule",
+   "stig_id": "FGFW-ND-000090",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records when concurrent logons from different workstations occur.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log eventfilter | grep -i 'event\\|system'\n\nThe output should be:   \n          set event enable\n          set system enable\n\nIf the event and system parameters are set to disable, this is a finding.",
+   "fix": "When Event Logging is enabled, the device will audit concurrent logons from different workstations. To enable event logging, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config log eventfilter\n     #    set event enable\n     #    set system enable\n     # end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "8b137ed764a671f5"
+  },
+  "V-234178": {
+   "rule": "SV-234178r960906_rule",
+   "stig_id": "FGFW-ND-000095",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records containing information that establishes the identity of any individual or process associated with the event.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n     # show full-configuration log setting | grep -i anonymize\nThe output should be:         \n          set user-anonymize disable\n\nIf the log setting user-anonymize is set to enable, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n     # config log setting\n     # set user-anonymize disable\n     # end",
+   "cci": [
+    "CCI-001487"
+   ],
+   "check_sha": "75e7d35ceb32535a"
+  },
+  "V-234179": {
+   "rule": "SV-234179r960909_rule",
+   "stig_id": "FGFW-ND-000100",
+   "severity": "medium",
+   "title": "The FortiGate device must generate audit records containing the full-text recording of privileged commands.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     #  show full-configuration system global | grep -i cli-audit\nThe output should be:   \n          set cli-audit-log enable\n\nIf cli-audit-log is set to disable, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n   # config system global\n   #      set cli-audit-log enable\n   # end",
+   "cci": [
+    "CCI-000135"
+   ],
+   "check_sha": "d70d55ee9583eb4d"
+  },
+  "V-234180": {
+   "rule": "SV-234180r961392_rule",
+   "stig_id": "FGFW-ND-000105",
+   "severity": "medium",
+   "title": "The FortiGate device must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log disk setting | grep -i max-log-file-size\n\nThe output should be: \n          set max-log-file-size {INTEGER}\n\nIf max-log-file-size for local disk storage is not set to the organization-defined audit record storage, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config log disk setting\n     #    set max-log-file-size {INTEGER 1 - 100 MB}\n     #    set diskfull overwrite\n     # end",
+   "cci": [
+    "CCI-001849"
+   ],
+   "check_sha": "76c2e6124aa0b241"
+  },
+  "V-234181": {
+   "rule": "SV-234181r961860_rule",
+   "stig_id": "FGFW-ND-000110",
+   "severity": "medium",
+   "title": "The FortiGate device must off-load audit records on to a different system or media than the system being audited.",
+   "check": "Verify remote logging is configured.\n\nVia the GUI:\n\nLogin via the FortiGate GUI with super-admin privileges. \n\n- Navigate to Log and Report.\n- Navigate to Log Settings.\n- Verify the Remote and Archiving settings.\n\nor\n\nVia the CLI:\n\nOpen a CLI console via SSH or from the \"CLI Console\" button in the GUI.\n\nRun the following commands to verify which logging settings are enabled:\n\n# show full-configuration log fortianalyzer setting | grep -i 'status\\|server'\n# show full-configuration log fortianalyzer2 setting | grep -i 'status\\|server'\n# show full-configuration log fortianalyzer3 setting | grep -i 'status\\|server'\n# show full-configuration log syslogd setting | grep -i 'status\\|server'\n# show full-configuration log syslogd2 setting | grep -i 'status\\|server'\n# show full-configuration log syslogd3 setting | grep -i 'status\\|server'\n# show full-configuration log syslogd4 setting | grep -i 'status\\|server'\n- The output should indicate enabled and an IP address.\n\nIf the FortiGate is not logging to a fortianalyzer or syslog server, this is a finding.",
+   "fix": "Login via the GUI with super-admin privileges.\n\n1. Click Log and Report.\n2. Click Log Settings.\n\nTo add a FortiAnalyzer:\n- In the Remote Logging and Archiving, enable logging to FortiAnalyzer and provide the IP address.\n\nTo add a Syslog server:\n- In the Remote Logging and Archiving, enable Send logs to Syslog and provide the IP address.\n\n3. Apply changes.\n\nor\n\n1. Open a CLI console via SSH or from the \"CLI Console\" button in the GUI.\n\n2. Configure a fortianalyzer or syslog server with the following commands:\n\nFortiAnalyzer:\n# config log fortianalyzer setting\n#    set status enable\n#    set server {IP Address}\n#    set upload-option realtime\n# end\n\nSyslog:\n# config log syslogd setting\n#    set status enable\n#    set server {IP Address}\n#    set mode reliable\n# end",
+   "cci": [
+    "CCI-001851"
+   ],
+   "check_sha": "f03740411e8f62fa"
+  },
+  "V-234182": {
+   "rule": "SV-234182r961401_rule",
+   "stig_id": "FGFW-ND-000115",
+   "severity": "medium",
+   "title": "The FortiGate device must generate an immediate real-time alert of all audit failure events requiring real-time alerts.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Security Fabric.\n2. Click Automation.\n3. Verify Automation Stitches are configured to send alerts related to audit processing failure.\n4. For each Automation Stitch, verify a valid Action Email has been configured.\n\nIf Automation Stitches are not defined to trigger an immediate real-time alert of all audit processing failures, this is a finding.\n\nNote: Relevant events for an Automation Stitch are below:\n\nDisk Full\nDisk Log access failed\nDisk log directory deleted\nDisk log file deleted \nDisk log full over first warning\nDisk logs failed to back up\nDisk logs failed to back up to USB\nDisk partitioning or formatting Error\nDisk unavailable\nFortiAnalyzer connection down\nFortiAnalyzer connection failed\nFortiAnalyzer is not configured for Security Fabric service\nFortiAnalyzer log access failed\nLog disk failure imminent\nLog disk full\nLog disk unavailable\nMemory log access failed\nMemory log full over final warning level\nMemory log full over first warning level\nMemory log full over second warning level\nMemory logs failed to back up",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Security Fabric.\n2. Click Automation.\n3. Click +Create New (Automation Stitch).\n4. Assign a meaningful name.\n5. For Trigger, select FortiOS Event Log.\n6. For Event field, Click + (and choose a specific event type).\n7. For Action, select Email, specify recipients, and Email subject.\n8. Click OK.\n\nNote: The following are all relevant Event Log entries. For most complete coverage, configure an Automation Stitch for each of the Event Log entries below:\n\nDisk Full\nDisk Log access failed\nDisk log directory deleted\nDisk log file deleted \nDisk log full over first warning\nDisk logs failed to back up\nDisk logs failed to back up to USB\nDisk partitioning or formatting Error\nDisk unavailable\nFortiAnalyzer connection down\nFortiAnalyzer connection failed\nFortiAnalyzer is not configured for Security Fabric service\nFortiAnalyzer log access failed\nLog disk failure imminent\nLog disk full\nLog disk unavailable\nMemory log access failed\nMemory log full over final warning level\nMemory log full over first warning level\nMemory log full over second warning level\nMemory logs failed to back up",
+   "cci": [
+    "CCI-001858"
+   ],
+   "check_sha": "ff3652f81161c303"
+  },
+  "V-234183": {
+   "rule": "SV-234183r987682_rule",
+   "stig_id": "FGFW-ND-000120",
+   "severity": "medium",
+   "title": "The FortiGate device must synchronize internal information system clocks using redundant authoritative time sources.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system ntp | grep server\n\nThe output should be:\n       set server {IP address of NTP server 1}\n       set server {IP address of NTP server 2}\n\nIf the internal information system clocks are not configured to synchronize with the primary and secondary time sources, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command: \n\n     # config system ntp\n     #    set ntpsync enable\n     #    set type custom\n     #    set syncinterval {INTEGER}\nTo add NTP server 1:\n     # config ntpserver\n     #    edit {ID}\n     #    set server {IP ADDRESS}\n     #    set authentication enable\n     #    set key {PASSWORD}\n     #    set key-id {INTEGER}\n     #    next\nTo add NTP server 2:\n     # config ntpserver\n     #    edit {ID}\n     #    set server {IP ADDRESS}\n     #    set authentication enable\n     #    set key {PASSWORD}\n     #    set key-id {INTEGER}\n     #    next\n     # end",
+   "cci": [
+    "CCI-000366",
+    "CCI-001893"
+   ],
+   "check_sha": "d5d4dc8f75b4e9b8"
+  },
+  "V-234184": {
+   "rule": "SV-234184r961443_rule",
+   "stig_id": "FGFW-ND-000125",
+   "severity": "medium",
+   "title": "The FortiGate device must record time stamps for audit records that can be mapped to Coordinated Universal Time (UTC) or Greenwich Mean Time (GMT).",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Log and Report.\n2. Click Events.\n3. On the Events page, double-click on an event for detail.\n4. Verify in the log details that the mapped time zone reflects GMT.\n\nIf the time zone is not mapped to GMT, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Go to Settings.\n3. On Time Zone, select the time zone in which the FortiGate device is located.\n4. Click Apply.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # config system global\n     #    set timezone {TIMEZONE INDEX}\n     #    end",
+   "cci": [
+    "CCI-001890"
+   ],
+   "check_sha": "8edf205683e93b34"
+  },
+  "V-234185": {
+   "rule": "SV-234185r960936_rule",
+   "stig_id": "FGFW-ND-000130",
+   "severity": "medium",
+   "title": "The FortiGate device must protect audit information from unauthorized deletion.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Click on each administrator who is not authorized to access Log and Report Settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to Log and Report is set to None or Read.\n\nIf any low-privileged administrator has Read/Write access to Log and Report, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nTo limit the Log and Report access to existing low-privileged administrators:\n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that has unauthorized access to Log and Report settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On Log and Report access permission, click None or Read.\n7. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege separation requirements for the organization.",
+   "cci": [
+    "CCI-000164"
+   ],
+   "check_sha": "647fa006fba78a4a"
+  },
+  "V-234186": {
+   "rule": "SV-234186r960939_rule",
+   "stig_id": "FGFW-ND-000135",
+   "severity": "medium",
+   "title": "The FortiGate device must protect audit tools from unauthorized access.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Click each administrator who is not authorized to access Log and Report Settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify the permission to Log and Report is set to None.\n\nIf any low-privileged administrator has Read/Write or Read access to Log and Report settings, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nTo limit the Log and Report access to existing low-privileged administrators:\n\n1. Click System.\n2. Click Administrators.\n3. Identify any administrator that is not authorized to access Log and Report settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On Log and Report access permission, click None.\n7. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege-separation requirements for the organization.",
+   "cci": [
+    "CCI-001493"
+   ],
+   "check_sha": "6ef695d1b9cdbc1f"
+  },
+  "V-234187": {
+   "rule": "SV-234187r960942_rule",
+   "stig_id": "FGFW-ND-000140",
+   "severity": "medium",
+   "title": "The FortiGate device must protect audit tools from unauthorized modification.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Click on each administrator who is not authorized to access Log and Report settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to Log and Report is set to None or Read.\n\nIf any low-privileged administrator has Read/Write access to Log and Report, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nTo limit the Log and Report access to existing low-privileged administrators:\n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that is not authorized access to Log and Report settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On Log and Report access permission, click None or Read.\n7. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege separation requirements for the organization.",
+   "cci": [
+    "CCI-001494"
+   ],
+   "check_sha": "6d26ea799a424674"
+  },
+  "V-234188": {
+   "rule": "SV-234188r984110_rule",
+   "stig_id": "FGFW-ND-000145",
+   "severity": "medium",
+   "title": "The FortiGate device must prohibit installation of software without explicit privileged status.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Identify the administrator that is not authorized to access System Settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to System is set to Read or None.\n\nIf any unauthorized administrator has Read/Write access to System, this is a finding.",
+   "fix": "To limit the System access to existing low-privileged administrators, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that has unauthorized access to System settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On System access permission, click None or Read only.\n7. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege separation requirements for the organization.",
+   "cci": [
+    "CCI-001812"
+   ],
+   "check_sha": "c9f0760d124c6e79"
+  },
+  "V-234189": {
+   "rule": "SV-234189r961461_rule",
+   "stig_id": "FGFW-ND-000150",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce access restrictions associated with changes to device configuration.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Identify the administrator that is not authorized to access System Settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify the permission to System is set to Read or None.\n\nIf any unauthorized administrators have Read/Write access to System, this is a finding.",
+   "fix": "To limit the System access to existing low-privileged administrators, log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that has unauthorized access to System settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On System access permission, click None or Read only.\n7. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege-separation requirements for the organization.",
+   "cci": [
+    "CCI-001813"
+   ],
+   "check_sha": "c382aacf56d63ed3"
+  },
+  "V-234190": {
+   "rule": "SV-234190r960960_rule",
+   "stig_id": "FGFW-ND-000155",
+   "severity": "medium",
+   "title": "The FortiGate device must limit privileges to change the software resident within software libraries.",
+   "check": "Log in to the FortiGate GUI with an Administrator that does not have System setting privileges.\n\n1. Click System.\n2. Attempt to click Firmware; this option will not be available.\n\nIf the FortiGate device does not limit privileges to change the software resident within software libraries, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nTo remove System access permission from an existing low-privileged administrator:\n\n1. Click System.\n2. Click Administrators.\n3. Identify the administrator role that is unauthorized to update software.\n4. Select the administrator role and hover over the profile assigned to the role.\n5. Click Edit.\n6. For System access, click None.\n7. Click OK to save.",
+   "cci": [
+    "CCI-001499"
+   ],
+   "check_sha": "b0d60786824f5c14"
+  },
+  "V-234191": {
+   "rule": "SV-234191r961863_rule",
+   "stig_id": "FGFW-ND-000160",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce access restrictions associated with changes to the system components.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Identify the administrator who is authorized to access System Settings and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to System is set to Read/Write.\n\nIf the authorized administrator does not have Read/Write access to System, this is a finding.\n\nThen, \n1. Click System.\n2. Click Administrators.\n3. Click other administrators and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify that the permission to System is set to Read or None.\n\nIf any low-privileged administrator has Read/Write access to System, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nSet one admin profile with full System access.\n\n1. Click System.\n2. Click Admin Profiles.\n3. Click +Create New (Admin Profile).\n4. Assign a meaningful name to the Profile.\n5. Set System Access Permissions to Read/Write.\n6. Click OK to save this Profile.\n\nThen, \n1. Click System.\n2. Click Administrators.\n3. Click on +Create New (Administrator).\n4. Configure Administrator settings with unique Username, Type, and Password.\n5. While assigning the Administrator Profile, use the Admin profile configured above with limited access to System settings.\n6. Go to Restrict login to trusted hosts.\n7. Add appropriate IP address in the field Trusted Host 1.\n8. Click OK to save.\n \nNote: Do not assign this admin profile to any users other than designated administrator that can have full access to System Settings.\n\nTo limit the System access to existing low-privilege administrators: \n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that has unauthorized access to System settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On System access permission, click None or Read only.\n7. Go to Restrict login to trusted hosts.\n8. Add appropriate IP address in the field Trusted Host 1.\n9. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege separation requirements for the organization.",
+   "cci": [
+    "CCI-000345",
+    "CCI-000366"
+   ],
+   "check_sha": "2fc3a8bf6c986d07"
+  },
+  "V-234192": {
+   "rule": "SV-234192r1137887_rule",
+   "stig_id": "FGFW-ND-000165",
+   "severity": "medium",
+   "title": "The FortiGate device must use LDAP for authentication.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Verify all users except admin are assigned to a remote LDAP user group.\n\nIf all administrators except admin are not configured to use remote LDAP authentication, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nConfigure the LDAP server connection.\n\n1. Go to User and Device.\n2. Go to LDAP Servers and select +Create New.\n3. Enter the server Name, Server IP address, or Name.\n4. Enter the Common Name Identifier and Distinguished Name.\n5. Set the Bind Type to Regular and enter the LDAP bind Username and Password.\n6. Ensure the Secure Connection button is toggled to enable.\n7. In Protocol, select LDAPS. Select certificate.\n8. Click OK.\n\nAdd the LDAP server to a user group.\n\n1. Go to User and Device.\n2. Under User Groups, select +Create New.\n3. Enter a Name for the group.\n4. In the Remote groups section, select +Add.\n5. Select the Remote Server from the dropdown list.\n6. Click OK.\n\nThen, configure the administrator account.\n\n1. Click System.\n2. Click Administrators.\n3. Click +Create New and choose Administrator.\n4. Specify the Username.\n5. Set Type to Match a user on a remote server group.\n6. In Remote User Group, select the user group that was created.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Configure the LDAP server in the CLI:\n     # config user ldap\n     #    edit {ldap_server_name}\n     #    set server {server_ip}\n     #    set cnid {cn} \n     #    set dn {dc=XYZ,dc=fortinet,dc=COM} \n     #    set type regular \n     #    set username {cn=Administrator,dc=XYA, dc=COM} \n     #    set password {bind password}\n     #    set secure ldaps\n     #    set ca-cert {CA certificate name}\n     #   next \n     # end\n\n3. Create a user group in the CLI:\n# config user group\n#    edit {Group_name}\n#      set member {ldap_server_name}\n#    next\n# end\n\n4. Create an administrator in the CLI:\n     # config system admin\n     #    edit {admin_name}\n     #    set remote-auth enable\n     #    set accprofile {profile name}\n     #    set remote-group ldap\n     # end",
+   "cci": [
+    "CCI-000366",
+    "CCI-000370"
+   ],
+   "check_sha": "4a755106e99d5ea5"
+  },
+  "V-234193": {
+   "rule": "SV-234193r961863_rule",
+   "stig_id": "FGFW-ND-000170",
+   "severity": "high",
+   "title": "The FortiGate device must be running an operating system release that is currently supported by the vendor.",
+   "check": "Log in to the Fortinet Support Portal and review the Product Life Cycle Software \"End of Support Date\". \n\nLog in to the FortiGate with Super-Admin privilege in the GUI and review the Dashboard >> Status >> System Information widget for Firmware version. \n\nIf the firmware listed in the FortiGate is not supported based on the Product Life Cycle page, this is a finding.",
+   "fix": "Go to the Fortinet Upgrade Path Tool and select the platform that is being upgraded, the current FortiOS version, and the desired FortiOS version, and then click \"Go\". \n\nLog in to the Fortinet Support Portal and go to Download >> Firmware Images and download the listed firmware versions from the Upgrade Path Tool. \n\nLog in to the FortiGate GUI with Super-Admin privilege and go to System >> Firmware. Upload the target firmware file under \"Upload Firmware >> Browse\" and then click \"Backup config and upgrade”. \n\nRepeat as necessary as defined by the Upgrade Path Tool.",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "17f5c15f85594916"
+  },
+  "V-234194": {
+   "rule": "SV-234194r961863_rule",
+   "stig_id": "FGFW-ND-000175",
+   "severity": "medium",
+   "title": "The FortiGate device must generate log records for a locally developed list of auditable events.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration log setting\n\nCompare the output to the locally developed list to ensure enabled events match the local list.\n         \n3. Run the following command:\n     # show full-configuration log eventfilter\n\nCompare the output to the locally developed list to ensure enabled events match the local list.\n        \nIf the FortiGate device does not generate log records for a locally developed list of auditable events, this is a finding.",
+   "fix": "Obtain local audit list and enable event logging to match requirements within the list.\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command and set to enable any events that match a requirement in the local policy:\n     # config log setting\n     #    set resolve-ip {enable | disable}\n     #    set resolve-port {enable | disable}\n     #    set log-user-in-upper {enable | disable}\n     #    set fwpolicy-implicit-log {enable | disable}\n     #    set fwpolicy6-implicit-log {enable | disable}\n     #    set log-invalid-packet {enable | disable}\n     #    set local-in-allow {enable | disable}\n     #    set local-in-deny-unicast {enable | disable}\n     #    set local-in-deny-broadcast {enable | disable}\n     #    set local-out {enable | disable}\n     #    set daemon-log {enable | disable}\n     #    set neighbor-event {enable | disable}\n     #    set brief-traffic-format {enable | disable}\n     #    set user-anonymize {enable | disable}\n     #    set expolicy-implicit-log {enable | disable}\n     #    set log-policy-comment {enable | disable}\n     #    set log-policy-name {enable | disable}\n     #    end\n     # config log eventfilter\n     #    set event {enable | disable}\n     #    set system {enable | disable}\n     #    set vpn {enable | disable}\n     #    set user {enable | disable}\n     #    set router {enable | disable}\n     #    set wireless-activity {enable | disable}\n     #    set wan-opt {enable | disable}\n     #    set endpoint {enable | disable}\n     #    set ha {enable | disable}\n     #    set compliance-check {enable | disable}\n     #    set security-rating {enable | disable}\n     #    set fortiextender {enable | disable}\n     #    set connector {enable | disable}\n     #    end",
+   "cci": [
+    "CCI-000169",
+    "CCI-000366"
+   ],
+   "check_sha": "7fee7a164a88b75e"
+  },
+  "V-234195": {
+   "rule": "SV-234195r961863_rule",
+   "stig_id": "FGFW-ND-000180",
+   "severity": "medium",
+   "title": "The FortiGate device must conduct backups of system-level information contained in the information system when changes occur.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click the admin menu available on the upper right-hand corner of the screen.\n2. Click Configuration.\n3. Click Revisions.\n4. Verify a list of saved backed-up configurations are available.\n\nIf saved backups of system configuration do not exist, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n# config system global\n#   set revision-backup-on-logout enable\n# end\n3. Integrate FortiGate with FortiManager or the organization’s central backup server using SSH to pull saved backups. \n\nNote: All backups performed by super admin contain global setting and settings for any VDOMs.",
+   "cci": [
+    "CCI-000366",
+    "CCI-000537"
+   ],
+   "check_sha": "bee7bf57740b71f5"
+  },
+  "V-234196": {
+   "rule": "SV-234196r961863_rule",
+   "stig_id": "FGFW-ND-000185",
+   "severity": "medium",
+   "title": "The FortiGate device must support organizational requirements to conduct backups of information system documentation, including security-related documentation, when changes occur or weekly, whichever is sooner.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click the admin menu available on the upper right-hand corner of the screen.\n2. Click Configuration.\n3. Click Revisions.\n4. Verify at least one saved backed-up occurred within the last week.\n\nIf a backup of system configuration was not performed within the last week, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n# config system global\n#   set revision-backup-on-logout enable\n# end\n3. Integrate FortiGate with FortiManager or the organization’s central backup server using SSH to pull saved backups.",
+   "cci": [
+    "CCI-000366",
+    "CCI-000539"
+   ],
+   "check_sha": "6ba50fcf40589cf8"
+  },
+  "V-234197": {
+   "rule": "SV-234197r961545_rule",
+   "stig_id": "FGFW-ND-000190",
+   "severity": "medium",
+   "title": "FortiGate devices performing maintenance functions must restrict use of these functions to authorized personnel only.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege:\n\n1. Click System.\n2. Click Administrators.\n3. Identify the administrator designated to perform maintenance functions and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify the permission to System is set to Read/Write or Custom with Maintenance set to Read/Write.\n\nIf an authorized administrator does not have Read/Write access to System Maintenance Settings, this is a finding.\n\nThen,\n1. Click System.\n2. Click Administrators.\n3. Click all other low-privileged administrators and hover over the profile assigned to the role.\n4. Click Edit.\n5. Verify the permission to System Maintenance is customized set to Read or None.\n\nIf any low-privileged administrator has Read/Write access to System Settings, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command for all low privileged admin user:\n     # show system admin  {ADMIN NAME}  | grep -i accprofile\nThe output should be:  \n           set accprofile {PROFILE NAME}\n\nUse the profile name from the output result of above command. \n     # show system accprofile {PROFILE NAME} | grep -i sysgrp\nThe output should be:  \n          set sysgrp read\nor\n         set sysgrp none\n          \nIf any low privileged admin user has sysgrp parameter set to value Read/Write, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\nFirst, set one admin profile with access to System Maintenance.\n1. Click System.\n2. Click Admin Profiles.\n3. Click +Create New (Admin Profile).\n4. Assign a meaningful name to the Profile.\n5. Set System Access Permissions to Read/Write or Custom with Maintenance set to Read/Write.\n6. Click OK to save this Profile.\n\nThen, \n1. Click System.\n2. Click Administrators.\n3. Click +Create New (Administrator).\n4. Configure Administrator settings with unique Username, Type, and Password.\n5. Assign the Administrator Profile that was configured above.\n6. Click OK to save.\n\nNote: Do not assign this admin profile to any other users other than the authorized administrator.\n\nTo limit the System access to existing low-privilege administrators: \n\n1. Click System.\n2. Click Administrators.\n3. Identify the admin role that has unauthorized access to System settings.\n4. Select the admin role and hover over the profile assigned to the role.\n5. Click Edit.\n6. On System access permission, click Read or None.\n7. Click OK to save.\n\nRepeat this process to define all the Administrators needed to meet privilege separation requirements for the organization.\n\nor \n\n1.  Open a CLI console, via SSH or available from the GUI\n2. First edit the admin profile by running the following command:\n\n     # config system accprofile \n     #    edit {PROFILE NAME}\n     #    set sysgrp read or none\n     #    next\n     #    end\nThen, assign this admin profile to the authorized administrator account. \n     # config system admin  \n     #    edit {ADMIN NAME}\n     #    set accprofile  {PROFILE NAME}\n     #    next\n     # end\nNote: Do not assign this admin profile to any other users other than the authorized administrator.",
+   "cci": [
+    "CCI-000366",
+    "CCI-002883"
+   ],
+   "check_sha": "6bca7cffab70e436"
+  },
+  "V-234198": {
+   "rule": "SV-234198r961863_rule",
+   "stig_id": "FGFW-ND-000195",
+   "severity": "medium",
+   "title": "The FortiGate device must use DoD-approved Certificate Authorities (CAs) for public key certificates.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Certificates.\n3. Verify CAs are approved providers.\n\nIf the public key certificates are not from an approved service provider, this is a finding.",
+   "fix": "1. Obtain CA certificate from a DoD-approved provider.\n2. Log in to the FortiGate GUI with Super-Admin privilege.\n3. Click System.\n4. Click Certificates.\n5. Click Import in the toolbar.\n6. Click CA Certificate.\n7. On the Import CA Certificate page, select Type File.\n8. Locate the certificate file and upload the certificate file.\n9. Click OK to import the certificate.",
+   "cci": [
+    "CCI-000366",
+    "CCI-001159"
+   ],
+   "check_sha": "6458e15956b334f4"
+  },
+  "V-234199": {
+   "rule": "SV-234199r1043177_rule",
+   "stig_id": "FGFW-ND-000200",
+   "severity": "high",
+   "title": "The FortiGate device must prohibit the use of all unnecessary and/or non-secure functions, ports, protocols, and/or services.",
+   "check": "Log in to FortiGate GUI with Super-Admin privileges.\n\n1. Click Policy and Objects.\n2. Click Services, and then review services, functions, and ports that are allowed by the firewall.\n3. Next, open a CLI console, via SSH or available from the GUI.\n4. Run the following commands:\n# show firewall policy\n# show firewall policy6\n\nReview policies to ensure that no restricted services, ports, protocols or functions are allowed. FortiGate is configured to deny by default, so if a service, port, protocol, or function is not specifically allowed, it will be denied. \n\nIf restricted functions, ports, protocols, and/or services are allowed by the firewall, this is a finding.\n\nor \n\nLog in to the FortiGate GUI with Super-Admin privilege.\n1. Open a CLI console over SSH or available from the GUI.\n2. Run the following \n# show full-configuration system interface\n3. Review configuration for unnecessary services.\n\nIf unnecessary services are configured, this is a finding.\n\nReview the PPSM CAL and determine which functions, ports, protocols, and/or services must be disabled or restricted.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n1. Click Policy and Objects.\n2. Click IPv4 or IPv6 Policy.\n3. Click +Create New.\n4. Name the policy, and then select Incoming and Outgoing Interfaces.\n5. Create policies with authorized sources and destinations.\n6. Set action to DENY.\n7. Ensure Enable this policy is toggled to right.\n8. Click OK.\n9. Ensure a policy is created for each interface and that every PPSM CAL and VA mitigation is covered.\n\nTraffic is denied by default and policies must be configured to allow traffic that meets PPSM CAL and VA guidelines.\n\nor \n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following \n  # config system interface\n      # edit {INTERFACE-NAME}\n         # set {DHCP-RELAY-SERVICE | PPTP-CLIENT | ARPFORWARD | BROADCAST-FORWARD | L2FORWARD | ICMP-REDIRECT | VLANFORWARD | STPFORWARD  | LLDP-TRANSMISSION} disable\n      # end\nCreate a new line for each service in {} that needs to be removed.",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "c379eedcd4f70f92"
+  },
+  "V-234200": {
+   "rule": "SV-234200r960993_rule",
+   "stig_id": "FGFW-ND-000205",
+   "severity": "medium",
+   "title": "The FortiGate device must implement replay-resistant authentication mechanisms for network access to privileged accounts.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system global | grep -i 'tls\\|ssh-v'\nThe output should be:  \n           # set admin-https-ssl-versions tlsv1-2 tlsv1-3\n           # set admin-ssh-v1 disable\n           # set ssl-min-proto-version TLSv1-2          \n      #end\n\nIf admin-https-ssl-versions is not set to tlsv1-2 tlsv1-3 or admin-ssh-v1 is enable, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system global\n          # set admin-https-ssl-versions tlsv1-2 tlsv1-3\n          # set admin-ssh-v1 disable\n     # end",
+   "cci": [
+    "CCI-001941"
+   ],
+   "check_sha": "8d23585850e9acd5"
+  },
+  "V-234201": {
+   "rule": "SV-234201r961506_rule",
+   "stig_id": "FGFW-ND-000210",
+   "severity": "medium",
+   "title": "The FortiGate device must authenticate SNMP messages using a FIPS-validated Keyed-Hash Message Authentication Code (HMAC).",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click SNMP.\n3. Verify the SNMPv3 settings are configured and enabled.\n4. Select each SNMPv3 user and click Edit.\n5. On Security Level, verify the SNMPv3 user is configured to use SHA256 as the Authentication Algorithm.\n\nIf the FortiGate device is not configured to authenticate SNMP messages using a FIPS-validated HMAC, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n\n     # show full-configuration system snmp user | grep -i 'security-level\\ |auth-proto'\n\nFor each SNMPv3 user, the output should be similar to:\n\n          set security-level auth\n          set auth-proto sha256\n\nIf the security-level parameter is not set to auth or auth-priv, and the auth-proto is not set to SHA, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click SNMP.\n3. Select each SNMPv3 user.\n4. Click Edit.\n5. On Security Level, click Authentication.\n6. Select SHA256 for the Authentication Algorithm.\n7. Change the Password if required.\n8. Click OK.\n9. Click Apply.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system snmp user\n     #    edit {NAME}\n     #    set status enable\n     #    set security-level auth\n     #    set auth-proto sha256\n     #    set auth-pwd {PASSWORD}\n     #    next\n     # end",
+   "cci": [
+    "CCI-001967"
+   ],
+   "check_sha": "285b616e4b2c3860"
+  },
+  "V-234202": {
+   "rule": "SV-234202r961506_rule",
+   "stig_id": "FGFW-ND-000215",
+   "severity": "medium",
+   "title": "The FortiGate device must authenticate Network Time Protocol (NTP) sources using authentication that is cryptographically based.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command: \n     # diagnose sys ntp status\n\nThe output should be similar to:\n          ipv4 server(URL of NTP server) 123.123.123.123 -- reachable(0xbf) S:1 T:242 selected\n          server-version=4, stratum=2\n          reference time is e213a5fb.2250b45e -- UTC Wed Mar 11 18:01:31 2020\n          clock offset is 0.000801 sec, root delay is 0.000381 sec\n          root dispersion is 0.053268 sec, peer dispersion is 287 msec\n\nIf the output does not return server-version is equal to 4, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command: \n\n     # config system ntp\n     #    set ntpsync enable\n     #    set type custom\n     #    set syncinterval {INTEGER}\n     # config ntpserver\n     #    edit {ID}\n     #    set server {IP ADDRESS}\n     #    set authentication enable\n     #    set key {PASSWORD}\n     #    set key-id {INTEGER}\n     #    next\n     # end",
+   "cci": [
+    "CCI-001967"
+   ],
+   "check_sha": "e6c177c5976ff0de"
+  },
+  "V-234203": {
+   "rule": "SV-234203r984092_rule",
+   "stig_id": "FGFW-ND-000220",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce a minimum 15-character password length.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. Verify Password scope is enabled for Admin.\n5. Verify the Minimum length is set to 15.\n\nIf the Password scope is OFF and the Minimum length is not set to 15, this is a finding.\n\nor \n\nLog in to the FortiGate GUI with Super-Admin privilege:\n\n1. Open a CLI console, via SSH or available from the GUI\n2. Run the following command:\n     # show full-configuration system password-policy | grep -i minimum\n          set minimum-length 15\n\nIf the minimum-length parameter is not set to 15, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. On the Password scope option, click Admin.\n5. Enter the Minimum length value of 15.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system password-policy\n           # set status enable\n          # set minimum-length 15\n     # end--+",
+   "cci": [
+    "CCI-000205"
+   ],
+   "check_sha": "94412c1053735651"
+  },
+  "V-234204": {
+   "rule": "SV-234204r984095_rule",
+   "stig_id": "FGFW-ND-000225",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce password complexity by requiring that at least one uppercase character be used.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. Verify Password scope is enabled for Admin and Character requirements is toggled to right.\n5. Verify the Uppercase value is set to 1 or greater.\n\nIf the Uppercase parameter is not set to 1 or greater, this is a finding.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n        # show full-configuration system password-policy | grep -i upper-case\n\nIf the min-upper-case-letter parameter is not set to 1 or greater, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. On the Password scope option, click Admin.\n5. Toggle Character requirements to right.\n6. Enter the Uppercase value of 1 or greater.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n    # config system password-policy\n        # set min-upper-case-letter 1 (or greater)\n    # end",
+   "cci": [
+    "CCI-000192"
+   ],
+   "check_sha": "402bd08ea23c5bd5"
+  },
+  "V-234205": {
+   "rule": "SV-234205r984098_rule",
+   "stig_id": "FGFW-ND-000230",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce password complexity by requiring that at least one lowercase character be used.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. Verify Password scope is enabled for Admin and Character requirements is toggled to right.\n5. Verify the Lowercase value is set to 1 or greater.\n\nIf the Lowercase parameter is not set to 1 or greater, this is a finding.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system password-policy | grep -i lower-case\n\nIf the min-lower-case-letter parameter is not set to 1 or greater, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. On the Password scope option, click Admin.\n5. Toggle Character requirements to right.\n6. Enter the Lowercase value of 1.\n\nor \n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system password-policy\n           # set min-lower-case-letter 1\n     # end",
+   "cci": [
+    "CCI-000193"
+   ],
+   "check_sha": "e4b01f0717d4344d"
+  },
+  "V-234206": {
+   "rule": "SV-234206r984099_rule",
+   "stig_id": "FGFW-ND-000235",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce password complexity by requiring at least one numeric character be used.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. Verify Password scope is enabled for Admin and Character requirements is toggled to right.\n5. Verify the Numbers value is set to 1 or greater.\n\nIf the Numbers parameter is not set to 1 or greater, this is a finding.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system password-policy | grep -i number\n\nIf the min-number parameter is not set to 1 or greater, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. On the Password scope option, click Admin.\n5. Toggle Character requirements to right.\n6. Enter the Numbers value of 1 or greater.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n    # config system password-policy\n        # set min-number 1 (or greater)\n    # end",
+   "cci": [
+    "CCI-000194"
+   ],
+   "check_sha": "08fcf9b86a97675e"
+  },
+  "V-234207": {
+   "rule": "SV-234207r984100_rule",
+   "stig_id": "FGFW-ND-000240",
+   "severity": "medium",
+   "title": "The FortiGate device must enforce password complexity by requiring that at least one special character be used.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. Verify Password scope is enabled for Admin and Character requirements is toggled to right.\n5. Verify the Special value is set to 1 or greater.\n\nIf the Special parameter is not set to 1 or greater, this is a finding.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system password-policy | grep -i non-alphanumeric\n\nIf the min-non-alphanumeric parameter is not set to 1 greater, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Navigate to Password Policy.\n4. On the Password scope option, click Admin.\n5. Toggle Character requirements to right.\n6. Enter the Special value of 1 or greater.\n\nor\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n     # config system password-policy\n          # set min-non-alphanumeric 1 (or greater)\n     # end",
+   "cci": [
+    "CCI-001619"
+   ],
+   "check_sha": "4c6f5697b06156b9"
+  },
+  "V-234208": {
+   "rule": "SV-234208r961029_rule",
+   "stig_id": "FGFW-ND-000245",
+   "severity": "high",
+   "title": "The FortiGate device must use LDAPS for the LDAP connection.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration user ldap | grep -i ldaps\nThe output should be:         \n          set secure ldaps\n\nIf set secure is not set to ldaps, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config user ldap\n           # edit {ldap_server_name}\n           # set server {server_ip}\n           # set cnid {cn} \n           # set dn {dc=XYZ,dc=fortinet,dc=COM} \n           # set type regular \n           # set username {cn=Administrator,dc=XYA, dc=COM} \n           # set password {bind password}\n           # set secure ldaps\n           #    set ca-cert {CA certificate name}\n      # next \n  # end",
+   "cci": [
+    "CCI-000197"
+   ],
+   "check_sha": "1416a568377917f7"
+  },
+  "V-234209": {
+   "rule": "SV-234209r984088_rule",
+   "stig_id": "FGFW-ND-000250",
+   "severity": "medium",
+   "title": "The FortiGate device must not have any default manufacturer passwords when deployed.",
+   "check": "Attempt to log in to the FortiGate GUI using the username admin with the default (blank) password.\n\nAttempt to log in to the CLI over SSH with the username admin with the default (blank) password.\n\nIf either of these logins are successful, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following commands:\n     # config system admin\n     # edit admin\n     # set password {password}\n     # end",
+   "cci": [
+    "CCI-002041"
+   ],
+   "check_sha": "b41693100c3ea713"
+  },
+  "V-234210": {
+   "rule": "SV-234210r961050_rule",
+   "stig_id": "FGFW-ND-000255",
+   "severity": "high",
+   "title": "The FortiGate device must use FIPS 140-2 approved algorithms for authentication to a cryptographic module.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # get system status | grep -i fips\nThe output should be:         \n             FIPS-CC mode: enable\n\nIf FIPS-CC mode parameter is not set to enable, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system fips-cc\n          # set status enable\n     # end",
+   "cci": [
+    "CCI-000803"
+   ],
+   "check_sha": "bc80f356acf03fa1"
+  },
+  "V-234211": {
+   "rule": "SV-234211r961554_rule",
+   "stig_id": "FGFW-ND-000260",
+   "severity": "high",
+   "title": "The FortiGate devices must use FIPS-validated Keyed-Hash Message Authentication Code (HMAC) to protect the integrity of nonlocal maintenance and diagnostic communications.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Network, Interfaces.\n2. Click the interface designated for device management traffic.\n3. On Administrative Access, verify HTTPS and SSH are selected, and HTTP is not.\n\nIf HTTPS and SSH are not selected for administrative access, or HTTP is selected, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system interface port{Management Port Integer #} | grep -i allowaccess\n\nThe output should include: \n          set allowaccess ping https ssh\n\nIf the allowaccess parameter does not include https and ssh, this is a finding. If the allowaccess parameter includes http, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Network, Interfaces\n2. Click the interface designated for device management traffic and pick Edit.\n3. On Administrative Access, select HTTPS and SSH. Deselect HTTP.\n4. Click OK.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system interface \n     #    edit port{Management Port Integer #}\n     #    set allowaccess ping https ssh\n     # end\n\nNote: When adding or removing a protocol, the entire list of protocols must be typed again. For example, in an existing access list of HTTPS and SSH, if HTTP needs to be added, use the following CLI command: \n     #   set allowaccess https ssh ping http",
+   "cci": [
+    "CCI-002890"
+   ],
+   "check_sha": "fcceebeeb116cc87"
+  },
+  "V-234212": {
+   "rule": "SV-234212r961557_rule",
+   "stig_id": "FGFW-ND-000265",
+   "severity": "high",
+   "title": "The FortiGate device must implement cryptographic mechanisms using a FIPS 140-2 approved algorithm to protect the confidentiality of remote maintenance sessions.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Network, Interfaces.\n2. Click the interface designated for device management traffic.\n3. On Administrative Access, verify HTTPS and SSH are selected.\n\nIf HTTPS and SSH are not selected for administrative access, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command for all low privileged admin user:\n     # show full-configuration system interface port{Management Port Integer #} | grep -i allowaccess\n\nThe output should include: \n          set allowaccess ping https ssh\n\nIf https and ssh are not returned, this is a finding. If http is returned, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Network, Interfaces.\n2. Click the interface designated for device management traffic and pick Edit.\n3. On Administrative Access, select HTTPS and SSH. Deselect HTTP.\n4. Click OK.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command for all low privileged admin users:\n     # config system interface \n     #    edit port{Management Port Integer #}\n     #    set allowaccess ping https ssh\n     # end\n\nNote: When a protocol is added or removed, the entire list of protocols must be typed in again. For example, to add PING to an access list of HTTPS and SSH, use the following CLI command: \n     #   set allowaccess https ssh ping",
+   "cci": [
+    "CCI-003123"
+   ],
+   "check_sha": "b3d4b901b1ef8ec9"
+  },
+  "V-234213": {
+   "rule": "SV-234213r984105_rule",
+   "stig_id": "FGFW-ND-000270",
+   "severity": "medium",
+   "title": "The FortiGate device must terminate idle sessions after 10 minutes of inactivity.",
+   "check": "Verify the FortiGate device terminates all network connections when non-local device maintenance is complete.\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Go to Administrative Settings.\n4. Verify Idle Timeout is configured to 10 minutes.\n\nIf the idle-timeout value is not 10 minutes, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration sys global | grep -i admintimeout\n\nThe output should be:         \n          set admintimeout 10\n\nIf the admintimeout parameter is not set to 10 minutes, this is a finding.",
+   "fix": "To configure the device to terminate all network connections when non-local maintenance is complete:\n\nLog in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Go to Administrative Settings.\n4. Enter the Idle Timeout value of 10.\n5. Click Apply.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system global\n          # set admintimeout 10\n     # end",
+   "cci": [
+    "CCI-000879"
+   ],
+   "check_sha": "e73f504918d8784f"
+  },
+  "V-234214": {
+   "rule": "SV-234214r961068_rule",
+   "stig_id": "FGFW-ND-000275",
+   "severity": "high",
+   "title": "The FortiGate device must terminate idle sessions after 10 minutes of inactivity.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Go to Administrative Settings.\n4. Verify Idle Timeout is configured to 10 minutes.\n\nIf the idle-timeout value is not 10 minutes, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration sys global | grep -i admintimeout\n\nThe output should be:         \n          set admintimeout 10\n\nIf the admintimeout parameter is not set to 10 minutes, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Settings.\n3. Go to Administrative Settings.\n4. Enter the Idle Timeout value of 10.\n5. Click Apply.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system global\n          # set admintimeout 10\n     # end",
+   "cci": [
+    "CCI-001133"
+   ],
+   "check_sha": "e6b70bdd5458352e"
+  },
+  "V-234215": {
+   "rule": "SV-234215r1043181_rule",
+   "stig_id": "FGFW-ND-000280",
+   "severity": "medium",
+   "title": "The FortiGate device must generate unique session identifiers using a FIPS 140-2-approved random number generator.",
+   "check": "Session IDs are generated using the FIPS random generator if the device is in FIPS mode.\n\nTo verify login to the FortiGate GUI with Super-Admin privilege:\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # get system status | grep -i fips\nThe output should be:         \n             FIPS-CC mode: enable\n\nIf FIPS-CC mode parameter is not set to enable, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n      # config system fips-cc\n            # set status enable\n     # end",
+   "cci": [
+    "CCI-001188"
+   ],
+   "check_sha": "a571798cc592cdfb"
+  },
+  "V-234216": {
+   "rule": "SV-234216r961128_rule",
+   "stig_id": "FGFW-ND-000285",
+   "severity": "high",
+   "title": "The FortiGate device must only allow authorized administrators to view or change the device configuration, system files, and other files stored either in the device or on removable media (such as a flash drive).",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click System.\n2. Click Administrators.\n3. Click each administrator and hover over the profile that is assigned to the role.\n4. Click Edit.\n5. Verify that the permission on System is set to READ or Read/Write.\n\nIf any unauthorized administrator has Read/Write access to System, this is a finding.\n\nor \n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command for all low privileged admin users:\n\n     # show system admin  {ADMIN NAME}  | grep -i accprofile\nThe output should be:  \n           set accprofile {PROFILE NAME}\n\nUse the profile name from the output result of above command. \n     # show system accprofile {PROFILE NAME} | grep -i sysgrp\nThe output should be:  \n          set sysgrp none\n          \nIf any low privileged admin user has sysgrp parameter set to values other than NONE, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. First edit the admin profile by running the following command:\n\n     # config system accprofile \n           # edit {PROFILE NAME}\n                 # set sysgrp read-write\n          # next\n     # end\nThen, assign appropriate admin profiles to the administrator account. \n     # config system admin  \n          # edit {ADMIN NAME}\n          # set accprofile  {PROFILE NAME}\n          # next\n     # end\n\nThis profile should only be assigned to administrators authorized to change system configurations.",
+   "cci": [
+    "CCI-001199"
+   ],
+   "check_sha": "f8bef09e6ef7616b"
+  },
+  "V-234217": {
+   "rule": "SV-234217r961620_rule",
+   "stig_id": "FGFW-ND-000290",
+   "severity": "medium",
+   "title": "The FortiGate device must protect against known types of denial-of-service (DoS) attacks by employing organization-defined security safeguards.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Policy and Objects.\n2. Click on IPv4 DoS Policy or IPv6 DoS Policy.\n3. Identify the port designated for FortiGate device management.\n4. Select the policy and click Edit.\n5. Verify appropriate L3 Anomalies and L4 Anomalies are configured to meet the organization requirement.\n6. Verify the policy is Enabled.\n\nIf appropriate DoS policies are not defined or are disabled, this is a finding.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Click Policy and Objects.\n2. Click IPv4 DoS Policy or IPv6 DoS Policy.\n3. Identify the port designated for FortiGate device management.\n4. Click +Create New.\n5. Define the Incoming Interface, Source Address, Destination Address, and Services.\n6. Configure L3 Anomalies, and L4 Anomalies to meet the organization requirement.\n7. Click OK.",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "f51b6ffb844b18f9"
+  },
+  "V-234218": {
+   "rule": "SV-234218r1137890_rule",
+   "stig_id": "FGFW-ND-000295",
+   "severity": "high",
+   "title": "The FortiGate device must be configured to send log data to a central log server for the purpose of forwarding alerts to the administrators and the ISSO.",
+   "check": "Verify that FortiGate is configured to send logs to a central log server.  \n\nLog in via the FortiGate GUI with super-admin privileges. \n\n1. Navigate to Log and Report.\n2. Navigate to Log Settings.\n3. Locate the Remote Logging and Archiving section.\n4. Verify FortiGate is configured to log to a FortiAnalyzer or a syslog server.\n\nor\n\nOpen a CLI console via SSH or from the \"CLI Console\" button in the GUI.\n\nRun the following commands and verify that at least one of the settings reflects \"set status enable\" in the output:\n# show full-configuration | grep -A1 'log fortianalyzer'\n# show full-configuration | grep -A1 'log syslogd.* setting'\n\nThe CLI output will indicate \"set status enable\" if configured.\n\nIf the FortiGate is not logging to a central log server, this is a finding.",
+   "fix": "Log in via the GUI with super-admin privileges.\n\n1. Click Log and Report.\n2. Click Log Settings.\n3. Locate the Remote Logging and Archiving section.\n4. Configure FortiGate to log to a FortiAnalyzer or syslog server.\n- Enable logging to FortiAnalyzer and provide the IP address. Additional FortiAnalyzer logging destinations can be configured in the CLI.\n- Enable the \"Send logs to syslog\" toggle and provide the IP address. Additional syslog logging destinations can be configured in the CLI.\n5. Apply changes.\n\nor\n\n1. Open a CLI console via SSH or from the \"CLI Console\" button in the GUI.\n2. Configure a FortiAnalyzer or syslog server with the following commands:\n\nFortiAnalyzer Logging:\nconfig log fortianalyzer setting\n   set status enable\n   set server {IP Address}\n   set upload-option realtime\nend\n\nsyslog Logging:\nconfig log syslogd setting\n   set status enable\n   set server {IP Address}\n   set mode reliable\nend",
+   "cci": [
+    "CCI-002605"
+   ],
+   "check_sha": "a78d082184bb833c"
+  },
+  "V-234219": {
+   "rule": "SV-234219r960735_rule",
+   "stig_id": "FGFW-ND-000300",
+   "severity": "medium",
+   "title": "The FortiGate device must limit the number of logon and user sessions.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege and open a CLI console available from the GUI.\nor\nConnect via SSH.\n\nRun the following command:\nshow full-configuration sys global | grep -i admin\n\nCheck the output of the following lines:\nset admin-concurrent disable\nset admin-login-max <number as defined by the organization>     \n\nIf set admin-concurrent is not set to disable, this is a finding.\nIf set admin-login-max is not set to a number defined by the organization, this is a finding. The default setting is 100.",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege and open a CLI console available from the GUI.\nor\nConnect via SSH.\n\nExecute the following commands:\nconfig system global\nset admin-concurrent disable\nset admin-login-max <number defined by the organization>    \nend\n\nWith the implementation of this requirement, the organization can limit each administrator to one active session and limit the total number of concurrent administrator sessions to a value deemed appropriate.",
+   "cci": [
+    "CCI-000054"
+   ],
+   "check_sha": "9cbfe101a3305f38"
+  },
+  "V-234220": {
+   "rule": "SV-234220r984089_rule",
+   "stig_id": "FGFW-ND-000305",
+   "severity": "medium",
+   "title": "The FortiGate device must only install patches or updates that are validated by the vendor via digital signature or hash.",
+   "check": "Verify the process used to apply updates and patches to the system.\n\nIf the system is updated via a FortiGuard or FortiManager server, those solutions meet the requirement and this is NOT a finding.\n\nIf the system is not using a FortiGuard or FortiManager server, and a process is not defined to manually verify the update hash value with the vendor site, this is a finding.",
+   "fix": "Administrators can download software directly from a FortiGuard or FortiManager server. These servers are authenticated using digital certificates that ensure identity and non-repudiation of the source packages. This is a preferred method of applying updates.\n\n The Administrator can also download the software from Fortinet's support website portal. The website includes a file checksum to verify file integrity prior to uploading.\n \nDevelop a process to download the update files from the Fortinet website, and manually compare the download hash to the hash value provided on the vendor site before applying the update files to the system.",
+   "cci": [
+    "CCI-001749"
+   ],
+   "check_sha": "e286a6af5d0b7610"
+  },
+  "V-234221": {
+   "rule": "SV-234221r1153456_rule",
+   "stig_id": "FGFW-ND-000311",
+   "severity": "medium",
+   "title": "The FortiGate device must require that when a password is changed, the characters are changed in at least eight of the positions within the password.",
+   "check": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # show full-configuration system password-policy | grep -i change\n    The output should be:\n      # set change-8-characters enable\n\nIf the change-8-characters parameter is set to disable, this is a finding.\n",
+   "fix": "Log in to the FortiGate GUI with Super-Admin privilege.\n\n1. Open a CLI console, via SSH or available from the GUI.\n2. Run the following command:\n     # config system password-policy\n           # set change-8-characters enable\n     # end\n",
+   "cci": [
+    "CCI-000195"
+   ],
+   "check_sha": "9a4c9be617cb8e5a"
+  }
+ }
+}

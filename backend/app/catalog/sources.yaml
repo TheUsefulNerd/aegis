@@ -1,0 +1,7 @@
+# DISA STIG benchmarks AEGIS tracks. `python -m app.stig_sync check` reports
+# when DISA has published a newer release; `fetch-all` imports them.
+benchmarks:
+  - {name: Cisco_IOS_XE_Router_NDM, vendor: cisco_ios, label: "Cisco IOS XE Router NDM STIG"}
+  - {name: Cisco_IOS_XE_Router_RTR, vendor: cisco_ios, label: "Cisco IOS XE Router RTR STIG"}
+  - {name: Juniper_SRX_Services_Gateway_NDM, vendor: juniper_junos, label: "Juniper SRX Services Gateway NDM STIG"}
+  - {name: Fortinet_FortiGate_Firewall_NDM, vendor: fortinet_fortios, label: "Fortinet FortiGate Firewall NDM STIG"}

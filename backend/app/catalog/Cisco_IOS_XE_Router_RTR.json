@@ -1,0 +1,1179 @@
+{
+ "benchmark": "Cisco_IOS_XE_Router_RTR",
+ "title": "Cisco IOS XE Router RTR Security Technical Implementation Guide",
+ "version": "3",
+ "release": "5",
+ "released": "01 Oct 2025",
+ "fetched": "2026-09-27",
+ "source": "https://cyber.trackr.live/stig/Cisco_IOS_XE_Router_RTR/3/5 (DISA STIG content)",
+ "rules": {
+  "V-216641": {
+   "rule": "SV-216641r1117236_rule",
+   "stig_id": "CISC-RT-000010",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce approved authorizations for controlling the flow of information within the network based on organization-defined information flow control policies.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nIf Virtual Routing and Forwarding (VRF) is used to segment traffic and force traffic to traverse through next generation firewalls with ACLs, this requirement is not applicable.\n\nReview the router configuration to verify that Access Control Lists (ACLs) are configured to allow or deny traffic for specific source and destination addresses as well as ports and protocols. For example, the configuration below will allow only printer traffic into subnet 10.1.23.0/24 and SQL traffic into subnet 10.1.24.0/24. ICMP is allowed for troubleshooting and OSPF is the routing protocol used within the network.\n\ninterface GigabitEthernet1/1\n description link to core\n ip address 10.1.12.2 255.255.255.0\n ip access-group FILTER_SERVER_TRAFFIC in\n…\n…\n…\nip access-list extended FILTER_SERVER_TRAFFIC\n permit tcp any 10.1.23.0 0.0.0.255 eq lpd 631 9100\n permit tcp any 10.1.24.0 0.0.0.255 eq 1433 1434 4022\n permit icmp any any\n permit ospf any any\n deny   ip any any\n\nIf the router is not configured to enforce approved authorizations for controlling the flow of information within the network based on organization-defined information flow control policies, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure ACLs to allow or deny traffic for specific source and destination addresses as well as ports and protocols between various subnets as required. The commands used below were used to create the configuration as shown in the check content.\n\nR5(config)#ip access-list extended FILTER_SERVER_TRAFFIC\nR5(config-ext-nacl)#permit tcp any x101.23.0 0.0.0.255 eq 515 631 9100\nR5(config-ext-nacl)#permit tcp any 10.1.24.0 0.0.0.255 eq 1433 1434 4022\nR5(config-ext-nacl)#permit icmp any any\nR5(config-ext-nacl)#permit ospf any any\nR5(config-ext-nacl)#deny ip any any\nR5(config-ext-nacl)#exit\nR5(config)#interface GigabitEthernet1/1\nR5(config-if)#ip access-group FILTER_SERVER_TRAFFIC in",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "81f895088688949f"
+  },
+  "V-216645": {
+   "rule": "SV-216645r1007829_rule",
+   "stig_id": "CISC-RT-000050",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enable routing protocol authentication using FIPS 198-1 algorithms with keys not exceeding 180 days of lifetime.",
+   "check": "Review the router configuration using the configuration examples below for BGP and OSPF.\n\nCertain older protocols supporting only MD5 will incur a permanent finding for those protocols as MD5 is not FIPS compliant.\n\nNote: The 180-day key lifetime is Not Applicable for the DODIN Backbone. The remainder of the requirement still applies.\n\nVerify that neighbor router authentication is enabled for all routing protocols. If neighbor authentication is not enabled, this is a finding.\n\nVerify that authentication is configured to use FIPS 198-1 message authentication algorithms. If the routing protocol authentication is not configured to use FIPS 198-1 algorithms this is a finding.\n\nVerify that the protocol key lifetime is configured to not exceed 180 days. If any protocol key lifetime is configured to exceed 180 days this is a finding.\n\nBGP Example:\n\nkey chain <KEY-CHAIN-NAME> tcp \nkey <KEY-ID>\nsend-id <ID>\nrecv-id <ID>\ncryptographic-algorithm hmac-sha256\nkey-string <KEY>\naccept-lifetime 00:00:00 Jan 1 2022 duration 180\nsend-lifetime 00:00:00 Jan 1 2022 duration 180 \n!\n!\nrouter bgp <ASN>\nno synchronization\nbgp log-neighbor-changes\nneighbor x.x.x.x remote-as <ASN>\nneighbor x.x.x.x ao <KEY-CHAIN-NAME>\n\nNote: TCP-AO is used to replace MD5 in BGP authentication. \n\nOSPF Example:\n\nkey chain OSPF_KEY_CHAIN\nkey 1\nkey-string xxxxxxx\nsend-lifetime 00:00:00 Jan 1 2018 23:59:59 Mar 31 2018\naccept-lifetime 00:00:00 Jan 1 2018 01:05:00 Apr 1 2018\ncryptographic-algorithm hmac-sha-256\nkey 2\nkey-string yyyyyyy\nsend-lifetime 00:00:00 Apr 1 2018 23:59:59 Jun 30 2018\naccept-lifetime 23:55:00 Mar 31 2018 01:05:00 Jul 1 2018\ncryptographic-algorithm hmac-sha-256\n…\n…\n…\ninterface GigabitEthernet0/1\nip address x.x.x.x 255.255.255.0\nip ospf authentication key-chain OSPF_KEY_CHAIN",
+   "fix": "Configure routing protocol authentication to use a NIST-validated FIPS 198-1 message authentication code algorithm with keys not exceeding 180 days of lifetime as shown in the examples.\n\nBGP Example:\n\nStep 1: Configure a keychain using a FIPS 198-1 algorithm with a key duration not exceeding 180 days.\n\nkey chain <KEY-CHAIN-NAME> tcp \nkey <KEY-ID>\nsend-id <ID>\nrecv-id <ID>\ncryptographic-algorithm hmac-sha256\nkey-string <KEY>\naccept-lifetime 00:00:00 Jan 1 2022 duration 180\nsend-lifetime 00:00:00 Jan 1 2022 duration 180 \n!\n\nStep 2: Configure BGP autonomous system to use the keychain for authentication.\n\nrouter bgp <ASN>\nno synchronization\nbgp log-neighbor-changes\nneighbor x.x.x.x remote-as <ASN>\nneighbor x.x.x.x ao <KEY-CHAIN-NAME>\n\nOSPF Example:\n\nStep 1: Configure a keychain using a FIPS 198-1 algorithm with a key duration not exceeding 180 days.\n\nkey chain OSPF_KEY_CHAIN\nkey 1\nkey-string xxxxxxx\nsend-lifetime 00:00:00 Jan 1 2018 23:59:59 Mar 31 2018\naccept-lifetime 00:00:00 Jan 1 2018 01:05:00 Apr 1 2018\ncryptographic-algorithm hmac-sha-256\nkey 2\nkey-string yyyyyyy\nsend-lifetime 00:00:00 Apr 1 2018 23:59:59 Jun 30 2018\naccept-lifetime 23:55:00 Mar 31 2018 01:05:00 Jul 1 2018\ncryptographic-algorithm hmac-sha-256\n\nStep 2: Configure OSPF to use the keychain for authentication.\n\ninterface GigabitEthernet0/1\nip address x.x.x.x 255.255.255.0\nip ospf authentication key-chain OSPF_KEY_CHAIN",
+   "cci": [
+    "CCI-000803",
+    "CCI-002205"
+   ],
+   "check_sha": "843f7913d1a3681f"
+  },
+  "V-216646": {
+   "rule": "SV-216646r1117237_rule",
+   "stig_id": "CISC-RT-000060",
+   "severity": "low",
+   "title": "The Cisco router must be configured to have all inactive interfaces disabled.",
+   "check": "Review the router configuration and verify that inactive interfaces have been disabled as shown below:\n\ninterface GigabitEthernet3\n shutdown\n!\ninterface GigabitEthernet4\n shutdown\n \nIf an interface is not being used but is configured or enabled, this is a finding.",
+   "fix": "Disable all inactive interfaces as shown below:\n\nR4(config)#interface GigabitEthernet3\nR4(config-if)#shutdown\nR4(config)#interface GigabitEthernet4\nR4(config-if)#shutdown",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "3d4f9583ebef5277"
+  },
+  "V-216649": {
+   "rule": "SV-216649r855812_rule",
+   "stig_id": "CISC-RT-000090",
+   "severity": "medium",
+   "title": "The Cisco router must not be configured to have any zero-touch deployment feature enabled when connected to an operational network.",
+   "check": "Review the device configuration to determine if auto-configuration or zero-touch deployment via Cisco Networking Services (CNS) is enabled. \n\nAuto-configuration example:\n\nversion 15.0\nservice config\n…\n…\n…\nboot-start-marker\nboot network tftp://x.x.x.x/R5-config\nboot-end-marker\n\nCNS Zero-Touch Example:\n\ncns trusted-server config x.x.x.x\ncns trusted-server image x.x.x.x\ncns config initial x.x.x.x 80\ncns exec 80\ncns image\n\nIf a configuration auto-loading feature or zero-touch deployment feature is enabled, this is a finding. \n\nNote: Auto-configuration or zero-touch deployment features can be enabled when the router is offline for the purpose of image loading or building out the configuration. In addition, this would not be applicable to the provisioning of virtual routers via a software-defined network (SDN) orchestration system.",
+   "fix": "Disable configuration auto-loading if enabled using the following commands:\n\nR8(config)#no boot network\nR8(config)#no service config\n\nDisable CNS zero-touch deployment if enabled as shown in the example below:\n\nR2(config)#no cns config initial\nR2(config)#no cns exec\nR2(config)#no cns image\nR2(config)#no cns trusted-server config x.x.x.x\nR2(config)#no cns trusted-server image x.x.x.x",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "b448314b69e5b88a"
+  },
+  "V-216650": {
+   "rule": "SV-216650r1107209_rule",
+   "stig_id": "CISC-RT-000120",
+   "severity": "high",
+   "title": "The Cisco router must be configured to protect against or limit the effects of denial-of-service (DoS) attacks by employing control plane protection.",
+   "check": "Review the Cisco router configuration to verify it protects against known types of DoS attacks by employing organization-defined security safeguards. \n\nStep 1: Verify traffic types have been classified based on importance levels. The following is an example configuration: \n\nclass-map match-all CoPP_CRITICAL \nmatch access-group name CoPP_CRITICAL \nclass-map match-any CoPP_IMPORTANT \nmatch access-group name CoPP_IMPORTANT \nmatch protocol arp \nclass-map match-all CoPP_NORMAL \nmatch access-group name CoPP_NORMAL \nclass-map match-any CoPP_UNDESIRABLE \nmatch access-group name CoPP_UNDESIRABLE \nclass-map match-all CoPP_DEFAULT \nmatch access-group name CoPP_DEFAULT \n\nStep 2: Review the access control lists (ACLs) referenced by the class maps to determine if the traffic is being classified appropriately. The following is an example configuration: \n\nip access-list extended CoPP_CRITICAL \nremark our control plane adjacencies are critical \npermit ospf host [OSPF neighbor A] any \npermit ospf host [OSPF neighbor B] any \npermit pim host [PIM neighbor A] any \npermit pim host [PIM neighbor B] any \npermit pim host [RP addr] any \npermit igmp any 224.0.0.0 15.255.255.255 \ndeny ip any any \n\nip access-list extended CoPP_IMPORTANT \npermit tcp host [TACACS server] eq tacacs any \npermit tcp [management subnet] 0.0.0.255 any eq 22 \npermit udp host [SNMP manager] any eq snmp \npermit udp host [NTP server] eq ntp any \ndeny ip any any \n\nip access-list extended CoPP_NORMAL \nremark we will want to rate limit ICMP traffic \ndeny icmp any host x.x.x.x fragments\npermit icmp any any echo \npermit icmp any any echo-reply \npermit icmp any any time-exceeded \npermit icmp any any unreachable \ndeny ip any any \n\nip access-list extended CoPP_UNDESIRABLE \nremark other management plane traffic that should not be received \npermit udp any any eq ntp \npermit udp any any eq snmp \npermit tcp any any eq 22 \npermit tcp any any eq 23 \nremark other control plane traffic not configured on switch \npermit eigrp any any \npermit udp any any eq rip \ndeny ip any any \n\nip access-list extended CoPP_DEFAULT \npermit ip any any \n\nNote: Explicitly defining undesirable traffic with ACL entries enables the network operator to collect statistics. Excessive ARP packets can potentially monopolize Route Processor resources, starving other important processes. Currently, ARP is the only layer 2 protocol that can be specifically classified using the match protocol command. \n\nStep 3: Review the policy-map to determine if the traffic is being policed appropriately for each classification. The following is an example configuration: \n\npolicy-map CONTROL_PLANE_POLICY \nclass CoPP_CRITICAL \npolice 512000 8000 conform-action transmit exceed-action transmit \nclass CoPP_IMPORTANT \npolice 256000 4000 conform-action transmit exceed-action drop \nclass CoPP_NORMAL \npolice 128000 2000 conform-action transmit exceed-action drop \nclass CoPP_UNDESIRABLE \npolice 8000 1000 conform-action drop exceed-action drop \nclass CoPP_DEFAULT \npolice 64000 1000 conform-action transmit exceed-action drop \n\nStep 4: Verify the Control Plane Policing (CoPP) policy is enabled. The following is an example configuration: \n\ncontrol-plane \nservice-policy input CONTROL_PLANE_POLICY \n\nNote: Control Plane Protection (CPPr) can be used to filter as well as police control plane traffic destined to the RP. CPPr is very similar to CoPP and can filter and police traffic using finer granularity by dividing the aggregate control plane into three separate categories: 1) host, 2) transit, and 3) CEF-exception. Hence, a separate policy-map could be configured for each traffic category. \n\nIf the Cisco router is not configured to protect against known types of DoS attacks by employing organization-defined security safeguards, this is a finding.",
+   "fix": "Configure the Cisco router to protect against known types of DoS attacks on the route processor. Implementing a CoPP policy as shown in the example below is a best practice method: \n\nStep 1: Configure ACL specific traffic types. \n\nSW1(config)#ip access-list extended CoPP_CRITICAL \nSW1(config-ext-nacl)#remark our control plane adjacencies are critical \nSW1(config-ext-nacl)#permit ospf host x.x.x.x any \nSW1(config-ext-nacl)#permit ospf host x.x.x.x any \nSW1(config-ext-nacl)#permit pim host x.x.x.x any \nSW1(config-ext-nacl)#permit pim host x.x.x.x any \nSW1(config-ext-nacl)#permit igmp any 224.0.0.0 15.255.255.255 \nSW1(config-ext-nacl)#deny ip any any \nSW1(config-ext-nacl)#exit \n\nSW1(config)#ip access-list extended CoPP_IMPORTANT \nSW1(config-ext-nacl)#permit tcp host x.x.x.x eq tacacs any \nSW1(config-ext-nacl)#permit tcp x.x.x.x 0.0.0.255 any eq 22 \nSW1(config-ext-nacl)#permit udp host x.x.x.x any eq snmp \nSW1(config-ext-nacl)#permit udp host x.x.x.x eq ntp any \nSW1(config-ext-nacl)#deny ip any any \nSW1(config-ext-nacl)#exit \n\nSW1(config)#ip access-list extended CoPP_NORMAL \nSW1(config-ext-nacl)#remark we will want to rate limit ICMP traffic \nSW1(config-ext-nacl)#deny icmp any host x.x.x.x fragments\n SW1(config-ext-nacl)#permit icmp any any echo \nSW1(config-ext-nacl)#permit icmp any any echo-reply \nSW1(config-ext-nacl)#permit icmp any any time-exceeded \nSW1(config-ext-nacl)#permit icmp any any unreachable \nSW1(config-ext-nacl)#deny ip any any \nSW1(config-ext-nacl)#exit \n\nSW1(config)#ip access-list extended CoPP_UNDESIRABLE \nSW1(config-ext-nacl)#remark management plane traffic that should not be received \nSW1(config-ext-nacl)#permit udp any any eq ntp \nSW1(config-ext-nacl)#permit udp any any eq snmp \nSW1(config-ext-nacl)#permit tcp any any eq 22 \nSW1(config-ext-nacl)#permit tcp any any eq 23 \nSW1(config-ext-nacl)#remark control plane traffic not configured on switch \nSW1(config-ext-nacl)#permit eigrp any any \nSW1(config-ext-nacl)#permit udp any any eq rip \nSW1(config-ext-nacl)#deny ip any any \nSW1(config-ext-nacl)#exit \nSW1(config)#ip access-list extended CoPP_DEFAULT \nSW1(config-ext-nacl)#permit ip any any \nSW1(config-ext-nacl)#exit \n\nStep 2: Configure class-maps referencing each of the ACLs. \n\nSW1(config)#class-map match-all CoPP_CRITICAL \nSW1(config-cmap)#match access-group name CoPP_CRITICAL \nSW1(config-cmap)#class-map match-any CoPP_IMPORTANT \nSW1(config-cmap)#match access-group name CoPP_IMPORTANT \nSW1(config-cmap)#match protocol arp \nSW1(config-cmap)#class-map match-all CoPP_NORMAL \nSW1(config-cmap)#match access-group name CoPP_NORMAL \nSW1(config-cmap)#class-map match-any CoPP_UNDESIRABLE \nSW1(config-cmap)#match access-group name CoPP_UNDESIRABLE \nSW1(config-cmap)#class-map match-all CoPP_DEFAULT \nSW1(config-cmap)#match access-group name CoPP_DEFAULT \nSW1(config-cmap)#exit \n\nStep 3: Configure a policy-map referencing the configured class-maps and apply appropriate bandwidth allowance and policing attributes. \n\nSW1(config)#policy-map CONTROL_PLANE_POLICY \nSW1(config-pmap)#class CoPP_CRITICAL \nSW1(config-pmap-c)#police 512000 8000 conform-action transmit exceed-action transmit \nSW1(config-pmap-c-police)#class CoPP_IMPORTANT \nSW1(config-pmap-c)#police 256000 4000 conform-action transmit exceed-action drop \nSW1(config-pmap-c-police)#class CoPP_NORMAL \nSW1(config-pmap-c)#police 128000 2000 conform-action transmit exceed-action drop \nSW1(config-pmap-c-police)#class CoPP_UNDESIRABLE \nSW1(config-pmap-c)#police 8000 1000 conform-action drop exceed-action drop \nSW1(config-pmap-c-police)#class CoPP_DEFAULT \nSW1(config-pmap-c)#police 64000 1000 conform-action transmit exceed-action drop \nSW1(config-pmap-c-police)#exit \nSW1(config-pmap-c)#exit \nSW1(config-pmap)#exit \n\nStep 4: Apply the policy-map to the control plane. \n\nSW1(config)#control-plane \nSW1(config-cp)#service-policy input CONTROL_PLANE_POLICY \nSW1(config-cp)#end",
+   "cci": [
+    "CCI-002385",
+    "CCI-001097",
+    "CCI-004866"
+   ],
+   "check_sha": "90b2fc2c49790b25"
+  },
+  "V-216653": {
+   "rule": "SV-216653r855814_rule",
+   "stig_id": "CISC-RT-000150",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to have Gratuitous ARP disabled on all external interfaces.",
+   "check": "Review the configuration to determine if gratuitous ARP is disabled. The following command should not be found in the router configuration:\n\nip gratuitous-arps\n\nNote: With Cisco IOS, Gratuitous ARP is enabled and disabled globally.\n\nIf gratuitous ARP is enabled on any external interface, this is a finding.",
+   "fix": "Disable gratuitous ARP as shown in the example below:\n\nR5(config)#no ip gratuitous-arps",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "1f42ca8243850d77"
+  },
+  "V-216654": {
+   "rule": "SV-216654r855815_rule",
+   "stig_id": "CISC-RT-000160",
+   "severity": "low",
+   "title": "The Cisco router must be configured to have IP directed broadcast disabled on all interfaces.",
+   "check": "Review the router configuration to determine if it is compliant with this requirement. IP directed broadcast command must not be found on any interface as shown in the example below:\n\ninterface GigabitEthernet0/1\n ip address x.x.x.x 255.255.255.0\n ip directed-broadcast\n\nIf IP directed broadcast is not disabled on all interfaces, this is a finding.",
+   "fix": "Disable IP directed broadcast on all interfaces as shown in the example below:\n\nR4(config)#int g0/1\nR4(config-if)#no ip directed-broadcast",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "e76711206273a2f5"
+  },
+  "V-216655": {
+   "rule": "SV-216655r855816_rule",
+   "stig_id": "CISC-RT-000170",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to have Internet Control Message Protocol (ICMP) unreachable messages disabled on all external interfaces.",
+   "check": "Review the configuration to verify the no ip unreachables command has been configured on all external interfaces as shown in the configuration example below:\n\ninterface GigabitEthernet0/1\n ip address x.x.x.x 255.255.255.0\n no ip unreachables\n\nIf ICMP unreachable notifications are sent from any external or null0 interface, this is a finding.\n\nAlternative – DODIN Backbone:\n\nVerify that the PE router is configured to rate limit ICMP unreachable messages as shown in the example below:\n\nip icmp rate-limit unreachable 60000\nip icmp rate-limit unreachable DF 1000\n\nNote: In the example above, packet-too-big message (ICMP Type 3 Code 4) can be sent once every second, while all other destination unreachable messages can be sent once every minute. This will avoid disrupting Path MTU Discovery for traffic traversing the backbone while mitigating the risk of an ICMP unreachable DoS attack.\n\nIF the PE router is not configured to rate limit ICMP unreachable messages, this is a finding.",
+   "fix": "Step 1: Disable ip unreachables on all external interfaces.\n\nR4(config)#int g0/1\nR4(config-if)#no ip unreachables\n\nStep 2: Disable ip unreachables on the Null0 interface if it is used to backhole packets.\n\nR4(config-if)#int null 0\nR4(config-if)#no ip unreachables\n\nAlternative – DODIN Backbone:\n\nConfigure the PE router to rate limit ICMP unreachable messages as shown in the example below:\n\nR4(config)#ip icmp rate-limit unreachable df 100\nR4(config)#ip icmp rate-limit unreachable 100000\nR4(config)#end\n\nAlternative – Non DODIN Backbone. \n\nAn alternative for non-backbone networks (i.e. enclave, base, camp, etc.) is to filter messages generated by the router and silently drop ICMP Administratively Prohibited and Host Unreachable messages using the following configuration steps:  \n\nStep 1: Configure ACL to include ICMP Type 3 Code 1 (Host Unreachable) and Code 13 (Administratively Prohibited) as shown in the example below:\n\nR2(config)#ip access-list ext ICMP_T3C1C13\nR2(config-ext-nacl)#permit icmp any any host-unreachable\nR2(config-ext-nacl)#permit icmp any any administratively-prohibited\nR2(config-ext-nacl)#exit\n\nStep 2: Create a route map to forward these ICMP messages to the Null0 interface.\n \nR2(config)#route-map LOCAL_POLICY\nR2(config-route-map)#match ip address ICMP_T3C1C13\nR2(config-route-map)#set interface Null0\nR2(config-route-map)#exit\n\nStep 3: Configure no ip unreachables on the Null0 interface.\n\nR2(config)#int null 0\nR2(config-if)#no ip unreachables\nR2(config-if)#exit\n\nStep 4: Apply the policy to filter messages generated by the router.\n\nR2(config)#ip local policy route-map LOCAL_POLICY\nR2(config)#end",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "86696cafecd80eb7"
+  },
+  "V-216656": {
+   "rule": "SV-216656r855817_rule",
+   "stig_id": "CISC-RT-000180",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to have Internet Control Message Protocol (ICMP) mask reply messages disabled on all external interfaces.",
+   "check": "Review the router configuration and verify that ip mask-reply command is not enabled on any external interfaces as shown in the example below: \n\ninterface GigabitEthernet0/1\n ip address x.x.x.x 255.255.255.0\n ip mask-reply\n\nIf the ip mask-reply command is configured on any external interface, this is a finding.",
+   "fix": "Disable ip mask-reply on all external interfaces as shown below:\n\nR4(config)#int g0/1\nR4(config-if)#no ip mask-reply",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "28556fa9a324b48f"
+  },
+  "V-216657": {
+   "rule": "SV-216657r855818_rule",
+   "stig_id": "CISC-RT-000190",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to have Internet Control Message Protocol (ICMP) redirect messages disabled on all external interfaces.",
+   "check": "Review the router configuration to verify that the no ip redirects command has been configured on all external interfaces as shown in the example below:\n\ninterface GigabitEthernet0/1\n ip address x.x.x.x 255.255.255.0\n no ip redirects\n\nIf ICMP Redirect messages are enabled on any external interfaces, this is a finding.",
+   "fix": "Disable ICMP redirects on all external interfaces as shown in the example below:\n\nR4(config)#int g0/1\nR4(config-if)#no ip redirects",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "002cce5e4b0da256"
+  },
+  "V-216658": {
+   "rule": "SV-216658r531086_rule",
+   "stig_id": "CISC-RT-000200",
+   "severity": "low",
+   "title": "The Cisco router must be configured to log all packets that have been dropped at interfaces via ACL.",
+   "check": "Review all ACLs used to filter traffic and verify that packets being dropped are logged as shown in the configuration below:\n\nip access-list extended INGRESS_FILTER\n permit tcp any any established\n permit tcp host x.11.1.1 eq bgp host x.11.1.2\n permit tcp host x.11.1.1 host x.11.1.2 eq bgp\n permit tcp any host x.11.1.5 eq www\n permit icmp host x.11.1.1 host x.11.1.2 echo\n permit icmp any any echo-reply\n …\n …\n …\ndeny   ip any any log\n\nIf packets being dropped at interfaces are not logged, this is a finding.",
+   "fix": "Configure ACLs to log  packets that are dropped as shown in the example below:\n\nR5(config)#ip access-list extended INGRESS_FILTER\n…\n…\n…\nR5(config-ext-nacl)#deny ip any any log",
+   "cci": [
+    "CCI-000134"
+   ],
+   "check_sha": "b78c6168dda3b6d7"
+  },
+  "V-216659": {
+   "rule": "SV-216659r531086_rule",
+   "stig_id": "CISC-RT-000210",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to produce audit records containing information to establish where the events occurred.",
+   "check": "Review the router configuration to verify that events are logged containing information to establish where the events occurred as shown in the example below:\n\nip access-list extended INGRESS_FILTER\n permit tcp any any established\n permit tcp host x.11.1.1 eq bgp host x.11.1.2\n permit tcp host x.11.1.1 host x.11.1.2 eq bgp\n permit tcp any host x.11.1.5 eq www\n permit icmp host x.11.1.1 host x.11.1.2 echo\n permit icmp any any echo-reply\n …\n …\n …\ndeny   ip any any log-input\n\nNote: When the log-input parameter is configured on deny statements, the log record will contain the interface where ingress packet has been dropped.\n\nIf the router is not configured to produce audit records containing information to establish to establish where the events occurred, this is a finding.",
+   "fix": "Configure the router to log events containing information to establish where the events occurred as shown in the example below:\n \nR5(config)#ip access-list extended INGRESS_FILTER\n…\n…\n…\nR5(config-ext-nacl)#deny ip any any log-input",
+   "cci": [
+    "CCI-000132"
+   ],
+   "check_sha": "769ad579b5effe10"
+  },
+  "V-216660": {
+   "rule": "SV-216660r531086_rule",
+   "stig_id": "CISC-RT-000220",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to produce audit records containing information to establish the source of the events.",
+   "check": "Review the router configuration to verify that events are logged containing information to establish the source of the events as shown in the example below:\n\nip access-list extended INGRESS_FILTER\n permit tcp any any established\n permit tcp host x.11.1.1 eq bgp host x.11.1.2\n permit tcp host x.11.1.1 host x.11.1.2 eq bgp\n permit tcp any host x.11.1.5 eq www\n permit icmp host x.11.1.1 host x.11.1.2 echo\n permit icmp any any echo-reply\n …\n …\n …\ndeny   ip any any log-input\n\nNote: When the log-input parameter is configured on deny statements, the log record will contain the layer 2 address of the forwarding device for any packet being dropped.\n\nIf the router is not configured to produce audit records containing information to establish the source of the events, this is a finding.",
+   "fix": "Configure the router to log events containing information to establish where the events occurred as shown in the example below:\n \nR5(config)#ip access-list extended INGRESS_FILTER\n…\n…\n…\nR5(config-ext-nacl)#deny ip any any log-input",
+   "cci": [
+    "CCI-000133"
+   ],
+   "check_sha": "c559e375ab6179ef"
+  },
+  "V-216661": {
+   "rule": "SV-216661r1117237_rule",
+   "stig_id": "CISC-RT-000230",
+   "severity": "low",
+   "title": "The Cisco router must be configured to disable the auxiliary port unless it is connected to a secured modem providing encryption and authentication.",
+   "check": "Review the configuration and verify that the auxiliary port is disabled unless a secured modem providing encryption and authentication is connected to it.\n\nline aux 0\n no exec\n\nNote: transport input none is the default; hence it will not be shown in the configuration.\n\nIf the auxiliary port is not disabled or is not connected to a secured modem when it is enabled, this is a finding.",
+   "fix": "Disable the auxiliary port.\n\nR2(config)#line aux 0\nR2(config-line)#no exec \nR2(config-line)#transport input none",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "3dc53f4c51f7885d"
+  },
+  "V-216662": {
+   "rule": "SV-216662r1117241_rule",
+   "stig_id": "CISC-RT-000240",
+   "severity": "high",
+   "title": "The Cisco perimeter router must be configured to deny network traffic by default and allow network traffic by exception.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify that the inbound ACL applied to all external interfaces is configured to allow specific ports and protocols and deny all other traffic.\n\nStep 1: Verify that an inbound ACL is applied to all external interfaces as shown in the example below:\n\ninterface GigabitEthernet0/2\n ip address x.11.1.2 255.255.255.254\n ip access-group EXTERNAL_ACL in\n\nStep 2: Review inbound ACL to verify that it is configured to deny all other traffic that is not explicitly allowed.\n\nip access-list extended EXTERNAL_ACL\n permit tcp any any established\n permit tcp host x.11.1.1 eq bgp host x.11.1.2\n permit tcp host x.11.1.1 host x.11.1.2 eq bgp\n permit icmp host x.11.1.1 host x.11.1.2 echo\n permit icmp host x.11.1.1 host x.11.1.2 echo-reply\n …\n …\n …\ndeny   ip any any log-input\n\nIf the ACL is not configured to allow specific ports and protocols and deny all other traffic, this is a finding. If the ACL is not configured inbound on all external interfaces, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Configure an inbound ACL to deny all other traffic by default as shown in the example below:\n\nR1(config)#ip access-list extended EXTERNAL_ACL\nR1(config-ext-nacl)#permit tcp any any established\nR1(config-ext-nacl)#permit tcp host x.11.1.1 eq bgp host x.11.1.2    \nR1(config-ext-nacl)#permit tcp host x.11.1.1 host x.11.1.2 eq bgp\nR1(config-ext-nacl)#permit icmp host x.11.1.1 host x.11.1.2 echo\nR1(config-ext-nacl)#permit icmp host x.11.1.1 host x.11.1.2 echo-reply\n…\n…\n…\nR1(config-ext-nacl)#deny ip any any log-input\n\nStep 2: Apply the ingress filter to all external interfaces.\n\nR1(config)#int g0/2\nR1(config-if)#ip access-group EXTERNAL_ACL in",
+   "cci": [
+    "CCI-001109"
+   ],
+   "check_sha": "c61d0ecf40664a16"
+  },
+  "V-216663": {
+   "rule": "SV-216663r1117237_rule",
+   "stig_id": "CISC-RT-000250",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to enforce approved authorizations for controlling the flow of information between interconnected networks in accordance with applicable policy.",
+   "check": "Review the router configuration to verify that ACLs are configured to allow or deny traffic for specific source and destination addresses as well as ports and protocols. In the example below, the router is peering BGP with DISN. ICMP echo and echo-reply packets are allowed for troubleshooting connectivity. WWW traffic is permitted inbound to the NIPRNet host-facing web server (x.12.1.22).\n\ninterface GigabitEthernet0/1\n description Link to DISN\n ip address x.12.1.10 255.255.255.0\n ip access-group FILTER_PERIMETER in\n…\n…\n…\nip access-list extended FILTER_PERIMETER\n permit tcp any any established\n permit tcp host x.12.1.9 host x.12.1.10 eq bgp\n permit tcp host x.12.1.9 eq bgp host x.12.1.10\n permit icmp host x.12.1.9 host x.12.1.10 echo\n permit icmp host x.12.1.9 host x.12.1.10 echo-reply\n permit tcp any host x.12.1.22 eq www\n deny   ip any any log-input\n\nIf the router is not configured to enforce approved authorizations for controlling the flow of information between interconnected networks, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Configure an ACL to allow or deny traffic as shown in the example below.\n\nR1(config)#ip access-list extended FILTER_PERIMETER\nR1(config-ext-nacl)#permit tcp any any established\nR1(config-ext-nacl)#permit tcp host x.12.1.9 host x.12.1.10 eq bgp\nR1(config-ext-nacl)#permit tcp host x.12.1.9 eq bgp host x.12.1.10\nR1(config-ext-nacl)#permit icmp host x.12.1.9 host x.12.1.10 echo\nR1(config-ext-nacl)#permit icmp host x.12.1.9 host x.12.1.10 echo-reply\nR1(config-ext-nacl)#permit tcp any host x.12.1.22 eq www\nR1(config-ext-nacl)#deny ip any any log-input\nR1(config-ext-nacl)#exit\n\nStep 2: Apply the ACL inbound on all external interfaces.\n\nR2(config)#int g0/0\nR1(config-if)#ip access-group  FILTER_PERIMETER in",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "9c85a1779d3b4bb2"
+  },
+  "V-216664": {
+   "rule": "SV-216664r855819_rule",
+   "stig_id": "CISC-RT-000260",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to only allow incoming communications from authorized sources to be routed to authorized destinations.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to determine if the router allows only incoming communications from authorized sources to be routed to authorized destinations. The hypothetical example below allows inbound NTP from server x.1.12.9 only to host x.12.1.21.\n\nip access-list extended FILTER_PERIMETER\n permit tcp any any established\n …\n …\n …\n permit udp host x.12.1.9 host x.12.1.21 eq ntp\n deny   ip any any log-input\n\nIf the router does not restrict incoming communications to allow only authorized sources and destinations, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to allow only incoming communications from authorized sources to be routed to authorized destinations. \n\nR1(config)#ip access-list extended FILTER_PERIMETER\nR1(config-ext-nacl)#nn permit udp host x.12.1.9 host x.12.1.21 eq ntp\nR1(config-ext-nacl)#end\n",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "418ac5ed7c1bc40a"
+  },
+  "V-216665": {
+   "rule": "SV-216665r863260_rule",
+   "stig_id": "CISC-RT-000270",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to block inbound packets with source Bogon IP address prefixes.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify that an ingress ACL applied to all external interfaces is blocking packets with Bogon source addresses.\n\nStep 1: Verify an ACL has been configured containing the current Bogon prefixes as shown in the example below:\n\nip access-list extended FILTER_PERIMETER\n deny   ip 0.0.0.0 0.255.255.255 any log-input\n deny   ip 10.0.0.0 0.255.255.255 any log-input\n deny   ip 100.64.0.0 0.63.255.255 any log-input\n deny   ip 127.0.0.0 0.255.255.255 any log-input\n deny   ip 169.254.0.0 0.0.255.255 any log-input\n deny   ip 172.16.0.0 0.15.255.255 any log-input\n deny   ip 192.0.0.0 0.0.0.255 any log-input\n deny   ip 192.0.2.0 0.0.0.255 any log-input\n deny   ip 192.168.0.0 0.0.255.255 any log-input\n deny   ip 198.18.0.0 0.1.255.255 any log-input\n deny   ip 198.51.100.0 0.0.0.255 any log-input\n deny   ip 203.0.113.0 0.0.0.255 any log-input\n deny   ip 224.0.0.0 31.255.255.255 any log-input\n deny   ip 240.0.0.0 15.255.255.255 any log-input\n permit tcp any any established\n permit tcp host x.12.1.9 host x.12.1.10 eq bgp\n permit tcp host x.12.1.9 eq bgp host x.12.1.10\n permit icmp host x.12.1.9 host x.12.1.10 echo\n permit icmp host x.12.1.9 host x.12.1.10 echo-reply\n …\n …\n …\n deny   ip any any log-input\n\nStep 2: Verify that the inbound ACL applied to all external interfaces will block all traffic from Bogon source addresses.\n\ninterface GigabitEthernet0/1\n description Link to DISN\n ip address x.12.1.10 255.255.255.254\n ip access-group FILTER_PERIMETER in\n\nIf the router is not configured to block inbound packets with source Bogon IP address prefixes, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the perimeter to block inbound packets with Bogon source addresses.\n\nStep 1: Configure an ACL containing the current Bogon prefixes as shown below:\n\nR5(config)#ip access-list extended FILTER_PERIMETER\nR5(config-ext-nacl)#deny ip 0.0.0.0 0.255.255.255 any log-input\nR5(config-ext-nacl)#deny ip 10.0.0.0 0.255.255.255 any log-input\nR5(config-ext-nacl)#deny ip 100.64.0.0 0.63.255.255 any log-input\nR5(config-ext-nacl)#deny ip 127.0.0.0 0.255.255.255 any log-input\nR5(config-ext-nacl)#deny ip 169.254.0.0 0.0.255.255 any log-input\nR5(config-ext-nacl)#deny ip 172.16.0.0 0.15.255.255 any log-input\nR5(config-ext-nacl)#deny ip 192.0.0.0 0.0.0.255 any log-input\nR5(config-ext-nacl)#deny ip 192.0.2.0 0.0.0.255 any log-input\nR5(config-ext-nacl)#deny ip 192.168.0.0 0.0.255.255 any log-input\nR5(config-ext-nacl)#deny ip 198.18.0.0 0.1.255.255 any log-input\nR5(config-ext-nacl)#deny ip 198.51.100.0 0.0.0.255 any log-input\nR5(config-ext-nacl)#deny ip 203.0.113.0 0.0.0.255 any log-input\nR5(config-ext-nacl)#deny ip 224.0.0.0 31.255.255.255 any log-input\nR5(config-ext-nacl)#deny ip 240.0.0.0 15.255.255.255 any log-input\nR5(config-ext-nacl)#permit tcp any any established\nR5(config-ext-nacl)#permit tcp host x.12.1.9 host x.12.1.10 eq bgp\nR5(config-ext-nacl)#permit tcp host x.12.1.9 eq bgp host x.12.1.10\nR5(config-ext-nacl)#permit icmp host x.12.1.9 host x.12.1.10 echo\nR5(config-ext-nacl)#permit icmp host x.12.1.9 host x.12.1.10 echo-reply\n…\n…\n…\nR5(config-ext-nacl)#deny ip any any log-input\nR5(config-ext-nacl)#end\n\nStep 2: Apply the ACL inbound on all external interfaces.\n\nR2(config)#int g0/0\nR1(config-if)#ip access-group  FILTER_PERIMETER in\nR1(config-if)#end",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "661b040b1bf6fc2d"
+  },
+  "V-216666": {
+   "rule": "SV-216666r1117237_rule",
+   "stig_id": "CISC-RT-000280",
+   "severity": "high",
+   "title": "The Cisco perimeter router must be configured to protect an enclave connected to an alternate gateway by using an inbound filter that only permits packets with destination addresses within the sites address space.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Verify the interface connecting to ISP has an inbound ACL as shown in the example below.\n\ninterface GigabitEthernet0/2\n description Link to ISP\n ip address x.22.1.15 255.255.255.240\n ip access-group FILTER_ISP in\n\nStep 2: Verify that the ACL only allows traffic to specific destination addresses (i.e. enclave’s NIPRNet address space) as shown in the example below.\n\nip access-list extended FILTER_ISP\n permit tcp any any established\n permit icmp host x.12.1.16 host x.12.1.17 echo\n permit icmp host x.12.1.16 host x.12.1.17 echo-reply\n permit tcp any host x.12.1.22 eq www\n permit tcp any host x.12.1.23 eq www\n permit 50 any host x.12.1.24\n permit 51 any host x.12.1.24\n deny   ip any any log-input\n\nNote: An Approved Gateway (AG) is any external connection from a DoD NIPRNet enclave to an Internet Service Provider, or network owned by a contractor, or non-DoD federal agency that has been approved by either the DoD CIO or the DoD Component CIO. This AG requirement does not apply to commercial cloud connections when the Cloud Service Provider (CSP) network is connected via the NIPRNet Boundary Cloud Access Point (BCAP).\n\n\nIf the ingress ACL bound to the interface connecting to an alternate gateway permits packets with addresses other than those specified, such as destination addresses of the site's NIPRNet address space or a destination address belonging to the address block assigned by the alternate gateway network service provider, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the ingress ACL of the perimeter router connected to an alternate gateway to only permit packets with destination addresses of the site's NIPRNet address space or a destination address belonging to the address block assigned by the alternate gateway network service provider as shown in the example below:\n\nR5(config)#ip access-list extended FILTER_ISP\nR5(config-ext-nacl)#permit tcp any any established\nR5(config-ext-nacl)#permit icmp host x.12.1.16 host x.12.1.17 echo\nR5(config-ext-nacl)#permit icmp host x.12.1.16 host x.12.1.17 echo-reply\nR5(config-ext-nacl)#permit tcp any host x.12.1.22 eq www\nR5(config-ext-nacl)#permit tcp any host x.12.1.23 eq www\nR5(config-ext-nacl)#permit 50 any host x.12.1.24\nR5(config-ext-nacl)#permit 51 any host x.12.1.24\nR5(config-ext-nacl)#deny ip any any log-input\nR5(config-ext-nacl)#end",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "1b3d985f311f446d"
+  },
+  "V-216667": {
+   "rule": "SV-216667r1117237_rule",
+   "stig_id": "CISC-RT-000290",
+   "severity": "high",
+   "title": "The Cisco perimeter router must be configured to not be a Border Gateway Protocol (BGP) peer to an alternate gateway service provider.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration and verify that it is not BGP peering with an alternate gateway service provider.\n\nStep 1: Determine the ip address of the ISP router. \n\ninterface GigabitEthernet0/2\n description Link to ISP\n ip address x.22.1.15 255.255.255.240\n\nStep 2: Verify that the router is not BGP peering with this router.\n\nrouter bgp nn\n no synchronization\n bgp log-neighbor-changes\n neighbor x.11.1.7 remote-as nn\n neighbor x.11.1.7 password xxxxxxx\n no auto-summary\n\nIn the example above, the router is not peering with the ISP.\n\nIf the router is BGP peering with an alternate gateway service provider, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nRemove any BGP neighbors belonging to the alternate gateway service provider and configure a static route to forward Internet bound traffic to the alternate gateway as shown in the example below:\n\nR5(config)#ip route 0.0.0.0 0.0.0.0 x.22.1.14",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "7b5c9993492012c0"
+  },
+  "V-216668": {
+   "rule": "SV-216668r1117237_rule",
+   "stig_id": "CISC-RT-000300",
+   "severity": "low",
+   "title": "The Cisco perimeter router must be configured to not redistribute static routes to an alternate gateway service provider into BGP or an Interior Gateway Protocol (IGP) peering with the NIPRNet or to other autonomous systems.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Review the IGP and BGP configurations. If there are redistribute static statements configured as shown in examples below, proceed to step 2.\n\nOSPF Example:\n\nrouter ospf 1\n log-adjacency-changes\n redistribute static subnets\n network 0.0.0.0 255.255.255.255 area 0\n\nEIGRP example:\n\nrouter eigrp 1\n network 10.1.15.0 0.0.0.255\n redistribute static\n\nRIP example:\n\nrouter rip\n version 2\n redistribute static\n network 10.0.0.0\n\nBGP example:\n\nrouter bgp nn\n no synchronization\n bgp log-neighbor-changes\n redistribute static\n neighbor x.11.1.7 remote-as nn\n neighbor x.11.1.7 password xxxxxxx\n no auto-summary\n\nStep 2: Review the static routes that have been configured to determine if any contain the next hop address of the alternate gateway.\n\nIf the static routes to the alternate gateway are being redistributed into BGP or any IGP peering to a NIPRNet gateway or any other autonomous system, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router so that static routes are not redistributed to an alternate gateway into either a BGP or any IGP peering with the NIPRNet or to any other autonomous systems. This can be done by excluding that route in the route-map as shown in the example below:\n\nStep 1: Configure a prefix list for any static routes with the alternate gateway as the next-hop address.\n\nR5(config)#ip prefix-list ISP_PREFIX permit x.x.x.0/24\n\nStep 2: Configure a route map that will deny the state routes to the ISP.\n\nR5(config)#route-map FILTER_ISP_STATIC deny 10\nR5(config-route-map)#match ip address prefix-list ISP_PREFIX\nR5(config-route-map)#exit\nR5(config)#route-map FILTER_ISP_STATIC permit 20\nR5(config-route-map)#exit\n\nStep 3: Apply the route-map to the IGP and BGP redistribute static commands as shown in the EIGRP example.\n\nR5(config)#router eigrp 1\nR5(config-router)#redistribute static route-map FILTER_ISP_STATIC",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "99e34c00917b07cd"
+  },
+  "V-216670": {
+   "rule": "SV-216670r1007827_rule",
+   "stig_id": "CISC-RT-000320",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to filter traffic destined to the enclave in accordance with the guidelines contained in DoD Instruction 8551.1.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify that the ingress ACL is in accordance with DoD 8551.1.\n\nStep 1: Verify that an inbound ACL is configured on all external interfaces.\n\ninterface GigabitEthernet0/2\n ip address x.11.1.2 255.255.255.254\n ip access-group EXTERNAL_ACL_INBOUND in\n\nStep 2. Review the inbound ACL to verify that it is filtering traffic in accordance with DoD 8551.1.\n\nip access-list extended EXTERNAL_ACL_INBOUND\n permit tcp any any established\n permit tcp host x.11.1.1 eq bgp host x.11.1.2\n permit tcp host x.11.1.1 host x.11.1.2 eq bgp\n permit icmp host x.11.1.1 host x.11.1.2 echo\n permit icmp host x.11.1.1 host x.11.1.2 echo-reply\n …\n …    < must be in accordance with DoD Instruction 8551.1>\n …\ndeny   ip any any log-input\n\nIf the router does not filter traffic in accordance with the guidelines contained in DoD 8551.1, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to use an inbound ACL on all external interfaces as shown in the example below to restrict traffic in accordance with the guidelines contained in DOD Instruction 8551.1.\n\nR1(config)#ip access-list extended EXTERNAL_ACL_INBOUND\nR1(config-ext-nacl)#permit tcp any any established\nR1(config-ext-nacl)#permit tcp host x.11.1.1 eq bgp host x.11.1.2    \nR1(config-ext-nacl)#permit tcp host x.11.1.1 host x.11.1.2 eq bgp\nR1(config-ext-nacl)#permit icmp host x.11.1.1 host x.11.1.2 echo\nR1(config-ext-nacl)#permit icmp host x.11.1.1 host x.11.1.2 echo-reply\n…\n…    < must be in accordance with DoD Instruction 8551.1>\n…\nR1(config-ext-nacl)#deny ip any any log-input\nR1(config-ext-nacl)#exit\nR1(config)#int g0/2\nR1(config-if)#ip access-group EXTERNAL_ACL_INBOUND in",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "450ecdc3fb9f0a04"
+  },
+  "V-216671": {
+   "rule": "SV-216671r531086_rule",
+   "stig_id": "CISC-RT-000330",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to filter ingress traffic at the external interface on an inbound direction.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify that an inbound ACL is configured on all external interfaces as shown in the example below:\n\ninterface GigabitEthernet0/2\n ip address x.11.1.2 255.255.255.254\n ip access-group EXTERNAL_ACL_INBOUND in\n\nIf the router is not configured to filter traffic entering the network at all external interfaces in an inbound direction, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to use an inbound ACL on all external interfaces as shown in the example below:\n\nR1(config)#int g0/2\nR1(config-if)#ip access-group EXTERNAL_ACL_INBOUND in",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "33b967b028f5cf5b"
+  },
+  "V-216672": {
+   "rule": "SV-216672r531086_rule",
+   "stig_id": "CISC-RT-000340",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to filter egress traffic at the internal interface on an inbound direction.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify that the egress ACL is bound to the internal interface in an inbound direction.\n\ninterface interface GigabitEthernet0/2\n description downstream link to LAN\n ip address 10.1.25.5 255.255.255.0\n ip access-group EGRESS_FILTER in\n\nIf the router is not configured to filter traffic leaving the network at the internal interface in an inbound direction, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to use an inbound ACL on all internal interfaces as shown in the example below:\n\nR5(config)#int g0/2\nR5(config-if)#ip access-group EGRESS_FILTER in",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "c0e1665f2348aa0a"
+  },
+  "V-216674": {
+   "rule": "SV-216674r855821_rule",
+   "stig_id": "CISC-RT-000360",
+   "severity": "low",
+   "title": "The Cisco perimeter router must be configured to have Link Layer Discovery Protocol (LLDP) disabled on all external interfaces.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Verify LLDP is not enabled globally via the command.  \n\nlldp run\n\nBy default LLDP is not enabled globally. If LLDP is enabled, proceed to step 2.\n\nStep 2: Verify LLDP is not enabled on any external interface as shown in the example below:\n\ninterface GigabitEthernet0/1\n ip address x.1.12.1 255.255.255.252\n no lldp transmit\n\nNote: LLDP is enabled by default on all interfaces once it is enabled globally; hence the command \"lldp transmit\" will not be visible on the interface configuration.\n\nIf LLDP transmit is enabled on any external interface, this is a finding.",
+   "fix": "Disable LLDP transmit on all external interfaces as shown in the example below:\n\nR5(config)#int g0/1\nR5(config-if)#no lldp transmit",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "31872a0f59eae967"
+  },
+  "V-216675": {
+   "rule": "SV-216675r855822_rule",
+   "stig_id": "CISC-RT-000370",
+   "severity": "low",
+   "title": "The Cisco perimeter router must be configured to have Cisco Discovery Protocol (CDP) disabled on all external interfaces.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Verify if CDP is enabled globally as shown below:\n\ncdp run\n\nBy default, CDP is not enabled globally or on any interface. If CDP is enabled globally, proceed to step 2.\n\nStep 2: Verify CDP is not enabled on any external interface as shown in the example below:\n\ninterface GigabitEthernet2\n ip address z.1.24.4 255.255.255.252\n …\n …\n …\ncdp enable\n\nIf CDP is enabled on any external interface, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nDisable CDP on all external interfaces via no cdp enable command or disable CDP globally via no cdp run command.",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "0dd98d0408d312f6"
+  },
+  "V-216676": {
+   "rule": "SV-216676r855823_rule",
+   "stig_id": "CISC-RT-000380",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to have Proxy ARP disabled on all external interfaces.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to determine if IP Proxy ARP is disabled on all external interfaces as shown in the example below:\n\ninterface GigabitEthernet0/1\n description link to DISN\n ip address x.1.12.2 255.255.255.252\n no ip proxy-arp\n\nNote: By default Proxy ARP is enabled on all interfaces; hence, if enabled, it will not be shown in the configuration. \n\nIf IP Proxy ARP is enabled on any external interface, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nDisable Proxy ARP on all external interfaces as shown in the example below:\n\nR2(config)#int g0/1     \nR2(config-if)#no ip proxy-arp",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "887618a2aa8376c3"
+  },
+  "V-216677": {
+   "rule": "SV-216677r945857_rule",
+   "stig_id": "CISC-RT-000390",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to block all outbound management traffic.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nThe perimeter router of the managed network must be configured with an outbound ACL on the egress interface to block all management traffic as shown in the example below:\n\nStep 1: Verify that all external interfaces has been configured with an outbound ACL as shown in the example below:\n\ninterface GigabitEthernet0/2\n description link to DISN\n ip address x.11.1.2 255.255.255.254\n ip access-group EXTERNAL_ACL_OUTBOUND out\n\nStep 2: Verify that the outbound ACL discards management traffic as shown in the example below:\n\nip access-list extended EXTERNAL_ACL_OUTBOUND\n deny   tcp any any eq tacacs log-input\n deny   tcp any any eq 22 log-input\n deny   udp any any eq snmp log-input\n deny   udp any any eq snmptrap log-input\n deny   udp any any eq syslog log-input\n permit tcp any any eq www log-input\n deny   ip any any log-input\n\nIf management traffic is not blocked at the perimeter, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the perimeter router of the managed network with an outbound ACL on the egress interface to block all management traffic.\n\nStep 1: Configure an ACL to block egress management traffic.\n\nR5(config)#ip access-list extended EXTERNAL_ACL_OUTBOUND\nR5(config-ext-nacl)#deny tcp any any eq tacacs log-input\nR5(config-ext-nacl)#deny tcp any any eq 22 log-input\nR5(config-ext-nacl)#deny udp any any eq snmp log-input\nR5(config-ext-nacl)#deny udp any any eq snmptrap log-input\nR5(config-ext-nacl)#deny udp any any eq syslog log-input\nR5(config-ext-nacl)#permit tcp any any eq www\nR5(config-ext-nacl)#deny ip any any log-input\nR5(config-ext-nacl)#exit\n\nNote: Permit commands would be configured to allow applicable outbound traffic. The example above is allowing web traffic.\n\nStep 2: Configure the external interfaces with the outbound ACL.\n\nR1(config)#int g0/2\nR1(config-if)#ip access-group EXTERNAL_ACL_OUTBOUND out",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "cf126ec8761eb8e7"
+  },
+  "V-216678": {
+   "rule": "SV-216678r991892_rule",
+   "stig_id": "CISC-RT-000400",
+   "severity": "medium",
+   "title": "The Cisco out-of-band management (OOBM) gateway router must be configured to transport management traffic to the Network Operations Center (NOC) via dedicated circuit, MPLS/VPN service, or IPsec tunnel.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the network topology diagram to determine connectivity between the managed network and the NOC. Review the OOBM gateway router configuration to validate the path and interface that the management traffic traverses. If an IPsec tunnel is used to transport the management traffic between the NOC and the managed network, review the configuration following the steps below.\n\nStep 1: Note the crypto map applied to the external interface.\n\n interface interface GigabitEthernet0/2\n description link to DISN\n ip address x.1.24.4 255.255.255.0\n crypto map IPSEC_MGMT_MAP\n\nStep 2: Review the ISAKMP policy for Phase 1 negotiations and Phase 2 policy for data encryption.\n\ncrypto isakmp policy 10\n authentication pre-share\n hash sha256\n crypto isakmp key xxxxxx address x.1.12.1\n!\n!\ncrypto ipsec transform-set TRANS_SET ah-sha256-hmac esp-aes \n\nStep 3: Review the crypto map that was bound to the external interface and note the ACL defined that identifies the interesting traffic for the IPsec tunnel.\n\ncrypto map IPSEC_MGMT_MAP 10 ipsec-isakmp\n set peer x.1.12.1\n set transform-set TRANS_SET\n match address MGMT_TRAFFIC_ACL\n\nStep 4: Review the ACL defined in the crypto map and verify that the destination is the management network.\n\nip access-list extended MGMT_TRAFFIC_ACL\n permit ip 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255\n\nNote: The management network is this example is 10.22.2.0/24\n\nIf management traffic is not transported between the managed network and the NOC via dedicated circuit, MPLS/VPN service, or IPsec tunnel, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nEnsure that a dedicated circuit, MPLS/VPN service, or IPsec tunnel is deployed to transport management traffic between the managed network and the NOC. If an IPsec tunnel is to be used, the steps below can be used as a guideline.\n\nStep 1: Configure the ACL for the management network as the destination. This ACL will be defined in the crypto as the interesting traffic to be forwarded into the IPsec tunnel.\n\nR4(config)#ip access-list extended MGMT_TRAFFIC_ACL\nR4(config-ext-nacl)#permit ip 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255\nR4(config-ext-nacl)#exit\n\nStep 2: Create an ISAKMP policy for Phase 1 negotiations.\n\nR4(config)#crypto isakmp policy 10\nR4(config-isakmp)#hash sha256\nR4(config-isakmp)#authentication pre-share\nR4(config-isakmp)#exit\n\nStep 3: Specify the pre-shared key and the remote peer address.\n\nR4(config)#crypto isakmp key 0 xxxxxx address x.1.12.1\n\nNote: Digital certificates can be utilized as an alternative.\n \nStep 4: Create the IPSec transform set for the data encryption.\n\nR4(config)#crypto ipsec transform-set TRANS_SET ah-sha256-hmac esp-aes\nR4(cfg-crypto-trans)#mode tunnel\nR4(cfg-crypto-trans)#exit\n\nStep 5: Create the crypto map.\n\nR4(config)#crypto map IPSEC_MGMT_MAP 10 ipsec-isakmp\nR4(config-crypto-map)#set peer x.1.12.1\nR4(config-crypto-map)#match address MGMT_TRAFFIC_ACL\nR4(config-crypto-map)#set transform-set TRANS_SET\nR4(config-crypto-map)#end\n\nStep 6: Apply the crypto map to the external interface. \n\nR4(config)#int g0/2\nR4(config-if)#crypto map IPSEC_MGMT_MAP",
+   "cci": [
+    "CCI-001097",
+    "CCI-004891"
+   ],
+   "check_sha": "fb866dd11382eaf0"
+  },
+  "V-216679": {
+   "rule": "SV-216679r531086_rule",
+   "stig_id": "CISC-RT-000410",
+   "severity": "medium",
+   "title": "The Cisco out-of-band management (OOBM) gateway router must be configured to forward only authorized management traffic to the Network Operations Center (NOC).",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the network topology diagram to determine connectivity between the managed network and the NOC. Review the OOBM gateway router configuration to validate the path that the management traffic traverses. Verify that only management traffic is forwarded through the OOBM interface or IPsec tunnel.\n\nIf an OOBM link is used, verify that the only authorized management traffic is transported to the NOC by reviewing the outbound ACL applied to the OOBM interface as shown in the example below:\n\nStep 1: Note the outbound ACL applied to the OOBM interface.\n\ninterface GigabitEthernet0/2\n description OOB link to NOC\n ip address 10.11.1.8 255.255.255.0\n ip access-group MGMT_TRAFFIC_ACL out\n\nStep 2: Review the outbound ACL and verify only management traffic is forwarded to the NOC.\n\nip access-list extended MGMT_TRAFFIC_ACL\n permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq tacacs\n permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq 22\n permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp\n permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp-trap\n permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq syslog\n permit icmp 10.1.34.0 0.0.0.255 10.22.22.0 0.0.0.255 \n deny   ip any any log-input\n\nIf an IPSec tunnel is used, verify that the only authorized management traffic is transported to the NOC.\n\nStep 1: Note the crypto map applied to the external interface.\n\n interface interface GigabitEthernet0/2\n description link to DISN\n ip address x.1.24.4 255.255.255.0\n crypto map IPSEC_MGMT_MAP\n\nStep 2: Review the crypto map that was bound to the external interface and note the ACL defined that identifies the interesting traffic for the IPsec tunnel.\n\ncrypto map IPSEC_MGMT_MAP 10 ipsec-isakmp\n set peer x.1.12.1\n set transform-set TRANS_SET\n match address MGMT_TRAFFIC_ACL\n\nStep 3: Review the ACL defined in the crypto map and verify only management traffic is forwarded to the NOC.\n\nip access-list extended MGMT_TRAFFIC_ACL\n permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq tacacs\n permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq 22\n permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp\n permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp-trap\n permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq syslog\n permit icmp 10.1.34.0 0.0.0.255 10.22.22.0 0.0.0.255\n\nNote: ICMP is permitted for troubleshooting purposes. The IPSec SA can only identify interesting traffic via address, protocol, and port; hence, the ICMP traffic cannot be qualified via type attribute.\n\nIf traffic other than authorized management traffic is permitted through the OOBM interface or IPsec tunnel, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure ACLs to permit only authorized management traffic into IPsec tunnels or the OOBM interface used for forwarding management data as shown in the examples below:\n\nOOBM Link:\n\nR4(config)#ip access-list extended MGMT_TRAFFIC_ACL\nR4(config-ext-nacl)#permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq tacacs\nR4(config-ext-nacl)#permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq 22\nR4(config-ext-nacl)#permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp\nR4(config-ext-nacl)#permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp-trap\nR4(config-ext-nacl)#permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq syslog\nR4(config-ext-nacl)#permit icmp 10.1.34.0 0.0.0.255 10.22.22.0 0.0.0.255 echo\nR4(config-ext-nacl)#permit icmp 10.1.34.0 0.0.0.255 10.22.22.0 0.0.0.255 echo-reply\nR4(config-ext-nacl)#deny   ip any any log-input\nR4(config-ext-nacl)#exit\n\nIPsec Tunnel:\n\nR4(config)#ip access-list extended MGMT_TRAFFIC_ACL\nR4(config-ext-nacl)#permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq tacacs\nR4(config-ext-nacl)#permit tcp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq 22\nR4(config-ext-nacl)#permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp\nR4(config-ext-nacl)#permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq snmp-trap\nR4(config-ext-nacl)#permit udp 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255 eq syslog\nR4(config-ext-nacl)#permit icmp 10.1.34.0 0.0.0.255 22.22.22.0 0.0.0.255\nR4(config-ext-nacl)#exit",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "152c22c1681565b9"
+  },
+  "V-216680": {
+   "rule": "SV-216680r1117237_rule",
+   "stig_id": "CISC-RT-000420",
+   "severity": "medium",
+   "title": "The Cisco out-of-band management (OOBM) gateway router must be configured to have separate Interior Gateway Protocol (IGP) instances for the managed network and management network.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nVerify that the OOBM interface is an adjacency in the IGP domain for the management network via separate VRF as shown in the example below:\n\nrouter ospf 1 vrf MGMT\n log-adjacency-changes\n network 0.0.0.0 255.255.255.255 area 0\n!\nrouter ospf 2 vrf PROD\n log-adjacency-changes\n network 0.0.0.0 255.255.255.255 area 0\n\nIf the router is not configured to have separate IGP instances for the managed network and management network, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to have a separate IGP instance for the management network as shown in the example below:\n\nR3(config)#router ospf 1 vrf MGMT\nR3(config-router)#network 0.0.0.0 0.0.0.0 area 0\nR3(config-router)#exit\nR3(config)#router ospf 2 vrf PROD\nR3(config-router)#network 0.0.0.0 0.0.0.0 area 0\nR3(config-router)#end",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "944eedb54d38910a"
+  },
+  "V-216681": {
+   "rule": "SV-216681r1117237_rule",
+   "stig_id": "CISC-RT-000430",
+   "severity": "medium",
+   "title": "The Cisco out-of-band management (OOBM) gateway router must be configured to not redistribute routes between the management network routing domain and the managed network routing domain.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nVerify the IGP instance used for the managed network does not redistribute routes into the IGP instance used for the management network, and vice versa. The example below imports OSPF routes from the production route table (VRF PROD) into the management route table (VRF MGMT) using BGP.\n\nip vrf MGMT\n rd 4:4\n route-target export 4:4\n route-target import 4:4\n route-target import 8:8\n!\nip vrf PROD\n rd 8:8\n route-target import 8:8\n route-target export 8:8\n…\n…\n…\nrouter ospf 1 vrf MGMT\n log-adjacency-changes\n redistribute bgp 64512 subnets\n network 0.0.0.0 255.255.255.255 area 0\n!\nrouter ospf 2 vrf PROD\n log-adjacency-changes\n network 0.0.0.0 255.255.255.255 area 0\n!\nrouter bgp 64512\n no synchronization\n bgp log-neighbor-changes\n no auto-summary\n !\n address-family ipv4 vrf MGMT\n  no synchronization\n  redistribute ospf 1 vrf MGMT\n exit-address-family\n !\n address-family ipv4 vrf PROD\n  no synchronization\n  redistribute ospf 2 vrf PROD\n exit-address-family\n\nIf the IGP instance used for the managed network redistributes routes into the IGP instance used for the management network, or vice versa, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nRemove the configuration that imports routes from the managed network into the management network or vice versa as shown in the example below:\n\nR1(config)#ip vrf MGMT\nR1(config-vrf)#no route-target import 8:8",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "9ca745ed3c70a237"
+  },
+  "V-216682": {
+   "rule": "SV-216682r531086_rule",
+   "stig_id": "CISC-RT-000440",
+   "severity": "medium",
+   "title": "The Cisco out-of-band management (OOBM) gateway router must be configured to block any traffic destined to itself that is not sourced from the OOBM network or the Network Operations Center (NOC).",
+   "check": "This requirement is not applicable for the DODIN Backbone. It is only applicable if the OOBM gateway router is not a dedicated device to the OOBM backbone.\n\nVerify that traffic destined to itself is only sourced by the OOBM or the NOC. In the example below, the OOBM backbone network is 10.11.1.0/24, the NOC address spaces is 10.12.1.0/24, and the OOBM LAN address space at remote site connecting to the managed network is 10.13.1.0/24.\n\nStep 1: Note the inbound ACL applied to the OOBM interfaces.\n\ninterface GigabitEthernet0/2\n description OOB link to NOC\n ip address 10.11.1.8 255.255.255.0\n ip access-group TRAFFIC_FROM_NOC in\n!\ninterface GigabitEthernet0/3\n description link to OOBM LAN access switch\n ip address 10.13.1.1 255.255.255.0\n ip access-group TRAFFIC_TO_NOC in\n\nIf the ACL is not configured to only allow traffic to the route processor from the OOBM backbone and the NOC, this is a finding.\n\nStep 2: Review the inbound ACL bound to any OOB interface connecting to the OOBM backbone and verify traffic destined to itself is only from the OOBM or NOC address space.\n\nip access-list extended TRAFFIC_FROM_NOC\n permit ip 10.11.1.0 0.255.255.255 host 10.11.1.8\n permit ip 10.12.1.0 0.255.255.255 host 10.11.1.8\n permit ip 10.11.1.0 0.255.255.255 host 10.13.1.1\n permit ip 10.12.1.0 0.255.255.255 host 10.13.1.1\n deny   ip any host 10.11.1.8 log-input\n deny   ip any host 10.13.1.1 log-input\n permit ip 10.11.1.0 0.0.0.255 10.13.1.0 0.0.0.255\n permit ip 10.12.1.0 0.0.0.255 10.13.1.0 0.0.0.255\n deny   ip any any log-input\n\nStep 3: Review the inbound ACL bound to any OOBM LAN interfaces and verify traffic destined to itself is from the OOBM LAN address space.\n\nip access-list extended TRAFFIC_TO_NOC\n permit ip 10.13.1.0 0.255.255.255 host 10.13.1.1\n permit ip 10.13.1.0 0.255.255.255 host 10.11.1.8\n deny   ip any host 10.13.1.1 log-input\n deny   ip any host 10.11.1.8 log-input\n permit ip 10.13.1.0 0.255.255.255 10.11.1.0 0.0.0.255\n permit ip 10.13.1.0 0.255.255.255 10.12.1.0 0.0.0.255\n deny   ip any any log-input\n\nIf the ACL is not configured to only allow traffic to the route processor from the OOBM LAN, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone. It is only applicable if the OOBM gateway router is not a dedicated device to the OOBM backbone.\n\nStep 1: Configure the ACL to only allow traffic to the route processor from the OOBM backbone and the NOC.\n\nR4(config)#ip access-list extended TRAFFIC_FROM_NOC\nR4(config-ext-nacl)#permit ip 10.11.1.0 0.255.255.255 host 10.11.1.8\nR4(config-ext-nacl)#permit ip 10.12.1.0 0.255.255.255 host 10.11.1.8\nR4(config-ext-nacl)#permit ip 10.11.1.0 0.255.255.255 host 10.13.1.1\nR4(config-ext-nacl)#permit ip 10.12.1.0 0.255.255.255 host 10.13.1.1\nR4(config-ext-nacl)#deny ip any host 10.11.1.8 log-input\nR4(config-ext-nacl)#deny ip any host 10.13.1.1 log-input\nR4(config-ext-nacl)#permit ip 10.11.1.0 0.0.0.255 10.13.1.0 0.0.0.255\nR4(config-ext-nacl)#permit ip 10.12.1.0 0.0.0.255 10.13.1.0 0.0.0.255\nR4(config-ext-nacl)#deny ip any any log-input\n\nStep 2: Configure the ACL to only allow traffic to the route processor from the OOBM LAN.\n\nR4(config)#ip access-list extended TRAFFIC_TO_NOC\nR4(config-ext-nacl)#permit ip 10.13.1.0 0.255.255.255 host 10.13.1.1\nR4(config-ext-nacl)#permit ip 10.13.1.0 0.255.255.255 host 10.11.1.8\nR4(config-ext-nacl)#deny ip any host 10.13.1.1 log-input\nR4(config-ext-nacl)#deny ip any host 10.11.1.8 log-input\nR4(config-ext-nacl)#permit ip 10.13.1.0 0.255.255.255 10.11.1.0 0.0.0.255\nR4(config-ext-nacl)#permit ip 10.13.1.0 0.255.255.255 10.12.1.0 0.0.0.255\nR4(config-ext-nacl)#deny ip any any log-input\nR4(config-ext-nacl)#exit\n\nStep 3: Apply the ACLs configured above to the appropriate OOBM interfaces as shown in the example below:\n\nR4(config)#int g0/2\nR4(config-if)#ip access-group TRAFFIC_FROM_NOC in\nR4(config)#int g0/3\nR4(config-if)#ip access-group TRAFFIC_TO_NOC in\nR4(config-if)#end",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "f260e279b9f3eede"
+  },
+  "V-216683": {
+   "rule": "SV-216683r531086_rule",
+   "stig_id": "CISC-RT-000450",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to only permit management traffic that ingresses and egresses the out-of-band management (OOBM) interface.",
+   "check": "This requirement is only applicable where management access to the router is via an OOBM interface which is not a true OOBM interface.\n\nStep 1: Verify that the managed interface has an inbound and outbound ACL configured. \n\ninterface GigabitEthernet0/7\n description link to OOBM access switch\n ip address 10.11.1.22 255.255.255.0\n ip access-group INGRESS_MANAGEMENT_ACL in\n ip access-group EGRESS_MANAGEMENT_ACL out\n\nStep 2: Verify that the ingress ACL only allows management and ICMP traffic. \n\nip access-list extended INGRESS_MANAGEMENT_ACL\n permit tcp any host 10.11.1.22 eq tacacs\n permit tcp any host 10.11.1.22 eq 22\n permit udp any host 10.11.1.22 eq snmp\n permit udp any host 10.11.1.22 eq snmptrap\n permit udp any host 10.11.1.22 eq ntp\n permit icmp any host 10.11.1.22\n deny   ip any any log-input\n\nStep 3: Verify that the egress ACL blocks any transit traffic.\n\nip access-list extended EGRESS_MANAGEMENT_ACL\n deny   ip any any log-input\n\nNote: On Cisco routers, local generated packets are not inspected by outgoing interface access-lists. Hence, the above configuration would simply drop any packets not generated by the router; hence, blocking any transit traffic.\n\nIf the router does not restrict traffic that ingresses and egresses the management interface, this is a finding.",
+   "fix": "If the management interface is not a dedicated OOBM interface, it must be configured with both an ingress and egress ACL.\n\nStep 1: Configure an ingress ACL a shown in the example below:\n\nR5(config)#ip access-list extended INGRESS_MANAGEMENT_ACL\nR5(config-ext-nacl)#permit tcp any host 10.11.1.22 eq tacacs\nR5(config-ext-nacl)#permit tcp any host 10.11.1.22 eq 22\nR5(config-ext-nacl)#permit udp any host 10.11.1.22 eq snmp\nR5(config-ext-nacl)#permit udp any host 10.11.1.22 eq snmptrap\nR5(config-ext-nacl)#permit udp any host 10.11.1.22 eq ntp\nR5(config-ext-nacl)#permit icmp any host 10.11.1.22\nR5(config-ext-nacl)#deny ip any any log-input\nR5(config-ext-nacl)#exit\n\nStep 2: Configure an egress ACL a shown in the example below:\n\nR5(config)#ip access-list extended EGRESS_MANAGEMENT_ACL\nR5(config-ext-nacl)#deny ip any any log-input\nR5(config-ext-nacl)#exit\n\nStep 3: Apply the ACLs to the OOBM interfaces.\n\nR4(config)#int g0/7\nR4(config-if)#ip access-group INGRESS_MANAGEMENT_ACL in\nR4(config-if)#ip access-group EGRESS_MANAGEMENT_ACL out",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "cf72f99447a461c4"
+  },
+  "V-216684": {
+   "rule": "SV-216684r531086_rule",
+   "stig_id": "CISC-RT-000460",
+   "severity": "medium",
+   "title": "The Cisco router providing connectivity to the Network Operations Center (NOC) must be configured to forward all in-band management traffic via an IPsec tunnel.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nVerify that all traffic from the managed network to the management network or NOC and vice-versa is secured via IPsec tunnel.\n\nStep 1: Note the crypto map applied to the external interface.\n\n interface GigabitEthernet0/2\n description link to DISN\n ip address x.1.24.4 255.255.255.0\n crypto map IPSEC_MGMT_MAP\n\nStep 2: Review the ISAKMP policy for Phase 1 negotiations and Phase 2 policy for data encryption.\n\ncrypto isakmp policy 10\n authentication pre-share\n hash sha256\n crypto isakmp key xxxxxx address x.1.12.1\n!\n!\ncrypto ipsec transform-set TRANS_SET ah-sha256-hmac esp-aes \n\nStep 3: Review the crypto map that was bound to the external interface and note the ACL defined that identifies the interesting traffic for the IPsec tunnel.\n\ncrypto map IPSEC_MGMT_MAP 10 ipsec-isakmp\n set peer x.1.12.1\n set transform-set TRANS_SET\n match address MGMT_TRAFFIC_ACL\n\nStep 4: Review the ACL defined in the crypto map and verify that the destination is the management network.\n\nip access-list extended MGMT_TRAFFIC_ACL\n permit ip 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255\n\nNote: The management network is this example is 10.22.2.0/24\n\nIf the management traffic is not secured via IPsec tunnel, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nEnsure that all traffic from the managed network to the management network is secured via IPsec tunnel as shown in the configuration examples below.\n\nStep 1: Configure the ACL for the management network as the destination. This ACL will be defined in the crypto as the interesting traffic to be forwarded into the IPsec tunnel.\n\nR4(config)#ip access-list extended MGMT_TRAFFIC_ACL\nR4(config-ext-nacl)#permit ip 10.1.34.0 0.0.0.255 10.22.2.0 0.0.0.255\nR4(config-ext-nacl)#exit\n\nStep 2: Create an ISAKMP policy for Phase 1 negotiations.\n\nR4(config)#crypto isakmp policy 10\nR4(config-isakmp)#hash sha256\nR4(config-isakmp)#authentication pre-share\nR4(config-isakmp)#exit\n\nStep 3: Specify the pre-shared key and the remote peer address.\n\nR4(config)#crypto isakmp key 0 xxxxxx address 10.1.12.1\n\nNote: Digital certificates can be utilized as an alternative.\n \nStep 4: Create the Phase 2 policy for the data encryption.\n\nR4(config)#crypto ipsec transform-set TRANS_SET ah-sha256-hmac esp-aes\nR4(cfg-crypto-trans)#mode tunnel\nR4(cfg-crypto-trans)#exit\n\nStep 5: Create the crypto map.\n\nR4(config)#crypto map IPSEC_MGMT_MAP 10 ipsec-isakmp\nR4(config-crypto-map)#set peer 10.1.12.1\nR4(config-crypto-map)#match address MGMT_TRAFFIC_ACL\nR4(config-crypto-map)#set transform-set TRANS_SET\nR4(config-crypto-map)#end\n\nStep 6: Apply the crypto map to the external interface. \n\nR4(config)#int g0/2\nR4(config-if)#crypto map IPSEC_MGMT_MAP",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "310ea25269124e5b"
+  },
+  "V-216687": {
+   "rule": "SV-216687r1117236_rule",
+   "stig_id": "CISC-RT-000490",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to reject inbound route advertisements for any Bogon prefixes.",
+   "check": "This check is Not Applicable for JRSS internal EBGP use.\n\nReview the router configuration to verify that it will reject BGP routes for any Bogon prefixes.\n\nStep 1: Verify a prefix list has been configured containing the current Bogon prefixes as shown in the example below:\n\nip prefix-list PREFIX_FILTER seq 5 deny 0.0.0.0/8 le 32\nip prefix-list PREFIX_FILTER seq 10 deny 10.0.0.0/8 le 32\nip prefix-list PREFIX_FILTER seq 15 deny 100.64.0.0/10 le 32\nip prefix-list PREFIX_FILTER seq 20 deny 127.0.0.0/8 le 32\nip prefix-list PREFIX_FILTER seq 25 deny 169.254.0.0/16 le 32\nip prefix-list PREFIX_FILTER seq 30 deny 172.16.0.0/12 le 32\nip prefix-list PREFIX_FILTER seq 35 deny 192.0.2.0/24 le 32\nip prefix-list PREFIX_FILTER seq 40 deny 192.88.99.0/24 le 32\nip prefix-list PREFIX_FILTER seq 45 deny 192.168.0.0/16 le 32\nip prefix-list PREFIX_FILTER seq 50 deny 198.18.0.0/15 le 32\nip prefix-list PREFIX_FILTER seq 55 deny 198.51.100.0/24 le 32\nip prefix-list PREFIX_FILTER seq 60 deny 203.0.113.0/24 le 32\nip prefix-list PREFIX_FILTER seq 65 deny 224.0.0.0/4 le 32\nip prefix-list PREFIX_FILTER seq 70 deny 240.0.0.0/4 le 32\nip prefix-list PREFIX_FILTER seq 75 permit 0.0.0.0/0 ge 8\n\nStep 2: Verify that the prefix list has been applied to all external BGP peers as shown in the example below:\n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.1.1.9 remote-as yy\n neighbor x.1.1.9 prefix-list PREFIX_FILTER in\n neighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 prefix-list PREFIX_FILTER in\n\nRoute Map Alternative: \n\nVerify that the route map applied to the external neighbors references the configured Bogon prefix list shown above.\n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.1.1.9 remote-as yy\n neighbor x.1.1.9 route-map FILTER_PREFIX_MAP\n neighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 route-map FILTER_PREFIX_MAP\n…\nroute-map FILTER_PREFIX_MAP permit 10\n match ip address prefix-list PREFIX_FILTER\n\nIf the router is not configured to reject inbound route advertisements for any Bogon prefixes, this is a finding.",
+   "fix": "Configure the router to reject inbound route advertisements for any Bogon prefixes.\n\nStep 1: Configure a prefix list containing the current Bogon prefixes as shown below:\n\nR1(config)#ip prefix-list PREFIX_FILTER deny 0.0.0.0/8 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 10.0.0.0/8 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 100.64.0.0/10 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 127.0.0.0/8 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 169.254.0.0/16 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 172.16.0.0/12 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 192.0.2.0/24 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 192.88.99.0/24 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 192.168.0.0/16 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 198.18.0.0/15 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 198.51.100.0/24 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 203.0.113.0/24 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 224.0.0.0/4 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 240.0.0.0/4 le 32\nR1(config)#ip prefix-list PREFIX_FILTER deny 240.0.0.0/4 le 32\nR1(config)#ip prefix-list PREFIX_FILTER permit 0.0.0.0/0 ge 8\n\nStep 2: Apply the prefix list filter inbound to each external BGP neighbor as shown in the example:\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 prefix-list PREFIX_FILTER in\nR1(config-router)#neighbor x.2.1.7 prefix-list PREFIX_FILTER in\n\nRoute Map Alternative: \n\nStep 1: Configure the route map referencing the configured prefix list above.\n\nR1(config)#route-map FILTER_PREFIX_MAP 10\nR1(config-route-map)#match ip address prefix-list PREFIX_FILTER\nR1(config-route-map)#exit\n\nStep 2: Apply the route-map inbound to each external BGP neighbor as shown in the example:\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 route-map FILTER_PREFIX_MAP in\nR1(config-router)#neighbor x.2.1.7 route-map FILTER_PREFIX_MAP in \nR1(config-router)#end",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "9af86374c1611601"
+  },
+  "V-216688": {
+   "rule": "SV-216688r1117236_rule",
+   "stig_id": "CISC-RT-000500",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to reject inbound route advertisements for any prefixes belonging to the local autonomous system (AS).",
+   "check": "Review the router configuration to verify that it will reject routes belonging to the local AS.\n\nStep 1: Verify a prefix list has been configured containing prefixes belonging to the local AS. In the example below, x.13.1.0/24 is the global address space allocated to the local AS.\n\nip prefix-list PREFIX_FILTER seq 5 deny 0.0.0.0/8 le 32\n…\n…\n…\nip prefix-list PREFIX_FILTER seq 74 deny x.13.1.0/24 le 32\nip prefix-list PREFIX_FILTER seq 75 permit 0.0.0.0/0 ge 8\n\nStep 2: Verify that the prefix list has been applied to all external BGP peers as shown in the example below:\n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.1.1.9 remote-as yy\n neighbor x.1.1.9 prefix-list PREFIX_FILTER in\n neighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 prefix-list PREFIX_FILTER in\n\nIf the router is not configured to reject inbound route advertisements belonging to the local AS, this is a finding.",
+   "fix": "Configure the router to reject inbound route advertisements for any prefixes belonging to the local AS.\n\nStep 1: Add to the prefix filter list those prefixes belonging to the local autonomous system.\n\nR1(config)#ip prefix-list PREFIX_FILTER seq 74 deny x.13.1.0/24 le 32\n\nStep 2: If not already completed to be compliant with previous requirement, apply the prefix list filter inbound to each external BGP neighbor as shown in the example.\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 prefix-list PREFIX_FILTER in\nR1(config-router)#neighbor x.2.1.7 prefix-list PREFIX_FILTER in",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "26e833dd3b14c73c"
+  },
+  "V-216689": {
+   "rule": "SV-216689r1117236_rule",
+   "stig_id": "CISC-RT-000510",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to reject inbound route advertisements from a customer edge (CE) router for prefixes that are not allocated to that customer.",
+   "check": "Review the router configuration to verify that there are ACLs defined to only accept routes for prefixes that belong to specific customers. \n\nStep 1: Verify prefix list has been configured for each customer containing prefixes belonging to each customer as shown in the example below:\n\nip prefix-list PREFIX_FILTER_CUST1 seq 5 permit x.13.1.0/24 le 32\nip prefix-list PREFIX_FILTER_CUST1 seq 10 deny 0.0.0.0/0 ge 8\nip prefix-list PREFIX_FILTER_CUST2 seq 5 permit x.13.2.0/24 le 32\nip prefix-list PREFIX_FILTER_CUST2 seq 10 deny 0.0.0.0/0 ge 8\n\nStep 2: Verify that the prefix lists has been applied to all to the applicable CE peers as shown in the example below:\n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.12.4.14 remote-as 64514\n neighbor x.12.4.14 prefix-list FILTER_PREFIXES_CUST1 in\n neighbor x.12.4.16 remote-as 64516\n neighbor x.12.4.16 prefix-list FILTER_PREFIXES_CUST2 in\n\nNote: Routes to PE-CE links within a VPN are needed for troubleshooting end-to-end connectivity across the MPLS/IP backbone. Hence, these prefixes are an exception to this requirement.\n\nNote: This check is NA for JRSS systems.\n\nIf the router is not configured to reject inbound route advertisements from each CE router for prefixes that are not allocated to that customer, this is a finding.",
+   "fix": "Configure the router to reject inbound route advertisements from each CE router for prefixes that are not allocated to that customer.\n\nStep 1: Configure a prefix list for each customer containing prefixes belonging to each.\n\nR1(config)#ip prefix-list PREFIX_FILTER_CUST1 permit x.13.1.0/24 le 32\nR1(config)#ip prefix-list PREFIX_FILTER_CUST1 deny 0.0.0.0/0 ge 8\nR1(config)#ip prefix-list PREFIX_FILTER_CUST2 permit x.13.2.0/24 le 32\nR1(config)#ip prefix-list PREFIX_FILTER_CUST2 deny 0.0.0.0/0 ge 8\n\nStep 2: Apply the prefix list filter inbound to each CE neighbor as shown in the example.\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.12.4.14 prefix-list FILTER_PREFIXES_CUST1 in\nR1(config-router)#neighbor x.12.4.16 prefix-list FILTER_PREFIXES_CUST2 in",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "3fccb6028d0228ce"
+  },
+  "V-216690": {
+   "rule": "SV-216690r1117236_rule",
+   "stig_id": "CISC-RT-000520",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to reject outbound route advertisements for any prefixes that do not belong to any customers or the local autonomous system (AS).",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Verify that a prefix list has been configured containing prefixes belonging to customers as well as the local AS as shown in the example below.\n\nip prefix-list CE_PREFIX_ADVERTISEMENTS seq 5 permit x.13.1.0/24 le 32\nip prefix-list CE_PREFIX_ADVERTISEMENTS seq 10 permit x.13.2.0/24 le 32\nip prefix-list CE_PREFIX_ADVERTISEMENTS seq 15 permit x.13.3.0/24 le 32\nip prefix-list CE_PREFIX_ADVERTISEMENTS seq 20 permit x.13.4.0/24 le 32\n…\n…\n…\nip prefix-list CE_PREFIX_ADVERTISEMENTS seq 80 deny 0.0.0.0/0 ge 8\n\nStep 2: Verify that the prefix lists has been applied to all CE peers as shown in the example below.\n\nrouter bgp 64512\n no synchronization\n bgp log-neighbor-changes\n neighbor x.12.4.14 remote-as 64514\n neighbor x.12.4.14 prefix-list CE_PREFIX_ADVERTISEMENTS out\n neighbor x.12.4.16 remote-as 64516\n neighbor x.12.4.16 prefix-list CE_PREFIX_ADVERTISEMENTS out\n\nNote: This check is NA for JRSS systems.\n\nIf the router is not configured to reject outbound route advertisements that do not belong to any customers or the local AS, this is a finding.",
+   "fix": "Step 1: Configure a prefix list for containing all customer and local AS prefixes as shown in the example below:\n\nR1(config)#ip prefix-list CE_PREFIX_ADVERTISEMENTS permit x.13.1.0/24 le 32\nR1(config)#ip prefix-list CE_PREFIX_ADVERTISEMENTS permit x.13.2.0/24 le 32\nR1(config)#ip prefix-list CE_PREFIX_ADVERTISEMENTS permit x.13.3.0/24 le 32\nR1(config)#ip prefix-list CE_PREFIX_ADVERTISEMENTS permit x.13.4.0/24 le 32\n…\n…\n…\nR1(config)#ip prefix-list CE_PREFIX_ADVERTISEMENTS deny 0.0.0.0/0 ge 8\n\nStep 2: Apply the prefix list filter outbound to each CE neighbor as shown in the example.\n\nR1(config)#router bgp 64512\nR1(config-router)#neighbor x.12.4.14 prefix-list CE_PREFIX_ADVERTISEMENTS out\nR1(config-router)#neighbor x.12.4.16 prefix-list CE_PREFIX_ADVERTISEMENTS out",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "f83de2340fde8fb7"
+  },
+  "V-216691": {
+   "rule": "SV-216691r929058_rule",
+   "stig_id": "CISC-RT-000530",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to reject outbound route advertisements for any prefixes belonging to the IP core.",
+   "check": "Step 1: Verify that a prefix list has been configured containing prefixes belonging to the IP core.\n\nip prefix-list FILTER_CORE_PREFIXES seq 5 deny x.1.1.0/24 le 32\nip prefix-list FILTER _CORE_PREFIXES seq 10 deny x.1.2.0/24 le 32\nip prefix-list FILTER _CORE_PREFIXES seq 15 permit 0.0.0.0/0 ge 8\n\nStep 2: Verify that the prefix lists has been applied to all external BGP peers as shown in the example below:\n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.1.4.12 remote-as yy\n address-family ipv4 \n  neighbor x.1.4.12 prefix-list FILTER _CORE_PREFIXES out\n\nIf the router is not configured to reject outbound route advertisements for prefixes belonging to the IP core, this is a finding.",
+   "fix": "Step 1: Configure a prefix list for containing all customer and local AS prefixes as shown in the example below:\n\nR1(config)#ip prefix-list FILTER_CORE_PREFIXES deny x.1.1.0/24 le 32\nR1(config)#ip prefix-list FILTER _CORE_PREFIXES deny x.1.2.0/24 le 32\nR1(config)#ip prefix-list FILTER _CORE_PREFIXES permit 0.0.0.0/0 ge 8\n\nStep 2: Apply the prefix list filter outbound to each CE neighbor as shown in the example.\n\nrouter bgp xx\n address-family ipv4\n  neighbor x.1.4.12 prefix-list FILTER _CORE_PREFIXES out",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "0ff7caf15370a374"
+  },
+  "V-216692": {
+   "rule": "SV-216692r1117236_rule",
+   "stig_id": "CISC-RT-000540",
+   "severity": "low",
+   "title": "The Cisco BGP router must be configured to reject route advertisements from BGP peers that do not list their autonomous system (AS) number as the first AS in the AS_PATH attribute.",
+   "check": "Review the router configuration to verify the router is configured to deny updates received from eBGP peers that do not list their AS number as the first AS in the AS_PATH attribute.\n\nBy default, Cisco IOS enforces the first AS in the AS_PATH attribute for all route advertisements. Review the router configuration to verify that the command no bgp enforce-first-as is not configured.\n\nrouter bgp xx\n no synchronization\n no bgp enforce-first-as\n\nIf the router is not configured to reject updates from peers that do not list their AS number as the first AS in the AS_PATH attribute, this is a finding.",
+   "fix": "Configure the router to deny updates received from eBGP peers that do not list their AS number as the first AS in the AS_PATH attribute.\n\nR1(config)#router bgp xx\nR1(config-router)#bgp enforce-first-as",
+   "cci": [
+    "CCI-000032"
+   ],
+   "check_sha": "23159e820dd8b5a9"
+  },
+  "V-216693": {
+   "rule": "SV-216693r1117236_rule",
+   "stig_id": "CISC-RT-000550",
+   "severity": "low",
+   "title": "The Cisco BGP router must be configured to reject route advertisements from CE routers with an originating AS in the AS_PATH attribute that does not belong to that customer.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify the router is configured to deny updates received from CE routers with an originating AS in the AS_PATH attribute that does not belong to that customer.\n\nStep 1: Review router configuration and verify that there is an as-path access-list statement defined to only accept routes from a CE router whose AS did not originate the route. The configuration should look similar to the following:\n\nip as-path access-list 10 permit ^yy$\nip as-path access-list 10 deny .*\n\nNote: the characters “^” and “$” representing the beginning and the end of the expression respectively are optional and are implicitly defined if omitted.\n\nStep 2: Verify that the as-path access-list is referenced by the filter-list inbound for the appropriate BGP neighbors as shown in the example below:\n\nrouter bgp xx\nneighbor x.1.4.12 remote-as yy\nneighbor x.1.4.12 filter-list 10 in\n\nIf the router is not configured to reject updates from CE routers with an originating AS in the AS_PATH attribute that does not belong to that customer, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to reject updates from CE routers with an originating AS in the AS_PATH attribute that do not belong to that customer.\n\nStep 1: Configure the as-path ACL as shown in the example below:\n\nR1(config)#ip as-path access-list 10 permit ^yy$\nR1(config)#ip as-path access-list 10 deny .*\n\nStep 2: Apply the as-path filter inbound as shown in the example below:\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.4.12 filter-list 10 in",
+   "cci": [
+    "CCI-000032"
+   ],
+   "check_sha": "8161ff5cbd9326cb"
+  },
+  "V-216694": {
+   "rule": "SV-216694r855824_rule",
+   "stig_id": "CISC-RT-000560",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to use the maximum prefixes feature to protect against route table flooding and prefix de-aggregation attacks.",
+   "check": "Review the router configuration to verify that the number of received prefixes from each eBGP neighbor is controlled.\n\nrouter bgp xx\nneighbor x.1.1.9 remote-as yy\nneighbor x.1.1.9 maximum-prefix nnnnnnn\nneighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 maximum-prefix nnnnnnn\n\nIf the router is not configured to control the number of prefixes received from each peer to protect against route table flooding and prefix de-aggregation attacks, this is a finding.",
+   "fix": "Configure the router to use the maximum prefixes feature to protect against route table flooding and prefix de-aggregation attacks as shown in the example below:\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 maximum-prefix nnnnnnn\nR1(config-router)#neighbor x.2.1.7 maximum-prefix nnnnnnn",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "32b2114d20d0a7f2"
+  },
+  "V-216695": {
+   "rule": "SV-216695r855825_rule",
+   "stig_id": "CISC-RT-000570",
+   "severity": "low",
+   "title": "The Cisco BGP router must be configured to limit the prefix size on any inbound route advertisement to /24, or the least significant prefixes issued to the customer.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to determine if it is compliant with this requirement.\n\nStep 1: Verify that a route filter has been configured to reject prefixes longer than /24, or the least significant prefixes issued to the customers as shown in the example below:\n\nip prefix-list FILTER_PREFIX_LENGTH seq 5 permit 0.0.0.0/0 ge 8 le 24\nip prefix-list FILTER_PREFIX_LENGTH seq 10 deny 0.0.0.0/0 le 32\n\nStep 2: Verify that prefix filtering has been applied to each eBGP peer as shown in the example:\n\nrouter bgp xx\n neighbor x.1.1.9 remote-as yy\n neighbor x.1.1.9 prefix-list FILTER_PREFIX_LENGTH in\n neighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 prefix-list FILTER_PREFIX_LENGTH in\n\n\nIf the router is not configured to limit the prefix size on any inbound route advertisement to /24, or the least significant prefixes issued to the customer, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to limit the prefix size on any route advertisement to /24 or the least significant prefixes issued to the customer.\n\nStep 1: Configure a prefix list to reject any prefix that is longer than /24.\n\nR1(config)#ip prefix-list FILTER_PREFIX_LENGTH permit 0.0.0.0/0 ge 8 le 24\nR1(config)#ip prefix-list FILTER_PREFIX_LENGTH deny  0.0.0.0/0 le 32\n\n\nStep 2: Apply the prefix list to all eBGP peers as shown in the example below.\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 prefix-list FILTER_PREFIX_LENGTH in\nR1(config-router)#neighbor x.2.1.7 prefix-list FILTER_PREFIX_LENGTH in",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "7c3ffdad10c85d07"
+  },
+  "V-216696": {
+   "rule": "SV-216696r991893_rule",
+   "stig_id": "CISC-RT-000580",
+   "severity": "low",
+   "title": "The Cisco BGP router must be configured to use its loopback address as the source address for iBGP peering sessions.",
+   "check": "Step 1: Review the router configuration to verify that a loopback address has been configured.\n\ninterface Loopback0\n ip address 10.1.1.1 255.255.255.255\n\nStep 2: Verify that the loopback interface is used as the source address for all iBGP sessions.\n\nrouter bgp xx\n no synchronization\n no bgp enforce-first-as\n bgp log-neighbor-changes\n redistribute static\n neighbor 10.1.1.1 remote-as xx\n neighbor 10.1.1.1 password xxxxxxxx\n neighbor 10.1.1.1 update-source Loopback0\n \nIf the router does not use its loopback address as the source address for all iBGP sessions, this is a finding.",
+   "fix": "Configure the router to use its loopback address as the source address for all iBGP peering.\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor 10.1.1.1 update-source Loopback0",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "278e2ff9da26c735"
+  },
+  "V-216697": {
+   "rule": "SV-216697r991894_rule",
+   "stig_id": "CISC-RT-000590",
+   "severity": "low",
+   "title": "The Cisco MPLS router must be configured to use its loopback address as the source address for LDP peering sessions.",
+   "check": "Review the router configuration to determine if it is compliant with this requirement.\n\nVerify that a loopback address has been configured as shown in the following example:\n\ninterface Loopback0\n ip address 10.1.1.1 255.255.255.255\n\nBy default, routers will use its loopback address for LDP peering. If an address has not be configured on the loopback interface, it will use its physical interface connecting to the LDP peer. If the router-id command is specified that overrides this default behavior, verify that it is a loopback interface as shown in the example below:\n\nmpls ldp router-id Loopback0\n\nIf the router is not configured to use its loopback address for LDP peering, this is a finding.",
+   "fix": "Configure the router to use their loopback address as the source address for LDP peering sessions. As noted in the check content, the default behavior is to use its loopback address. \n\nR4(config)#mpls ldp router-id lo0",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "127ef55c2397ac46"
+  },
+  "V-216698": {
+   "rule": "SV-216698r531086_rule",
+   "stig_id": "CISC-RT-000600",
+   "severity": "low",
+   "title": "The Cisco MPLS router must be configured to synchronize Interior Gateway Protocol (IGP) and LDP to minimize packet loss when an IGP adjacency is established prior to LDP peers completing label exchange.",
+   "check": "Review the router OSPF or IS-IS configuration and verify that LDP will synchronize with the link-state routing protocol as shown in the example below:\n\nOSPF Example:\n\nrouter ospf 1\n mpls ldp sync\n\nIS-IS Example:\n\nrouter isis\n mpls ldp sync\n net 49.0001.1234.1600.5531.00\n\nIf the router is not configured to synchronize IGP and LDP, this is a finding.",
+   "fix": "Configure the MPLS router to synchronize IGP and LDP, minimizing packet loss when an IGP adjacency is established prior to LDP peers completing label exchange.\n\nOSPF Example:\n\nR2(config)#router ospf 1\nR2(config-router)#mpls ldp sync\n\nIS-IS Example:\n\nR5(config)#router isis\nR5(config-router)#mpls ldp sync",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "6ba42c2f112d281a"
+  },
+  "V-216699": {
+   "rule": "SV-216699r531086_rule",
+   "stig_id": "CISC-RT-000610",
+   "severity": "low",
+   "title": "The MPLS router with RSVP-TE enabled must be configured with message pacing to adjust maximum burst and maximum number of RSVP messages to an output queue based on the link speed and input queue size of adjacent core routers.",
+   "check": "Review the router configuration to determine RSVP messages are rate limited.\n\nStep 1: Determine if MPLS TE is enabled globally and at least one interface as shown in the example below: \n\nmpls traffic-eng tunnels\n…\n…\n…\ninterface GigabitEthernet0/2\n ip address x.x.x.x 255.255.255.0\n mpls traffic-eng tunnels\n mpls ip\n\nStep 2: If MPLS TE is enabled, verify that message pacing is enabled.\n\nip rsvp signalling rate-limit period 30 burst 9 maxsize 2100 limit 50\n\nNote: The command \"ip rsvp msg-pacing\" has been deprecated by the command \"ip rsvp signalling rate-limit\" \n\nIf the router with RSVP-TE enabled does not rate limit RSVP messages based on the link speed and input queue size of adjacent core routers, this is a finding.",
+   "fix": "Configure the router to rate limit RSVP messages per interface as shown in the example.\n\nR2(config)#ip rsvp signalling rate-limit burst 9  maxsize 2100 period 30 limit 50",
+   "cci": [
+    "CCI-001095"
+   ],
+   "check_sha": "86b611e6cddf03af"
+  },
+  "V-216700": {
+   "rule": "SV-216700r531086_rule",
+   "stig_id": "CISC-RT-000620",
+   "severity": "medium",
+   "title": "The Cisco MPLS router must be configured to have TTL Propagation disabled.",
+   "check": "Review the router configuration to verify that TTL propagation is disabled as shown in the example below:\n\nno mpls ip propagate-ttl\n\nIf the MPLS router is not configured to disable TTL propagation, this is a finding.",
+   "fix": "Configure the MPLS router to disable TTL propagation as shown in the example below:\n\nR5(config)#no mpls ip propagate-ttl",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "6750a63616696c62"
+  },
+  "V-216701": {
+   "rule": "SV-216701r991895_rule",
+   "stig_id": "CISC-RT-000630",
+   "severity": "high",
+   "title": "The Cisco PE router must be configured to have each Virtual Routing and Forwarding (VRF) instance bound to the appropriate physical or logical interfaces to maintain traffic separation between all MPLS L3VPNs.",
+   "check": "Step 1: Review the design plan for deploying MPLS/L3VPN.\n\nStep 2: Review all CE-facing interfaces and verify that the proper VRF is defined via the \"ip vrf forwarding\" command. In the example below, COI1 is bound to interface GigabitEthernet0/1, while COI2 is bound to GigabitEthernet0/2.\n\ninterface GigabitEthernet0/1\n description link to COI1\n ip vrf forwarding COI1\n ip address x.1.0.1 255.255.255.0\n!\ninterface GigabitEthernet0/2\n description link to COI2\n ip vrf forwarding COI2\n ip address x.2.0.2 255.255.255.0\n\nIf any VRFs are not bound to the appropriate physical or logical interface, this is a finding.",
+   "fix": "Configure the PE router to have each VRF bound to the appropriate physical or logical interfaces to maintain traffic separation between all MPLS L3VPNs.",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "72e2971d468a39a7"
+  },
+  "V-216702": {
+   "rule": "SV-216702r991897_rule",
+   "stig_id": "CISC-RT-000640",
+   "severity": "high",
+   "title": "The Cisco PE router must be configured to have each Virtual Routing and Forwarding (VRF) instance with the appropriate Route Target (RT).",
+   "check": "Review the design plan for MPLS/L3VPN to determine what RTs have been assigned for each VRF. Review the router configuration and verify that the correct RT is configured for each VRF. In the example below, route target 13:13 has been configured for customer 1.\n\nip vrf CUST1\n rd 13:13\n route-target export 13:13\n route-target import 13:13\n\nIf there are VRFs configured with the wrong RT, this is a finding.",
+   "fix": "Configure the router to have each VRF instance defined with the correct RT.\n\nR5(config)#ip vrf CUST1\nR5(config-vrf)#route-target import 13:13\nR5(config-vrf)#route-target export 13:13\nR5(config-vrf)#end",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "d0d266efa02cbd6d"
+  },
+  "V-216703": {
+   "rule": "SV-216703r991899_rule",
+   "stig_id": "CISC-RT-000650",
+   "severity": "medium",
+   "title": "The Cisco PE router must be configured to have each VRF with the appropriate Route Distinguisher (RD).",
+   "check": "Review the design plan for MPLS/L3VPN to determine what RD have been assigned for each VRF. Review the router configuration and verify that the correct RD is configured for each VRF. In the example below, route distinguisher 13:13 has been configured for customer 1.\n\nip vrf CUST1\n rd 13:13\n\nNote: This requirement is only applicable for MPLS L3VPN implementations.\n\nIf the wrong RD has been configured for any VRF, this is a finding.",
+   "fix": "Configure the correct RD for each VRF.\n\nR5(config)#ip vrf CUST1\nR5(config-vrf)#rd 13:13\nR5(config-vrf)#end",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "09828f6012843d93"
+  },
+  "V-216704": {
+   "rule": "SV-216704r864163_rule",
+   "stig_id": "CISC-RT-000660",
+   "severity": "medium",
+   "title": "The Cisco PE router providing MPLS Layer 2 Virtual Private Network (L2VPN) services must be configured to authenticate targeted Label Distribution Protocol (LDP) sessions used to exchange virtual circuit (VC) information using a FIPS-approved message authentication code algorithm.",
+   "check": "The Cisco router is not compliant with this requirement; hence, it is a finding. However, the severity level can be downgraded to a category 3 if the router is configured to authenticate targeted LDP sessions using MD5 as shown in the configuration example below.\n\nmpls ldp neighbor 10.1.1.2 password xxxxxxx\nmpls label protocol ldp\n\nIf the router is not configured to authenticate targeted LDP sessions using MD5, the finding will remain as a CAT II.",
+   "fix": "The severity level can be downgraded to a category 3 if the router is configured to authenticate targeted LDP sessions using MD5 as shown in the example below.\n\nR5(config)#mpls ldp neighbor 10.1.1.2 password xxxxxxxx",
+   "cci": [
+    "CCI-001958"
+   ],
+   "check_sha": "615c07d50e0c6e6d"
+  },
+  "V-216705": {
+   "rule": "SV-216705r991900_rule",
+   "stig_id": "CISC-RT-000670",
+   "severity": "high",
+   "title": "The Cisco PE router providing MPLS Virtual Private Wire Service (VPWS) must be configured to have the appropriate virtual circuit identification (VC ID) for each attachment circuit.",
+   "check": "Verify that the correct and unique VCID has been configured for the appropriate attachment circuit. In the example below, GigabitEthernet0/1 is the CE-facing interface that is configured for VPWS with the VCID of 55.\n\ninterface GigabitEthernet0/1\n xconnect x.2.2.12 55 encapsulation mpls\n\nIf the correct VC ID has not been configured on both routers, this is a finding.",
+   "fix": "Assign globally unique VC IDs for each virtual circuit and configure the attachment circuits with the appropriate VC ID. \n\nR5(config)#int g0/1\nR5(config-if)#xconnect x.2.2.12 55 encapsulation mpls",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "0f4c5be7d69e3eca"
+  },
+  "V-216706": {
+   "rule": "SV-216706r531086_rule",
+   "stig_id": "CISC-RT-000680",
+   "severity": "high",
+   "title": "The Cisco PE router providing Virtual Private LAN Services (VPLS) must be configured to have all attachment circuits defined to the virtual forwarding instance (VFI) with the globally unique VPN ID assigned for each customer VLAN.",
+   "check": "Review the implementation plan and the VPN IDs assigned to customer VLANs for the VPLS deployment.\n\nReview the PE router configuration to verify that customer attachment circuits are associated to the appropriate VFI. In the example below, the attached circuit at interface GigabitEthernet3 is associated to VPN ID 110.\n\nl2 vfi VPLS_A manual \n vpn id 110\n bridge-domain 100\n neighbor 10.3.3.3 encapsulation mpls\n neighbor 10.3.3.4 encapsulation mpls\n…\n…\n…\ninterface GigabitEthernet3\n no ip address\n service instance 10 ethernet\n  encapsulation untagged\n  bridge-domain 100\n\nIf the attachment circuits have not been bound to VFI configured with the assigned VPN ID for each VLAN, this is a finding.",
+   "fix": "Assign globally unique VPN IDs for each customer bridge domain using VPLS for carrier Ethernet services between multiple sites, and configure the attachment circuits to the appropriate VFI.\n\nR1(config)#l2 vfi VPLS_A manual\nR1(config-vfi)#vpn id 110\nR1(config-vfi)#neighbor 10.3.3.3 encapsulation mpls\nR1(config-vfi)#bridge-domain 100\nR1(config-vfi)#exit\nR1(config-if)#service instance 10 ethernet\nR1(config-if-srv)#encapsulation untagged \nR1(config-if-srv)#bridge-domain 100\nR1(config-if-srv)#end",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "65bc5c4c63def043"
+  },
+  "V-216707": {
+   "rule": "SV-216707r531086_rule",
+   "stig_id": "CISC-RT-000690",
+   "severity": "low",
+   "title": "The Cisco PE router must be configured to enforce the split-horizon rule for all pseudowires within a Virtual Private LAN Services (VPLS) bridge domain.",
+   "check": "Review the PE router configuration to verify that split horizon is enabled. By default, split horizon is enabled; hence, the attribute no-split-horizon should not be seen on the neighbor command as shown in the example below:\n\nl2 vfi VPLS_A manual \n vpn id 110\n bridge-domain 100\n neighbor 10.3.3.3 encapsulation mpls no-split-horizon\n\nIf split horizon is not enabled, this is a finding.\n\nNote: This requirement is only applicable to a mesh VPLS topology. VPLS solves the loop problem by using a split-horizon rule which states that member PE routers of a VPLS must forward VPLS traffic only to the local attachment circuits when they receive the traffic from the other PE routers. In a ring VPLS, split horizon must be disabled so that a PE router can forward a packet received from one pseudowire to another pseudowire. To prevent the consequential loop, at least one span in the ring would not have a pseudowire for any given VPLS instance.",
+   "fix": "Enable split horizon on all PE routers deploying VPLS in a full-mesh configuration.\n\nR1(config)#l2 vfi VPLS_A manual                                 \nR1(config-vfi)#neighbor 10.3.3.3 encapsulation mpls",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "7536e018f40a7e66"
+  },
+  "V-216708": {
+   "rule": "SV-216708r531086_rule",
+   "stig_id": "CISC-RT-000700",
+   "severity": "medium",
+   "title": "The Cisco PE router providing Virtual Private LAN Services (VPLS) must be configured to have traffic storm control thresholds on CE-facing interfaces.",
+   "check": "Review the router configuration to verify that storm control is enabled on CE-facing interfaces deploying VPLS as shown in the example below:\n\ninterface GigabitEthernet3\n no ip address\n service instance 10 ethernet\n  encapsulation untagged\n  bridge-domain 100\n  storm-control broadcast cir 12000000 \n !\n!\n\nIf storm control is not enabled at a minimum for broadcast traffic, this is a finding.",
+   "fix": "Configure storm control for each CE-facing interface as shown in the example below:\n\nR1(config)#int g3\nR1(config-if)#service instance 10 ethernet \nR1(config-if-srv)#storm-control broadcast cir 12000000\nR1(config-if-srv)#end\n\nNote: The acceptable range is 10000000 -1000000000 for a gigabit ethernet interface, and 100000000-10000000000 for a ten gigabit interface. Storm control is not supported on most FastEthernet interfaces.",
+   "cci": [
+    "CCI-001095"
+   ],
+   "check_sha": "1473e4193854d018"
+  },
+  "V-216709": {
+   "rule": "SV-216709r855827_rule",
+   "stig_id": "CISC-RT-000710",
+   "severity": "low",
+   "title": "The Cisco PE router must be configured to implement Internet Group Management Protocol (IGMP) or Multicast Listener Discovery (MLD) snooping for each Virtual Private LAN Services (VPLS) bridge domain.",
+   "check": "Review the router configuration to verify that IGMP or MLD snooping has been configured for IPv4 and IPv6 multicast traffic respectively for each VPLS bridge domain. The example below are the steps to verify that IGMP snooping is enabled for a VPLS bridge domain.\n\nStep 1: Verify that IGMP snooping is enabled globally. By default, IGMP snooping is enabled globally; hence, the following command should not be in the router configuration:  no ip igmp snooping\n\nStep 2: If IGMP snooping is enabled globally, it will also be enabled by default for each VPLS bridge domain. Hence, the command no ip igmp snooping should not be configured for any VPLS bridge domain as shown in the example below:\n\nbridge-domain 100 \n no ip igmp snooping\n!\n\nIf the router is not configured to implement IGMP or MLD snooping for each VPLS bridge domain, this is a finding.",
+   "fix": "Configure IGMP or MLD snooping for IPv4 and IPv6 multicast traffic respectively for each VPLS bridge domain.\n\nR1(config)#bridge-domain 100\nR1(config-bdomain)#ip igmp snooping \nR1(config-bdomain)#end",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "37b2cd4d5de66944"
+  },
+  "V-216710": {
+   "rule": "SV-216710r531086_rule",
+   "stig_id": "CISC-RT-000720",
+   "severity": "medium",
+   "title": "The Cisco PE router must be configured to limit the number of MAC addresses it can learn for each Virtual Private LAN Services (VPLS) bridge domain.",
+   "check": "Review the PE router configuration to determine if a MAC address limit has been set for each VPLS bridge domain.\n\nbridge-domain 100 \n mac limit maximum addresses nnnnn\n\nIf a limit has not been configured, this is a finding.",
+   "fix": "Configure a MAC address learning limit for each VPLS bridge domain.\n\nR1(config-bdomain)#mac limit maximum addresses nnnn",
+   "cci": [
+    "CCI-001094"
+   ],
+   "check_sha": "e41f7b83a47cf194"
+  },
+  "V-216711": {
+   "rule": "SV-216711r531086_rule",
+   "stig_id": "CISC-RT-000730",
+   "severity": "high",
+   "title": "The Cisco PE router must be configured to block any traffic that is destined to IP core infrastructure.",
+   "check": "Step 1: Review the router configuration to verify that an ingress ACL is applied to all external or CE-facing interfaces. \n\ninterface GigabitEthernet0/2\n ip address x.1.12.2 255.255.255.252\n ip access-group BLOCK_TO_CORE in\n\nStep 2: Verify that the ingress ACL discards and logs packets destined to the IP core address space. \n\nip access-list extended BLOCK_TO_CORE\n deny   ip any 10.1.x.0 0.0.255.255 log-input\n permit ip any any\n!\n\nIf the PE router is not configured to block any traffic with a destination address assigned to the IP core infrastructure, this is a finding.\n\nNote: Internet Control Message Protocol (ICMP) echo requests and traceroutes will be allowed to the edge from external adjacent neighbors.",
+   "fix": "Configure protection for the IP core to be implemented at the edges by blocking any traffic with a destination address assigned to the IP core infrastructure.\n\nStep 1: Configure an ingress ACL to discard and log packets destined to the IP core address space.\n \nR2(config)#ip access-list extended BLOCK_TO_CORE\nR2(config-ext-nacl)#deny ip any 10.1.x.0 0.0.255.255 log-input\nR2(config-ext-nacl)#exit\n\nStep 2: Apply the ACL inbound to all external or CE-facing interfaces.\n\nR2(config)#int R4(config)#int g0/2\nR2(config-if)#ip access-group BLOCK_TO_CORE in\nR2(config-if)#end",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "27309a876d87f816"
+  },
+  "V-216712": {
+   "rule": "SV-216712r531086_rule",
+   "stig_id": "CISC-RT-000740",
+   "severity": "medium",
+   "title": "The Cisco PE router must be configured with Unicast Reverse Path Forwarding (uRPF) loose mode enabled on all CE-facing interfaces.",
+   "check": "Review the router configuration to determine if uRPF loose mode is enabled on all CE-facing interfaces.\n\ninterface GigabitEthernet0/2\n ip address x.1.12.2 255.255.255.252\n ip access-group BLOCK_TO_CORE in\n ip verify unicast source reachable-via any\n\nIf uRPF loose mode is not enabled on all CE-facing interfaces, this is a finding.",
+   "fix": "Configure uRPF loose mode on all CE-facing interfaces as shown in the example below.\n\nR2(config)#int R4(config)#int g0/2\nR2(config-if)#ip verify unicast source reachable-via any\nR2(config-if)#end",
+   "cci": [
+    "CCI-001097"
+   ],
+   "check_sha": "9732e15a97ac0fb9"
+  },
+  "V-216714": {
+   "rule": "SV-216714r917433_rule",
+   "stig_id": "CISC-RT-000760",
+   "severity": "low",
+   "title": "The Cisco PE router must be configured to enforce a Quality-of-Service (QoS) policy to provide preferred treatment for mission-critical applications.",
+   "check": "Review the router configuration and verify that a QoS policy has been configured to provide preferred treatment for mission-critical applications.\n\nStep 1: Verify that the class-maps are configured to match on DSCP values as shown in the configuration example below:\n\nclass-map match-all C2_VOICE\n match ip dscp af47\nclass-map match-all VOICE\n match ip dscp ef\nclass-map match-all VIDEO\n match ip dscp af41\nclass-map match-all CONTROL_PLANE\n match ip dscp cs6\nclass-map match-all PREFERRED_DATA\n match ip dscp af33\n\nStep 2: Verify that the policy map reserves the bandwidth for each traffic type as shown in the following example:\n\npolicy-map QOS_POLICY\nclass C2_VOICE\n    priority percent 10\n class VOICE\n    priority percent 15\n class VIDEO\n    bandwidth percent 25\nclass CONTROL_PLANE\n    priority percent 10\n class PREFERRED_DATA\n    bandwidth percent 25\n class class-default\n    bandwidth percent 15\n\nStep 3: Verify that an output service policy is bound to all interfaces as shown in the configuration example below:\n\ninterface GigabitEthernet1/1\n ip address 10.1.15.1 255.255.255.252\n service-policy output QOS_POLICY\n!\ninterface GigabitEthernet1/2\n ip address 10.1.15.4 255.255.255.252\n service-policy output QOS_POLICY\n\nNote: Enclaves must mark or re-mark their traffic to be consistent with the DODIN backbone admission criteria to gain the appropriate level of service. A general DiffServ principle is to mark or trust traffic as close to the source as administratively and technically possible. However, certain traffic types might need to be re-marked before handoff to the DODIN backbone to gain admission to the correct class. If such re-marking is required, it is recommended that the re-marking be performed at the CE egress edge.\n\nIf the router is not configured to enforce a QoS policy in accordance with the QoS DODIN Technical Profile, this is a finding.",
+   "fix": "Configure to enforce a QoS policy to provide preferred treatment for mission-critical applications.\n\nStep 1: Configure class-maps to match on DSCP values as shown in the configuration example below:\n\nR5(config-cmap)#class-map match-all C2_VOICE\nR5(config-cmap)#match ip dscp 47\nR5(config-cmap)#class-map match-all VOICE\nR5(config-cmap)#match ip dscp ef\nR5(config-cmap)#class-map match-all VIDEO\nR5(config-cmap)#match ip dscp af41\nR5(config-cmap)#class-map match-all CONTROL_PLANE\nR5(config-cmap)#match ip dscp cs6\nR5(config)#class-map match-all PREFERRED_DATA\nR5(config-cmap)#match ip dscp af33\nR5(config-cmap)#exit\n\nStep 2: Configure a policy map to be applied to the core-layer-facing interface that reserves the bandwidth for each traffic type as shown in the example below:\n\nR5(config)#policy-map QOS_POLICY\nR5(config-pmap-c)#class C2_VOICE\nR5(config-pmap-c)#priority percent 10\nR5(config-pmap-c)#class VOICE\nR5(config-pmap-c)#priority percent 15\nR5(config-pmap-c)#class VIDEO\nR5(config-pmap-c)#bandwidth percent 25\nR5(config-pmap)#class CONTROL_PLANE\nR5(config-pmap-c)#priority percent 10\nR5(config-pmap-c)#class PREFERRED_DATA\nR5(config-pmap-c)#bandwidth percent 25\nR5(config-pmap-c)#class class-default\nR5(config-pmap-c)#bandwidth percent 15\nR5(config-pmap-c)#exit\nR5(config-pmap)#exit\n\nStep 3: Apply the output service policy to the core-layer-facing interface as shown in the configuration example below:\n\nR5(config)#int g1/1\nR5(config-if)#service-policy output QOS_POLICY\nR5(config-if)#exit\nR5(config)#int g1/2\nR5(config-if)#service-policy output QOS_POLICY\nR5(config-if)#end",
+   "cci": [
+    "CCI-001095"
+   ],
+   "check_sha": "854a68d453fa2a28"
+  },
+  "V-216715": {
+   "rule": "SV-216715r917436_rule",
+   "stig_id": "CISC-RT-000770",
+   "severity": "low",
+   "title": "The Cisco P router must be configured to enforce a Quality-of-Service (QoS) policy to provide preferred treatment for mission-critical applications.",
+   "check": "Review the router configuration and verify that a QoS policy has been configured to provide preferred treatment for mission-critical applications.\n\nStep 1: Verify that the class-maps are configured to match on DSCP values as shown in the configuration example below:\n\nclass-map match-all PREFERRED_DATA\n match ip dscp af33\nclass-map match-all CONTROL_PLANE\n match ip dscp cs6\nclass-map match-all VIDEO\n match ip dscp af41\nclass-map match-all VOICE\n match ip dscp ef\nclass-map match-all C2_VOICE\n match ip dscp 47\n\nStep 2: Verify that the policy map reserves the bandwidth for each traffic type as shown in the following example:\n\npolicy-map QOS_POLICY\n class CONTROL_PLANE\n    priority percent 10\n class C2_VOICE\n    priority percent 10\n class VOICE\n    priority percent 15\n class VIDEO\n    bandwidth percent 25\n class PREFERRED_DATA\n    bandwidth percent 25\n class class-default\n    bandwidth percent 15\n\nStep 3: Verify that an output service policy is bound to all interfaces as shown in the configuration example below:\n\ninterface GigabitEthernet1/1\n ip address 10.1.15.5 255.255.255.252\n service-policy output QOS_POLICY\n!\ninterface GigabitEthernet1/2\n ip address 10.1.15.8 255.255.255.252\n service-policy output QOS_POLICY\n\nIf the router is not configured to implement a QoS policy in accordance with the QoS DODIN Technical Profile, this is a finding.",
+   "fix": "Configure to enforce a QoS policy to provide preferred treatment for mission-critical applications.\n\nStep 1: Configure class-maps to match on DSCP values as shown in the configuration example below:\n\nR5(config)#class-map match-all PREFERRED_DATA\nR5(config-cmap)#match ip dscp af33\nR5(config-cmap)#class-map match-all CONTROL_PLANE\nR5(config-cmap)#match ip dscp cs6\nR5(config-cmap)#class-map match-all VIDEO\nR5(config-cmap)#match ip dscp af41\nR5(config-cmap)#class-map match-all VOICE\nR5(config-cmap)#match ip dscp ef\nR5(config-cmap)#class-map match-all C2_VOICE\nR5(config-cmap)#match ip dscp 47\nR5(config-cmap)#exit\n\nStep 2: Configure a policy map to be applied to the core-layer-facing interface that  reserves the bandwidth for each traffic type as shown in the example below:\n\nR5(config)#policy-map QOS_POLICY\nR5(config-pmap)#class CONTROL_PLANE\nR5(config-pmap-c)#priority percent 10\nR5(config-pmap-c)#class C2_VOICE\nR5(config-pmap-c)#priority percent 10\nR5(config-pmap-c)#class VOICE\nR5(config-pmap-c)#priority percent 15\nR5(config-pmap-c)#class VIDEO\nR5(config-pmap-c)#bandwidth percent 25\nR5(config-pmap-c)#class PREFERRED_DATA\nR5(config-pmap-c)#bandwidth percent 25\nR5(config-pmap-c)#class class-default\nR5(config-pmap-c)#bandwidth percent 15\nR5(config-pmap-c)#exit\nR5(config-pmap)#exit\n\nStep 3: Apply the output service policy to all interfaces as shown in the configuration example below:\n\nR5(config)#int g1/1\nR5(config-if)#service-policy output QOS_POLICY\nR5(config-if)#exit\nR5(config)#int g1/2\nR5(config-if)#service-policy output QOS_POLICY\nR5(config-if)#end",
+   "cci": [
+    "CCI-001095"
+   ],
+   "check_sha": "7fc07b03fa78435c"
+  },
+  "V-216716": {
+   "rule": "SV-216716r531086_rule",
+   "stig_id": "CISC-RT-000780",
+   "severity": "medium",
+   "title": "The Cisco PE router must be configured to enforce a Quality-of-Service (QoS) policy to limit the effects of packet flooding denial of service (DoS) attacks.",
+   "check": "Review the router configuration to determine if it is configured to enforce a QoS policy to limit the effects of packet flooding DoS attacks.\n\nStep 1: Verify that a class map has been configured for the Scavenger class as shown in the example below.\n\nclass-map match-all SCAVENGER\n match ip dscp cs1\n\nStep 2: Verify that the policy map includes the SCAVENGER class with low priority as shown in the following example below. \n\npolicy-map QOS_POLICY\n class CONTROL_PLANE\n    priority percent 10\n class C2_VOICE\n    priority percent 10\n class VOICE\n    priority percent 15\n class VIDEO\n    bandwidth percent 25\n class PREFERRED_DATA\n    bandwidth percent 25\nclass SCAVENGER\n    bandwidth percent 5\n class class-default\n    bandwidth percent 10\n\nNote: Traffic out of profile must be marked at the customer access layer or CE egress edge.\n\nIf the router is not configured to enforce a QoS policy to limit the effects of packet flooding DoS attacks, this is a finding.",
+   "fix": "Step 1: Configure a class map for the SCAVENGER class.\n\nR5(config)#class-map match-all SCAVENGER\nR5(config-cmap)#match ip dscp cs1\n\nStep 2: Add the SCAVENGER class to the policy map as shown in the example below:\n\nR5(config)#policy-map QOS_POLICY\nR5(config-pmap-c)#no class class-default\nR5(config-pmap)#class SCAVENGER\nR5(config-pmap-c)#bandwidth percent 5\nR5(config-pmap-c)#class class-default\nR5(config-pmap-c)#bandwidth percent 10\nR5(config-pmap-c)#end",
+   "cci": [
+    "CCI-001095"
+   ],
+   "check_sha": "e737eab3cb7ac8af"
+  },
+  "V-216717": {
+   "rule": "SV-216717r1117237_rule",
+   "stig_id": "CISC-RT-000790",
+   "severity": "medium",
+   "title": "The Cisco multicast router must be configured to disable Protocol Independent Multicast (PIM) on all interfaces that are not required to support multicast routing.",
+   "check": "Step 1: Review the network's multicast topology diagram.\n\nStep 2:  Review the router configuration to verify that only the PIM interfaces as shown in the multicast topology diagram are enabled for PIM as shown in the example below:\n\ninterface GigabitEthernet1/1\n ip address 10.1.3.3 255.255.255.0\n ip pim sparse-mode\n\nIf an interface is not required to support multicast routing and it is enabled, this is a finding.",
+   "fix": "Document all enabled interfaces for PIM in the network's multicast topology diagram. Disable support for PIM on interfaces that are not required to support it.\n\nR5(config)#int g1/1\nR5(config-if)#no ip pim sparse-mode",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "2b7790270f1d49c6"
+  },
+  "V-216718": {
+   "rule": "SV-216718r1117237_rule",
+   "stig_id": "CISC-RT-000800",
+   "severity": "medium",
+   "title": "The Cisco multicast router must be configured to bind a Protocol Independent Multicast (PIM) neighbor filter to interfaces that have PIM enabled.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nStep 1: Verify all interfaces enabled for PIM have a neighbor ACL bound to the interface as shown in the example below:\n\ninterface GigabitEthernet1/1\n ip address 10.1.2.2 255.255.255.0\n ip pim neighbor-filter PIM_NEIGHBORS\n ip pim sparse-mode\n\nStep 2: Review the configured ACL for filtering PIM neighbors as shown in the example below:\n\nip access-list standard PIM_NEIGHBORS\n permit 10.1.2.6\n\nIf PIM neighbor ACLs are not bound to all interfaces that have PIM enabled, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure neighbor ACLs to only accept PIM control plane traffic from documented PIM neighbors. Bind neighbor ACLs to all PIM enabled interfaces.\n\nStep 1: Configure ACL for PIM neighbors.\n\nR2(config)#ip access-list standard PIM_NEIGHBORS\nR2(config-std-nacl)#permit 10.1.2.6\nR2(config-std-nacl)#exit\n\nStep 2: Apply the ACL to all interfaces enabled for PIM.\n\nR2(config)#int g1/1\nR2(config-if)#ip pim neighbor-filter PIM_NEIGHBORS",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "297679de83b2a14f"
+  },
+  "V-216719": {
+   "rule": "SV-216719r1117237_rule",
+   "stig_id": "CISC-RT-000810",
+   "severity": "low",
+   "title": "The Cisco multicast edge router must be configured to establish boundaries for administratively scoped multicast traffic.",
+   "check": "Review the router configuration and verify that admin-scope multicast traffic is blocked at the external edge as shown in the example below:\n\ninterface GigabitEthernet1/2\n ip address x.1.12.2 255.255.255.252\n ip pim sparse-mode\n ip multicast boundary MULTICAST_SCOPE\n…\n…\n…\nip access-list standard MULTICAST_SCOPE\n deny   239.0.0.0 0.255.255.255\n permit any\n\nIf the router is not configured to establish boundaries for administratively scoped multicast traffic, this is a finding.",
+   "fix": "Step 1: Configure the ACL to deny packets with multicast administratively scoped destination addresses as shown in the example below:\n\nR2(config)#ip access-list standard MULTICAST_SCOPE\nR2(config-std-nacl)#deny 239.0.0.0 0.255.255.255\nR2(config-std-nacl)#permit any\nR2(config-std-nacl)#exit \n\nStep 2: Apply the multicast boundary at the appropriate interfaces as shown in the example below:\n\nR2(config)#int g1/2\nR2(config-if)#ip multicast boundary MULTICAST_SCOPE\nR2(config-if)#end",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "eb509348dc73b30b"
+  },
+  "V-216720": {
+   "rule": "SV-216720r864164_rule",
+   "stig_id": "CISC-RT-000820",
+   "severity": "low",
+   "title": "The Cisco multicast Rendezvous Point (RP) router must be configured to limit the multicast forwarding cache so that its resources are not saturated by managing an overwhelming number of Protocol Independent Multicast (PIM) and Multicast Source Discovery Protocol (MSDP) source-active entries.",
+   "check": "The Cisco router does not have a mechanism to limit the multicast forwarding cache. However, the risk associated with this requirement can be fully mitigated by configuring the router to:\n\n1. Filter PIM register messages.\n2. Rate limiting the number of PIM register messages.\n3. Accept MSDP packets only from known MSDP peers.\n\nStep 1:  Verify that the RP router is configured to filter PIM register messages for any undesirable multicast groups and sources. The example below will deny any multicast streams for groups 239.5.0.0/16 and allow from only sources 10.1.2.6 and 10.1.2.7. \n\nip pim rp-address 10.1.12.3\nip pim accept-register list PIM_REGISTER_FILTER\n…\n…\n…\nip access-list extended PIM_REGISTER_FILTER\n deny   ip any 239.5.0.0 0.0.255.255\n permit ip host 10.1.2.6 any\n permit ip host 10.1.2.7 any\n deny   ip any any\n\nStep 2: Verify that the router is configured to rate limiting the number of PIM register messages as shown in the example below.\n\nip pim rp-address 10.2.2.2\nip pim register-rate-limit nn\n\nStep 3: Review the router configuration to determine if there is a receive path or interface filter to only accept MSDP packets from known MSDP peers as shown in the example below.\n\nStep 3a: Verify that interfaces used for MSDP peering have an inbound ACL as shown in the example.\n\ninterface GigabitEthernet1/1\n ip address x.1.28.8 255.255.255.0\n ip access-group EXTERNAL_ACL_INBOUND in\n ip pim sparse-mode\n\nStep 3b: Verify that the ACL restricts MSDP peering to only known sources.\n\nip access-list extended EXTERNAL_ACL_INBOUND\n permit tcp any any established\n permit tcp host x.1.28.2 host x.1.28.8 eq 639\n deny   tcp any host x.1.28.8 eq 639 log\n permit tcp host x.1.28.2 host 10.1.28.8 eq bgp\n permit tcp host x.1.28.2 eq bgp host x.1.28.8\n permit pim host x.1.28.2 pim host x.1.28.8\n …\n …\n …\n deny ip any any log\n\nNote: MSDP connections is via TCP port 639\n\nIf the RP router is not configured to filter PIM register messages, rate limiting the number of PIM register messages, and accept MSDP packets only from known MSDP peers, this is a finding.",
+   "fix": "The risk associated with this requirement can be fully mitigated by configuring the router to filter PIM register messages, rate limiting the number of PIM register messages, and accept MSDP packets only from known MSDP peers.\n\nStep 1: Configure the router to filter PIM register messages received from a multicast DR for any undesirable multicast groups and sources. The example below will deny any multicast streams for groups 239.5.0.0/16 and allow from only sources 10.1.2.6 and 10.1.2.7. \n\nR2(config)#ip access-list extended PIM_REGISTER_FILTER\nR2(config-ext-nacl)#deny ip any 239.5.0.0 0.0.255.255\nR2(config-ext-nacl)#permit ip host 10.1.2.6 any\nR2(config-ext-nacl)#permit ip host 10.1.2.7 any\nR2(config-ext-nacl)#deny ip any any\nR2(config-ext-nacl)#exit\nR2(config)#ip pim accept-register list PIM_REGISTER_FILTER\nR2(config)#end \n\nStep 2: Configure the RP to rate limit the number of multicast register messages.\n\nR2(config)#ip pim register-rate-limit nn\n\nStep 3: Configure the receive path or interface ACLs to only accept MSDP packets from known MSDP peers.\n\nR8(config)#ip access-list extended EXTERNAL_ACL_INBOUND\nR8(config-ext-nacl)#permit tcp any any established\nR8(config-ext-nacl)#permit tcp host x.1.28.2 host x.1.28.8 eq 639\nR8(config-ext-nacl)#deny tcp any host x.1.28.8 eq 639\nR8(config-ext-nacl)#permit tcp host x.1.28.2 host x.1.28.8 eq bgp\nR8(config-ext-nacl)#permit tcp host x.1.28.2 eq bgp host x.1.28.8\nR8(config-ext-nacl)#permit pim host x.1.28.2 host x.1.28.8\n…\n…\n…\nR8(config-ext-nacl)#deny ip any any",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "c839edc96213f6b9"
+  },
+  "V-216721": {
+   "rule": "SV-216721r1117237_rule",
+   "stig_id": "CISC-RT-000830",
+   "severity": "low",
+   "title": "The Cisco multicast Rendezvous Point (RP) router must be configured to filter Protocol Independent Multicast (PIM) Register messages received from the Designated Router (DR) for any undesirable multicast groups and sources.",
+   "check": "Verify that the RP router is configured to filter PIM register messages. The example below will deny any multicast streams for groups 239.5.0.0/16 and allow from only sources 10.1.2.6 and 10.1.2.7. \n\nip pim rp-address 10.1.12.3\nip pim accept-register list PIM_REGISTER_FILTER\n…\n…\n…\nip access-list extended PIM_REGISTER_FILTER\n deny   ip any 239.5.0.0 0.0.255.255\n permit ip host 10.1.2.6 any\n permit ip host 10.1.2.7 any\n deny   ip any any\n\nIf the RP router peering with PIM-SM routers is not configured with a policy to block registration messages for any undesirable multicast groups and sources, this is a finding.",
+   "fix": "Configure the router to filter PIM register messages received from a multicast DR for any undesirable multicast groups and sources. The example below will deny any multicast streams for groups 239.5.0.0/16 and allow from only sources 10.1.2.6 and 10.1.2.7. \n\nR2(config)#ip access-list extended PIM_REGISTER_FILTER\nR2(config-ext-nacl)#deny ip any 239.5.0.0 0.0.255.255\nR2(config-ext-nacl)#permit ip host 10.1.2.6 any\nR2(config-ext-nacl)#permit ip host 10.1.2.7 any\nR2(config-ext-nacl)#deny ip any any\nR2(config-ext-nacl)#exit\nR2(config)#ip pim accept-register list PIM_REGISTER_FILTER\nR2(config)#end",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "22a8e83cad7ba70d"
+  },
+  "V-216722": {
+   "rule": "SV-216722r1117237_rule",
+   "stig_id": "CISC-RT-000840",
+   "severity": "low",
+   "title": "The Cisco multicast Rendezvous Point (RP) router must be configured to filter Protocol Independent Multicast (PIM) Join messages received from the Designated Router (DR) for any undesirable multicast groups.",
+   "check": "Verify that the RP router is configured to filter PIM join messages for any undesirable multicast groups. In the example below, groups from 239.8.0.0/16 are not allowed.\n\nip pim rp-address 10.2.2.2\nip pim accept-rp 10.2.2.2 FILTER_PIM_JOINS\n…\n…\n…\nip access-list standard FILTER_PIM_JOINS\n deny   239.8.0.0 0.0.255.255\n permit any\n!\n\nIf the RP is not configured to filter join messages received from the DR for any undesirable multicast groups, this is a finding.",
+   "fix": "Configure the RP to filter PIM join messages for any undesirable multicast groups as shown in the example below:\n\nR2(config)#ip access-list standard PIM_JOIN_FILTER\nR2(config-std-nacl)#deny 239.8.0.0 0.0.255.255\nR2(config-std-nacl)#permit any\nR2(config-std-nacl)#exit\nR2(config)#ip pim accept-rp 10.2.2.2 PIM_JOIN_FILTER \nR2(config)#end",
+   "cci": [
+    "CCI-001414"
+   ],
+   "check_sha": "244ef1d3ce9a595d"
+  },
+  "V-216723": {
+   "rule": "SV-216723r855829_rule",
+   "stig_id": "CISC-RT-000850",
+   "severity": "medium",
+   "title": "The Cisco multicast Rendezvous Point (RP) must be configured to rate limit the number of Protocol Independent Multicast (PIM) Register messages.",
+   "check": "Review the configuration of the RP to verify that it is rate limiting the number of PIM register messages.\n\nip pim rp-address 10.2.2.2\nip pim register-rate-limit nn\n\nIf the RP is not limiting PIM register messages, this is a finding.",
+   "fix": "Configure the RP to rate limit the number of multicast register messages.\n\nR2(config)#ip pim register-rate-limit nn",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "caf8ef474406cfb7"
+  },
+  "V-216724": {
+   "rule": "SV-216724r864165_rule",
+   "stig_id": "CISC-RT-000860",
+   "severity": "low",
+   "title": "The Cisco multicast Designated Router (DR) must be configured to filter the Internet Group Management Protocol (IGMP) and Multicast Listener Discovery (MLD) Report messages to allow hosts to join only multicast groups that have been approved by the organization.",
+   "check": "Review the configuration of the DR to verify that it is filtering IGMP or MLD Membership Report messages, allowing hosts to join only those groups that have been approved.\n\nStep 1: Verify that all host facing interfaces are configured to filter IGMP Membership Report messages (IGMP joins) as shown in the example below:\n\ninterface GigabitEthernet0/0\n ip address 10.3.3.3 255.255.255.0\n ip pim sparse-mode\n ip igmp access-group IGMP_JOIN_FILTER\n ip igmp version 3\n\nStep 2: Verify that the ACL denies unauthorized groups or permits only authorized groups. The example below denies all groups from 239.8.0.0/16 range.\n\nip access-list standard IGMP_JOIN_FILTER\n deny   239.8.0.0 0.0.255.255\n permit any\n\nNote: This requirement is only applicable to Source Specific Multicast (SSM) implementation. This requirement is not applicable to Any Source Multicast (ASM) since the filtering is being performed by the Rendezvous Point router.\n\nIf the DR is not filtering IGMP or MLD Membership Report messages, this is a finding.",
+   "fix": "Configure the DR to filter the IGMP or MLD Membership Report messages to allow hosts to join only those multicast groups that have been approved.\n\nStep 1: Configure the ACL to filter IGMP Membership Report messages as shown in the example. \n\nR3(config)#ip access-list standard IGMP_JOIN_FILTER\nR3(config-std-nacl)#deny 239.8.0.0 0.0.255.255\nR3(config-std-nacl)#permit any\nR3(config-std-nacl)#exit\n\nStep 2: Apply the filter to all host facing interfaces.\n\nR3(config)#int g0/0\nR3(config-if)#ip igmp access-group IGMP_JOIN_FILTER",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "338df94917cd92b9"
+  },
+  "V-216725": {
+   "rule": "SV-216725r864166_rule",
+   "stig_id": "CISC-RT-000870",
+   "severity": "medium",
+   "title": "The Cisco multicast Designated Router (DR) must be configured to filter the Internet Group Management Protocol (IGMP) and Multicast Listener Discovery (MLD) Report messages to allow hosts to join a multicast group only from sources that have been approved by the organization.",
+   "check": "Review the configuration of the DR to verify that it is filtering IGMP or MLD report messages, allowing hosts to only join multicast groups from sources that have been approved.\n\nStep 1: Verify that all host-facing interfaces are configured to filter IGMP Membership Report messages (IGMP joins) as shown in the example below:\n\ninterface GigabitEthernet0/0\n ip address 10.3.3.3 255.255.255.0\n ip pim sparse-mode\n ip igmp access-group IGMP_JOIN_FILTER\n ip igmp version 3\n\nStep 2: Verify that the ACL denies unauthorized sources or allows only authorized sources. The example below denies all groups from 232.8.0.0/16 range and permits sources only from the x.0.0.0/8 network.\n\nip access-list extended IGMP_JOIN_FILTER\n deny   ip any 232.8.0.0 0.0.255.255\n permit ip x.0.0.0 0.255.255.255 any\n deny   ip any any\n\nNote: This requirement is only applicable to Source Specific Multicast (SSM) implementation.\n\nIf the DR is not filtering IGMP or MLD report messages, this is a finding.",
+   "fix": "Configure the DR to filter the IGMP and MLD report messages to allow hosts to join only those multicast groups from sources that have been approved as shown in the example.\n\nR3(config)#ip access-list extended IGMP_JOIN_FILTER\nR3(config-ext-nacl)#deny ip any 232.8.0.0 0.0.255.255\nR3(config-ext-nacl)#permit ip x.0.0.0 0.255.255.255 any\nR3(config-ext-nacl)#deny ip any any\nR3(config-ext-nacl)#exit\n\nStep 2: Apply the filter to all host facing interfaces.\n\nR3(config)#int g0/0\nR3(config-if)#ip igmp access-group IGMP_JOIN_FILTER",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "0300a55ecc3a65ba"
+  },
+  "V-216726": {
+   "rule": "SV-216726r855832_rule",
+   "stig_id": "CISC-RT-000880",
+   "severity": "medium",
+   "title": "The Cisco multicast Designated Router (DR) must be configured to limit the number of mroute states resulting from Internet Group Management Protocol (IGMP) and Multicast Listener Discovery (MLD) Host Membership Reports.",
+   "check": "Review the DR configuration to verify that it is limiting the number of mroute states via IGMP or MLD.\n\nVerify IGMP limits have been configured globally or on each host-facing interface via the ip igmp limit command as shown in the example.\n\ninterface GigabitEthernet0/0\n ip address 10.3.3.3 255.255.255.0\n …\n …\n …\n ip igmp limit nn\n\nIf the DR is not limiting multicast join requests via IGMP or MLD on a global or interfaces basis, this is a finding.",
+   "fix": "Configure the DR on a global or interface basis to limit the number of mroute states resulting from IGMP or MLD membership reports.\n\nR3(config)#int g0/0\nR3(config-if)#ip igmp limit 2",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "949db163c859e11d"
+  },
+  "V-216727": {
+   "rule": "SV-216727r945856_rule",
+   "stig_id": "CISC-RT-000890",
+   "severity": "medium",
+   "title": "The Cisco multicast Designated Router (DR) must be configured to set the shortest-path tree (SPT) threshold to infinity to minimalize source-group (S, G) state within the multicast topology where Any Source Multicast (ASM) is deployed.",
+   "check": "Review the DR configuration to verify that the SPT switchover threshold is increased (default is \"0\") or set to infinity (never switch over). \n\nip pim rp-address 10.2.2.2\nip pim spt-threshold infinity\n\nIf the DR is not configured to increase the SPT threshold or set to infinity to minimalize (S, G) state, this is a finding.",
+   "fix": "Configure the DR to increase the SPT threshold or set it to infinity to minimalize (S, G) state within the multicast topology where ASM is deployed.\n\nR3(config)#ip pim spt-threshold infinity",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "51e17ece425a55a5"
+  },
+  "V-216728": {
+   "rule": "SV-216728r855834_rule",
+   "stig_id": "CISC-RT-000900",
+   "severity": "medium",
+   "title": "The Cisco Multicast Source Discovery Protocol (MSDP) router must be configured to only accept MSDP packets from known MSDP peers.",
+   "check": "Review the router configuration to determine if there is a receive path or interface filter to only accept MSDP packets from known MSDP peers.\n\nStep 1: Verify that interfaces used for MSDP peering have an inbound ACL as shown in the example.\n\ninterface GigabitEthernet1/1\n ip address x.1.28.8 255.255.255.0\n ip access-group EXTERNAL_ACL_INBOUND in\n ip pim sparse-mode\n\nStep 2: Verify that the ACL restricts MSDP peering to only known sources.\n\nip access-list extended EXTERNAL_ACL_INBOUND\n permit tcp any any established\n permit tcp host x.1.28.2 host x.1.28.8 eq 639\n deny   tcp any host x.1.28.8 eq 639 log\n permit tcp host x.1.28.2 host 10.1.28.8 eq bgp\n permit tcp host x.1.28.2 eq bgp host x.1.28.8\n permit pim host x.1.28.2 pim host x.1.28.8\n …\n …\n …\n deny ip any any log\n\nNote: MSDP connections is via TCP port 639.\n\nIf the router is not configured to only accept MSDP packets from known MSDP peers, this is a finding.",
+   "fix": "Configure the receive path or interface ACLs to only accept MSDP packets from known MSDP peers.\n\nR8(config)#ip access-list extended EXTERNAL_ACL_INBOUND\nR8(config-ext-nacl)#permit tcp any any established\nR8(config-ext-nacl)#permit tcp host x.1.28.2 host x.1.28.8 eq 639\nR8(config-ext-nacl)#deny tcp any host x1.28.8 eq 639\nR8(config-ext-nacl)#permit tcp host x.1.28.2 host x.1.28.8 eq bgp\nR8(config-ext-nacl)#permit tcp host x.1.28.2 eq bgp host x.1.28.8\nR8(config-ext-nacl)#permit pim host x.1.28.2 host x.1.28.8\n…\n…\n…\nR8(config-ext-nacl)#deny ip any any",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "5f504459ce3b91a4"
+  },
+  "V-216729": {
+   "rule": "SV-216729r855835_rule",
+   "stig_id": "CISC-RT-000910",
+   "severity": "medium",
+   "title": "The Cisco Multicast Source Discovery Protocol (MSDP) router must be configured to authenticate all received MSDP packets.",
+   "check": "Review the router configuration to determine if received MSDP packets are authenticated.\n\nip msdp peer x.1.28.8 remote-as 8\nip msdp password peer x.1.28.8 xxxxxxxxxxxx\n\nIf the router does not require MSDP authentication, this is a finding.",
+   "fix": "Configure the router to authenticate MSDP messages as shown in the following example:\n\nR2(config)#ip msdp password peer x.1.28.8 xxxxxxxxxxxx",
+   "cci": [
+    "CCI-001958"
+   ],
+   "check_sha": "2eda929e90af28f3"
+  },
+  "V-216730": {
+   "rule": "SV-216730r1117236_rule",
+   "stig_id": "CISC-RT-000920",
+   "severity": "low",
+   "title": "The Cisco Multicast Source Discovery Protocol (MSDP) router must be configured to filter received source-active multicast advertisements for any undesirable multicast groups and sources.",
+   "check": "Review the router configuration to determine if there is import policy to block source-active multicast advertisements for any undesirable multicast groups, as well as any (S, G) states with undesirable source addresses. \n\nStep 1: Verify that an inbound source-active filter is bound to each MSDP peer.\n\nip msdp peer x.1.28.2 remote-as 2\nip msdp sa-filter in x.1.28.2 list INBOUND_MSDP_SA_FILTER\n\nStep 2: Review the access lists referenced by the source-active filter to verify that undesirable multicast groups, auto-RP, single source multicast (SSM) groups, and advertisements from undesirable sources are blocked.\n\nip access-list extended INBOUND_MSDP_SA_FILTER\n deny   ip any host 224.0.1.3\n deny   ip any host 224.0.1.24\n deny   ip any host 224.0.1.22\n deny   ip any host 224.0.1.2\n deny   ip any host 224.0.1.35\n deny   ip any host 224.0.1.60\n deny   ip any host 224.0.1.39\n deny   ip any host 224.0.1.40\n deny   ip any 232.0.0.0 0.255.255.255\n deny   ip any 239.0.0.0 0.255.255.255\n deny   ip 10.0.0.0 0.255.255.255 any\n deny   ip 127.0.0.0 0.255.255.255 any\n deny   ip 172.16.0.0 0.15.255.255 any\n deny   ip 192.168.0.0 0.0.255.255 any\n permit ip any any\n\nIf the router is not configured with an import policy to filter undesirable SA multicast advertisements, this is a finding.",
+   "fix": "Configure the MSDP router to filter received source-active multicast advertisements for any undesirable multicast groups and sources as shown in the example below:\n\nR8(config)#ip access-list extended INBOUND_MSDP_SA_FILTER\nR8(config-ext-nacl)#deny ip any host 224.0.1.3                       ! Rwhod \nR8(config-ext-nacl)#deny ip any host 224.0.1.24                     ! Microsoft-ds\nR8(config-ext-nacl)#deny ip any host 224.0.1.22                     ! SVRLOC\nR8(config-ext-nacl)#deny ip any host 224.0.1.2                       ! SGI-Dogfight\nR8(config-ext-nacl)#deny ip any host 224.0.1.35                    ! SVRLOC-DA\nR8(config-ext-nacl)#deny ip any host 224.0.1.60                    ! hp-device-disc\nR8(config-ext-nacl)#deny ip any host 224.0.1.39                     ! Auto-RP\nR8(config-ext-nacl)#deny ip any host 224.0.1.40                     ! Auto-RP\nR8(config-ext-nacl)#deny ip any 232.0.0.0 0.255.255.255     ! SSM range\nR8(config-ext-nacl)#deny ip any 239.0.0.0 0.255.255.255     ! Admin scoped range\nR8(config-ext-nacl)#deny ip 10.0.0.0 0.255.255.255 any       ! RFC 1918 address range\nR8(config-ext-nacl)#deny ip 127.0.0.0 0.255.255.255 any     ! RFC 1918 address range\nR8(config-ext-nacl)#deny ip 172.16.0.0 0.15.255.255 any     ! RFC 1918 address range\nR8(config-ext-nacl)#deny ip 192.168.0.0 0.0.255.255 any   ! RFC 1918 address range\nR8(config-ext-nacl)#permit ip any any\nR8(config-ext-nacl)#exit\nR8(config)#ip msdp sa-filter in x.1.28.2 list INBOUND_MSDP_SA_FILTER",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "f4c9191286c88856"
+  },
+  "V-216731": {
+   "rule": "SV-216731r1117236_rule",
+   "stig_id": "CISC-RT-000930",
+   "severity": "low",
+   "title": "The Cisco Multicast Source Discovery Protocol (MSDP) router must be configured to filter source-active multicast advertisements to external MSDP peers to avoid global visibility of local-only multicast sources and groups.",
+   "check": "Review the router configuration to determine if there is export policy to block local source-active multicast advertisements.\n\nStep 1: Verify that an outbound source-active filter is bound to each MSDP peer as shown in the example below:\n\nip msdp peer 10.1.28.8 remote-as 8\nip msdp sa-filter out 10.1.28.8 list OUTBOUND_MSDP_SA_FILTER\n\nStep 2: Review the access lists referenced by the source-active filters and verify that MSDP source-active messages being sent to MSDP peers do not leak advertisements that are local.\n\nip access-list extended OUTBOUND_MSDP_SA_FILTER\n deny   ip 10.0.0.0 0.255.255.255 any\n permit ip any any\n\nIf the router is not configured with an export policy to filter local source-active multicast advertisements, this is a finding.",
+   "fix": "Configure the router with an export policy avoid global visibility of local multicast (S, G) states. The example below will prevent exporting multicast active sources belonging to the private network.\n\nR8(config)#ip access-list extended OUTBOUND_MSDP_SA_FILTER\nR8(config-ext-nacl)#deny ip 10.0.0.0 0.255.255.255 any\nR8(config-ext-nacl)#permit ip any any\nR8(config-ext-nacl)#exit\nR8(config)#ip msdp sa-filter in x.1.28.2 list OUTBOUND_MSDP_SA_FILTER",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "5762f5a1da4213c2"
+  },
+  "V-216732": {
+   "rule": "SV-216732r1117236_rule",
+   "stig_id": "CISC-RT-000940",
+   "severity": "low",
+   "title": "The Cisco Multicast Source Discovery Protocol (MSDP) router must be configured to limit the amount of source-active messages it accepts on a per-peer basis.",
+   "check": "Review the router configuration to determine if it is configured to limit the amount of source-active messages it accepts on a per-peer basis.\n\nip msdp peer x.1.28.2 remote-as nn\nip msdp sa-filter in 10.1.28.2 list MSDP_SA_FILTER\nip msdp sa-limit X.1.28.2 nnn\n\nIf the router is not configured to limit the source-active messages it accepts, this is a finding.",
+   "fix": "Configure the router to limit the amount of source-active messages it accepts from each peer.\n\nR8(config)#ip msdp sa-limit x.1.28.2 nnn",
+   "cci": [
+    "CCI-001368"
+   ],
+   "check_sha": "ce30ddcd2decebcb"
+  },
+  "V-216733": {
+   "rule": "SV-216733r991901_rule",
+   "stig_id": "CISC-RT-000950",
+   "severity": "low",
+   "title": "The Cisco Multicast Source Discovery Protocol (MSDP) router must be configured to use a loopback address as the source address when originating MSDP traffic.",
+   "check": "Verify that the loopback interface is used as the source address for all MSDP packets generated by the router.\n\nip msdp peer x.44.2.34 connect-source Loopback12 remote-as nn\n\nIf the router does not use its loopback address as the source address when originating MSDP traffic, this is a finding.",
+   "fix": "Configure the router to use its loopback address is used as the source address when sending MSDP packets.\n\nR2(config)#ip msdp peer x.44.2.34 connect-source lo12 remote-as nn",
+   "cci": [
+    "CCI-004931"
+   ],
+   "check_sha": "fe87ca4fd27807ef"
+  },
+  "V-216997": {
+   "rule": "SV-216997r945858_rule",
+   "stig_id": "CISC-RT-000310",
+   "severity": "high",
+   "title": "The Cisco perimeter router must be configured to restrict it from accepting outbound IP packets that contain an illegitimate address in the source address field via egress filter or by enabling Unicast Reverse Path Forwarding (uRPF).",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to verify uRPF or an egress ACL has been configured on all internal interfaces to restrict the router from accepting outbound IP packets that contain an illegitimate address in the source address field.\n\nuRPF example:\n\ninterface GigabitEthernet0/1\n description downstream link to LAN\n ip address 10.1.25.5 255.255.255.0\n ip verify unicast source reachable-via rx\n\nEgress ACL example:\n\ninterface GigabitEthernet0/1\n description downstream link to LAN\n ip address 10.1.25.5 255.255.255.0\n ip access-group EGRESS_FILTER in\n…\n…\n…\nip access-list extended EGRESS_FILTER\n permit udp 10.1.15.0 0.0.0.255 any eq domain\n permit tcp 10.1.15.0 0.0.0.255 any eq ftp\n permit tcp 10.1.15.0 0.0.0.255 any eq ftp-data\n permit tcp 10.1.15.0 0.0.0.255 any eq www\n permit icmp 10.1.15.0 0.0.0.255 any\n permit icmp 10.1.15.0 0.0.0.255 any echo\n deny   ip any any\n\nIf uRPF or an egress ACL to restrict the router from accepting outbound IP packets that contain an illegitimate address in the source address field has not been configured on all internal interfaces in an enclave, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to ensure that an egress ACL or uRPF is configured on internal interfaces to restrict the router from accepting any outbound IP packet that contains an illegitimate address in the source field. The example below enables uRPF.\n\nR5(config)#int g0/1\nR5(config-if)#ip verify unicast source reachable-via rx",
+   "cci": [
+    "CCI-001094"
+   ],
+   "check_sha": "3279469e7a00896a"
+  },
+  "V-216998": {
+   "rule": "SV-216998r945859_rule",
+   "stig_id": "CISC-RT-000350",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to block all packets with any IP options.",
+   "check": "This requirement is not applicable for the DODIN Backbone.\n\nReview the router configuration to determine if it will block all packets with IP options.\n\nip access-list extended EXTERNAL_ACL\n permit tcp any any established\ndeny   ip any any option any-options\npermit …\n …\n …     \n …\ndeny   ip any any log-input\n\nIf the router is not configured to drop all packets with IP options, this is a finding.",
+   "fix": "This requirement is not applicable for the DODIN Backbone.\n\nConfigure the router to drop all packets with IP options.\n\nR1(config)#ip access-list extended EXTERNAL_ACL\nR1(config-ext-nacl)#15 deny ip any any option any-options",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "3ddc9fdfd26fb562"
+  },
+  "V-216999": {
+   "rule": "SV-216999r855842_rule",
+   "stig_id": "CISC-RT-000470",
+   "severity": "low",
+   "title": "The Cisco BGP router must be configured to enable the Generalized TTL Security Mechanism (GTSM).",
+   "check": "Review the BGP configuration to verify that TTL security has been configured for each external neighbor as shown in the example below:\n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.1.1.9 remote-as yy\n neighbor x.1.1.9 password xxxxxxxx\n neighbor x.1.1.9 ttl-security hops 1\n neighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 password xxxxxxxx\n neighbor x.2.1.7 ttl-security hops 1\n\nIf the router is not configured to use GTSM for all Exterior Border Gateway Protocol peering sessions, this is a finding.",
+   "fix": "Configure TTL security on all external BGP neighbors as shown in the example below:\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 ttl-security hops 1\nR1(config-router)#neighbor x.2.1.7 ttl-security hops 1",
+   "cci": [
+    "CCI-002385"
+   ],
+   "check_sha": "afac6817ed7be9e7"
+  },
+  "V-217000": {
+   "rule": "SV-217000r945862_rule",
+   "stig_id": "CISC-RT-000480",
+   "severity": "medium",
+   "title": "The Cisco BGP router must be configured to use a unique key for each autonomous system (AS) that it peers with.",
+   "check": "This check is Not Applicable for JRSS internal EBGP use.\n\nReview the BGP configuration to determine if it is peering with multiple autonomous systems. Interview the ISSM and router administrator to determine if unique keys are being used. \n\nrouter bgp xx\n no synchronization\n bgp log-neighbor-changes\n neighbor x.1.1.9 remote-as yy\n neighbor x.1.1.9 password yyyyyyyy\n neighbor x.2.1.7 remote-as zz\n neighbor x.2.1.7 password zzzzzzzzz\n\nIf unique keys are not being used, this is a finding.",
+   "fix": "Configure the router to use unique keys for each AS that it peers with as shown in the example below:\n\nR1(config)#router bgp xx\nR1(config-router)#neighbor x.1.1.9 password yyyyyyyy \nR1(config-router)#neighbor x.2.1.7 password zzzzzzzzz",
+   "cci": [
+    "CCI-002205"
+   ],
+   "check_sha": "0f187a10c8dbb4eb"
+  },
+  "V-217001": {
+   "rule": "SV-217001r945860_rule",
+   "stig_id": "CISC-RT-000750",
+   "severity": "medium",
+   "title": "The Cisco PE router must be configured to ignore or drop all packets with any IP options.",
+   "check": "Review the router configuration to determine if it will ignore or drop all packets with IP options as shown in the examples below:\n\nip options drop\nor\nip options ignore\n\nIf the router is not configured to drop or block all packets with IP options, this is a finding.",
+   "fix": "Configure the router to ignore or drop all packets with IP options as shown in the examples below:\n\nR4(config)#ip options ignore \n\nor\n\nR4(config)#ip options drop",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "c4858a1b79e3ba99"
+  },
+  "V-229031": {
+   "rule": "SV-229031r878127_rule",
+   "stig_id": "CISC-RT-000235",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to have Cisco Express Forwarding enabled.",
+   "check": "Review the router to verify that CEF is enabled.\n\nIPv4 Example: ip cef \nIPv6 Example: ipv6 cef\n\nIf CEF is not enabled, this is a finding.",
+   "fix": "Enable CEF\n\nIPv4 Example: ip cef \nIPv6 Example: ipv6 cef",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "c8c55bf1abecf41e"
+  },
+  "V-230039": {
+   "rule": "SV-230039r647454_rule",
+   "stig_id": "CISC-RT-000236",
+   "severity": "low",
+   "title": "The Cisco router must be configured to advertise a hop limit of at least 32 in Router Advertisement messages for IPv6 stateless auto-configuration deployments.",
+   "check": "Review the router configuration to determine if the hop limit has been configured for Router Advertisement messages as shown in the example.\n\nipv6 hop-limit 128\n\nIf it has been configured and has not been set to at least 32, it is a finding.",
+   "fix": "Configure the router to advertise a hop limit of at least 32 in Router Advertisement messages.\n\nR1(config)#ipv6 hop-limit 128",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "7e81f360ff9a039f"
+  },
+  "V-230042": {
+   "rule": "SV-230042r647455_rule",
+   "stig_id": "CISC-RT-000237",
+   "severity": "medium",
+   "title": "The Cisco router must not be configured to use IPv6 Site Local Unicast addresses.",
+   "check": "Review the router configuration to ensure FEC0::/10 IPv6 addresses are not defined. \n\nIf IPv6 Site Local Unicast addresses are defined, this is a finding.",
+   "fix": "Configure the router using only authorized IPv6 addresses. ",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "15db7b724bccd88a"
+  },
+  "V-230045": {
+   "rule": "SV-230045r647430_rule",
+   "stig_id": "CISC-RT-000391",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to suppress Router Advertisements on all external IPv6-enabled interfaces.",
+   "check": "This requirement is not applicable for the DoDIN Backbone. \n\nReview the router configuration to verify that Router Advertisements are suppressed on all external IPv6-enabled interfaces as shown in the example below.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 nd ra suppress\n\nIf the router is not configured to suppress Router Advertisements on all external IPv6-enabled interfaces, this is a finding.",
+   "fix": "Configure the router to suppress Router Advertisements on all external IPv6-enabled interfaces as shown in the example below.\nR1(config)#int g1/0\nR1(config-if)#ipv6 nd ra suppress\nR1(config-if)#end",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "7a018282a916db35"
+  },
+  "V-230048": {
+   "rule": "SV-230048r950991_rule",
+   "stig_id": "CISC-RT-000392",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to drop IPv6 undetermined transport packets.",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is configured to drop IPv6 undetermined transport packets.\n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops undetermined transport packets as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n deny ipv6 any any log undetermined-transport\n permit ipv6 …\n …\n …\n …\n deny ipv6 any any log\n\nIf the router is not configured to drop IPv6 undetermined transport packets, this is a finding.",
+   "fix": "Configure the router to drop IPv6 undetermined transport packets as shown in the example below.\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#deny ipv6 any any undetermined-transport log\nR1(config-ipv6-acl)#permit ipv6 …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6 in\n",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "f094f736878fc876"
+  },
+  "V-230051": {
+   "rule": "SV-230051r855846_rule",
+   "stig_id": "CISC-RT-000393",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured drop IPv6 packets with a Routing Header type 0, 1, or 3–255. ",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is configured to drop IPv6 packets containing a Routing Header of type 0, 1, or 3-255.\n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops IPv6 packets with a Routing Header type 0, 1, or 3-255 as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n permit ipv6 any host 2001:DB8::1:1:1234 routing-type 2\n deny ipv6 any any log routing\n permit ipv6 …\n …\n …\n …\ndeny ipv6 any any log\n\nNote: The example above allows routing-type 2 in the event Mobility IPv6 is deployed.\n\nIf the router is not configured to drop IPv6 packets containing a Routing Header of type 0, 1, or 3-255, this is a finding.",
+   "fix": "Configure the router to drop IPv6 packets with Routing Header of type 0, 1, or 3-255 as shown in the example below.\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#permit ipv6 any host 2001:DB8::0:1:1:1234 routing-type 2\nR1(config-ipv6-acl)#deny ipv6 any any routing log\nR1(config-ipv6-acl)#permit …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "9b669354c41706fc"
+  },
+  "V-230146": {
+   "rule": "SV-230146r1132551_rule",
+   "stig_id": "CISC-RT-000394",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to drop IPv6 packets containing a Hop-by-Hop header with invalid option type values.",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is compliant with this requirement.  \n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops IPv6 packets containing a Hop-by-Hop header with destination options as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n deny hbh any any dest-option log\n permit ipv6 …\n …\n …\n …\n deny ipv6 any any log\n\nNote: Cisco has deprecated the dest-option-type command used to filter by option type within the Hop-by-Hop header. Therefore, all packets with the Hop-by-Hop header option types must be dropped.\n\nIf the router is not configured to drop IPv6 packets containing a Hop-by-Hop header with destination options, this is a finding.",
+   "fix": "Drop IPv6 packets containing a Hop-by-Hop header as shown in the example below.\n\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#deny hbh any any dest-option log\nR1(config-ipv6-acl)# permit ipv6 …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6\nR1(config-if)#end",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "382bd6b65068cd40"
+  },
+  "V-230150": {
+   "rule": "SV-230150r1132503_rule",
+   "stig_id": "CISC-RT-000395",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to drop IPv6 packets containing a Destination Option header with invalid option type values.",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is compliant with this requirement.  \n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops IPv6 packets containing a Destination Option header with option type values of 0x05 (Router Alert) or 0xC2 (Jumbo Payload) as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n deny 60 any any dest-option log\n permit ipv6 …\n …\n …\n …\n deny ipv6 any any log\n\nNote: Cisco has deprecated the dest-option-type command used to filter by option type within the Destination Option header. Therefore, all packets with the Destination Option header must be dropped.\n\nIf the router is not configured to drop IPv6 packets containing a Destination Option header, this is a finding.",
+   "fix": "Configure the router to drop IPv6 packets containing a Destination Option header as shown in the example below.\n\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#deny 60 any any dest-option log\nR1(config-ipv6-acl)#permit …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6\nR1(config-if)#end",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "4451ec984a37f1d1"
+  },
+  "V-230153": {
+   "rule": "SV-230153r1132506_rule",
+   "stig_id": "CISC-RT-000396",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to drop IPv6 packets containing an extension header with the Endpoint Identification option.",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is compliant with this requirement.  \n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops IPv6 packets containing a Destination Option header as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n deny 60 any any dest-option log\n permit ipv6 …\n …\n …\n …\n deny ipv6 any any log\n\nNote: Cisco has deprecated the dest-option-type command used to filter by option type within the Destination Option header. Therefore, all packets with the Destination Option header must be dropped.\n\nIf the router is not configured to drop IPv6 packets containing a Destination Option header, this is a finding.",
+   "fix": "Configure the router to drop IPv6 packets containing an option type value of 0x8A (Endpoint Identification) regardless of whether it appears in a Hop-by-Hop or Destination Option header as shown in the example below.\n\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#deny 60 any any dest-option log\nR1(config-ipv6-acl)#deny hbh any any dest-option log\nR1(config-ipv6-acl)#permit …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6\nR1(config-if)#end",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "996bf5d3c85d8876"
+  },
+  "V-230156": {
+   "rule": "SV-230156r1132509_rule",
+   "stig_id": "CISC-RT-000397",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to drop IPv6 packets containing the NSAP address option within Destination Option header.",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is compliant with this requirement.  \n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops IPv6 packets containing a Destination Option header as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n deny 60 any any dest-option log\n permit ipv6 …\n …\n …\n …\n deny ipv6 any any log\n\nNote: Cisco has deprecated the dest-option-type command used to filter by option type within the Destination Option header. Therefore, all packets with the Destination Option header must be dropped.\n\nIf the router is not configured to drop IPv6 packets containing a Destination Option header, this is a finding.",
+   "fix": "Configure the router to drop IPv6 packets containing a Destination Option header as shown in the example below.\n\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#deny 60 any any dest-option log\nR1(config-ipv6-acl)#permit …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6\nR1(config-if)#end",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "996bf5d3c85d8876"
+  },
+  "V-230159": {
+   "rule": "SV-230159r1132512_rule",
+   "stig_id": "CISC-RT-000398",
+   "severity": "medium",
+   "title": "The Cisco perimeter router must be configured to drop IPv6 packets containing a Hop-by-Hop or Destination Option extension header with an undefined option type.",
+   "check": "This requirement is not applicable for the DODIN Backbone. \n\nReview the router configuration to determine if it is compliant with this requirement.  \n\nStep 1: Verify that an inbound IPv6 ACL has been configured on the external interface.\n\ninterface gigabitethernet1/0\n ipv6 address 2001::1:0:22/64\n ipv6 traffic-filter FILTER_IPV6 in\n\nStep 2: Verify that the ACL drops IPv6 packets containing a Destination Option header as shown in the example below.\n\nipv6 access-list FILTER_IPV6\n deny 60 any any dest-option log\n deny hbh any any dest-option log\n permit ipv6 …\n …\n …\n …\n deny ipv6 any any log\n\nNote: Cisco has deprecated the dest-option-type command used to filter by option type within the Destination Option and Hop-by-Hop header. Therefore, all packets with the Destination Option header and Hop-by-Hop options must be dropped.\n\nIf the router is not configured to drop IPv6 packets containing a Destination Option header, this is a finding.",
+   "fix": "Configure the router to drop all inbound IPv6 packets containing destination option type values regardless of whether they appear in a Hop-by-Hop or Destination Option header as shown in the example below.\n\nR1(config)#ipv6 access-list FILTER_IPV6\nR1(config-ipv6-acl)#deny 60 any any dest-option log\nR1(config-ipv6-acl)#deny hbh any any dest-option log\nR1(config-ipv6-acl)#permit …\n…\n…\n…\nR1(config-ipv6-acl)#deny ipv6 any any log\nR1(config-ipv6-acl)#exit\nR1(config)#int g1/0\nR1(config-if)#ipv6 traffic-filter FILTER_IPV6\nR1(config-if)#end",
+   "cci": [
+    "CCI-002403"
+   ],
+   "check_sha": "1a43aff1a387a1ba"
+  }
+ }
+}

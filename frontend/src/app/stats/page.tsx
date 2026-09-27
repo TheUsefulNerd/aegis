@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Stats, getStats } from "@/lib/api";
+import { BenchmarkCoverage, Stats, getCoverage, getStats } from "@/lib/api";
 import { Panel, PageHeader, SectionLabel, Table, Thead, Th, Td, Tr, InlineBar, TechnicalDetails } from "@/components/ui";
 import { CONFIDENCE_TIER_LABELS } from "@/lib/copy";
 
 export default function InsightsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<BenchmarkCoverage[] | null>(null);
 
   useEffect(() => {
     getStats()
       .then(setStats)
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    getCoverage()
+      .then((c) => setCoverage(c.benchmarks))
+      .catch(() => setCoverage([]));
   }, []);
 
   const tierRows = stats
@@ -105,6 +109,53 @@ export default function InsightsPage() {
           )}
         </Panel>
       </div>
+
+      {coverage && coverage.length > 0 && (
+        <Panel className="mt-4">
+          <div className="px-5 pt-5">
+            <SectionLabel>Benchmark coverage (official DISA STIG catalogs)</SectionLabel>
+            <p className="text-xs text-slate-500 mb-1">
+              Each benchmark is imported in full from DISA&apos;s published release. Automated = checked by a reviewed
+              rule; the rest need a manual check and are never counted as passing. A rule whose check text changes in a
+              new DISA release is set aside for re-review.
+            </p>
+          </div>
+          <Table>
+            <Thead>
+              <tr>
+                <Th>Benchmark</Th>
+                <Th>Release</Th>
+                <Th className="text-right">Rules</Th>
+                <Th className="text-right">Automated</Th>
+                <Th className="text-right">Manual</Th>
+                <Th></Th>
+              </tr>
+            </Thead>
+            <tbody>
+              {coverage.map((b) => (
+                <Tr key={b.name}>
+                  <Td className="font-medium text-slate-900">
+                    {b.benchmark}
+                    {b.needs_rereview.length > 0 && (
+                      <div className="text-xs text-amber-700">{b.needs_rereview.length} changed upstream, re-review pending</div>
+                    )}
+                  </Td>
+                  <Td className="text-xs text-slate-600">
+                    {b.release}
+                    {b.released ? ` (${b.released})` : ""}
+                  </Td>
+                  <Td className="text-right tabular-nums">{b.total}</Td>
+                  <Td className="text-right tabular-nums">{b.automated}</Td>
+                  <Td className="text-right tabular-nums text-slate-500">{b.manual}</Td>
+                  <Td>
+                    <InlineBar value={b.automated} max={b.total} color="emerald" />
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        </Panel>
+      )}
 
       {stats && (
         <TechnicalDetails label="Raw stats payload (this replaces Prometheus/Grafana for this build; see architecture-document.md §2/§5)">

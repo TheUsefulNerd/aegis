@@ -1,0 +1,536 @@
+{
+ "benchmark": "Cisco_IOS_XE_Router_NDM",
+ "title": "Cisco IOS XE Router NDM Security Technical Implementation Guide",
+ "version": "3",
+ "release": "7",
+ "released": "01 Apr 2026",
+ "fetched": "2026-09-27",
+ "source": "https://cyber.trackr.live/stig/Cisco_IOS_XE_Router_NDM/3/7 (DISA STIG content)",
+ "rules": {
+  "V-215807": {
+   "rule": "SV-215807r1186318_rule",
+   "stig_id": "CISC-ND-000010",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to limit the number of concurrent management sessions to an organization-defined number.",
+   "check": "Note: This requirement is not applicable to file transfer actions such as FTP, SCP, and SFTP.\n\nReview the router configuration to determine if concurrent management sessions are limited as shown in the example below:\n\nip http secure-server \nip http max-connections 2 \n… \n… \n… \n\nFor platforms that support the session-limit command:\n\nline vty 0 4\nsession-limit 2\ntransport input ssh\n\nFor those platforms that do not support the session-limit command, the sessions can also be limited by reducing the number of active vty lines as shown in the example below.\n\nline vty 0 1\ntransport input ssh\nline vty 2 4\ntransport input none \n\nIf the router is not configured to limit the number of concurrent management sessions, this is a finding.",
+   "fix": "Configure the router to limit the number of concurrent management sessions to an organization-defined number as shown in the example below.\n\nR4(config)#ip http max-connections 2 \nR4(config)#line vty 0 1 \nR4(config-line)#transport input ssh\nR4(config-line)#exit\nR4(config)#line vty 2 4 \nR4(config-line)# transport input none  \nR4(config-line)#end\n\nTo configure session limiting, use the example below.\n\nR4(config)#line vty 0 4\nR4(config-line)#session-limit 2\nR4(config-line)#transport input ssh",
+   "cci": [
+    "CCI-000054"
+   ],
+   "check_sha": "e9d76b6bb35497c9"
+  },
+  "V-215808": {
+   "rule": "SV-215808r1186320_rule",
+   "stig_id": "CISC-ND-000090",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to automatically audit account creation.",
+   "check": "Review the router configuration to determine if it automatically audits account creation. The configuration should look similar to the example below:\n\narchive\n log config\n logging enable\n\nNote: Configuration changes can be viewed using the show archive log config all command.\n\nIf account creation is not automatically audited, this is a finding.",
+   "fix": "Configure the router to log account creation using the following commands:\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-000018"
+   ],
+   "check_sha": "6d9f3743c6036901"
+  },
+  "V-215809": {
+   "rule": "SV-215809r1186322_rule",
+   "stig_id": "CISC-ND-000100",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to automatically audit account modification.",
+   "check": "Review the router configuration to determine if it automatically audits account modification. The configuration should look similar to the example below:\n\narchive\n log config\n logging enable\n\nNote: Configuration changes can be viewed using the show archive log config all command.\n\nIf account modification is not automatically audited, this is a finding.",
+   "fix": "Configure the router to log account modification using the following commands:\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-001403"
+   ],
+   "check_sha": "85235ef2e952c3d2"
+  },
+  "V-215810": {
+   "rule": "SV-215810r1186324_rule",
+   "stig_id": "CISC-ND-000110",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to automatically audit account disabling actions.",
+   "check": "Review the router configuration to determine if it automatically audits account disabling. The configuration should look similar to the example below:\n\narchive\n log config\n logging enable\n\nNote: Configuration changes can be viewed using the show archive log config all command.\n\nIf account disabling is not automatically audited, this is a finding.",
+   "fix": "Configure the router to log account disabling using the following commands:\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-001404"
+   ],
+   "check_sha": "0bc8ee51349640b3"
+  },
+  "V-215811": {
+   "rule": "SV-215811r1186326_rule",
+   "stig_id": "CISC-ND-000120",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to automatically audit account removal actions.",
+   "check": "Review the router configuration to determine if it automatically audits account removal. The configuration should look similar to the example below:\n\narchive\n log config\n logging enable\n\nNote: Configuration changes can be viewed using the show archive log config all command.\n\nIf account removal is not automatically audited, this is a finding.",
+   "fix": "Configure the router to log account removal using the following commands:\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-001405"
+   ],
+   "check_sha": "7d346996f1a21324"
+  },
+  "V-215812": {
+   "rule": "SV-215812r1137875_rule",
+   "stig_id": "CISC-ND-000140",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce approved authorizations for controlling the flow of management information within the device based on control policies.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement. \n\nStep 1: Verify that the line vty has an ACL inbound applied as shown in the example below.\n\nline vty 0 1\n access-class MANAGEMENT_NET in\n transport input ssh\n\nStep 2: Verify that the ACL permits only hosts from the management network to access the router.\n\nip access-list extended MANAGEMENT_NET \npermit ip x.x.x.0 0.0.0.255 any\ndeny   ip any any log-input\n\nIf the Cisco router is not configured to enforce approved authorizations for controlling the flow of management information within the device based on control policies, this is a finding.",
+   "fix": "Configure the Cisco router to restrict management access to specific IP addresses via SSH as shown in the example below.\n\nSW2(config)#ip access-list standard MANAGEMENT_NET \nSW2(config-std-nacl)#permit x.x.x.0 0.0.0.255 \nSW2(config-std-nacl)#exit \nSW2(config)#line vty 0 1 \nSW2(config-line)#transport input ssh \nSW2(config-line)#access-class MANAGEMENT_NET in \nSW2(config-line)#end",
+   "cci": [
+    "CCI-001368",
+    "CCI-004192"
+   ],
+   "check_sha": "67de2acf498b27c1"
+  },
+  "V-215813": {
+   "rule": "SV-215813r960840_rule",
+   "stig_id": "CISC-ND-000150",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce the limit of three consecutive invalid logon attempts, after which time it must lock out the user account from accessing the device for 15 minutes.",
+   "check": "Review the Cisco router configuration to verify that it enforces the limit of three consecutive invalid logon attempts as shown in the example below.\n\nlogin block-for 900 attempts 3 within 120\n\nNote: The configuration example above will block any login attempt for 15 minutes after three consecutive invalid logon attempts within a two-minute period.\n\nIf the Cisco router is not configured to enforce the limit of three consecutive invalid logon attempts, this is a finding.",
+   "fix": "Configure the Cisco router to enforce the limit of three consecutive invalid logon attempts as shown in the example below.\n\nR2(config)#login block-for 900 attempts 3 within 120",
+   "cci": [
+    "CCI-000044"
+   ],
+   "check_sha": "b2a7e30b709b6332"
+  },
+  "V-215814": {
+   "rule": "SV-215814r960843_rule",
+   "stig_id": "CISC-ND-000160",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to display the Standard Mandatory DoD Notice and Consent Banner before granting access to the device.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\nbanner login ^C\nYou are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\n\nBy using this IS (which includes any device attached to this IS), you consent to the following conditions:\n\n-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n\n-At any time, the USG may inspect and seize data stored on this IS.\n\n-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n\n-This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\n\n-Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.\n^C\n\nIf the Cisco router is not configured to display the Standard Mandatory DoD Notice and Consent Banner before granting access to the device, this is a finding.",
+   "fix": "Configure the Cisco router to display the Standard Mandatory DoD Notice and Consent Banner before granting access as shown in the following example:\n\nR1(config)#banner login #\nEnter TEXT message. End with the character '#'.\nYou are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\n\nBy using this IS (which includes any device attached to this IS), you consent to the following conditions:\n\n-The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.\n\n-At any time, the USG may inspect and seize data stored on this IS.\n\n-Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.\n\n-This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.\n\n-Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details. #\nR1(config)#end",
+   "cci": [
+    "CCI-000048"
+   ],
+   "check_sha": "7d90eaff0b702a3e"
+  },
+  "V-215815": {
+   "rule": "SV-215815r1186328_rule",
+   "stig_id": "CISC-ND-000210",
+   "severity": "medium",
+   "title": "The Cisco device must be configured to audit all administrator activity.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\nhostname R1\n!\nlogging userinfo\n!\n…\n…\n…\narchive\n log config\n logging enable\n!\n\nNote: The logging userinfo global configuration command will generate a log when a user increases his or her privilege level.\n\nIf logging of administrator activity is not configured, this is a finding.",
+   "fix": "Configure the router to log administrator activity as shown in the example below.\n\nR1(config)#logging userinfo\nR1(config)#archive\nR1(config-archive)#log config\nR1(config-archive-log-cfg)#logging enable\nR1(config-archive-log-cfg)#logging size 1000\nR1(config-archive-log-cfg)#notify syslog contenttype plaintext\nR1(config-archive-log-cfg)#hidekeys\nR1(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-000166",
+    "CCI-002234",
+    "CCI-000172"
+   ],
+   "check_sha": "b613a6f321b08566"
+  },
+  "V-215817": {
+   "rule": "SV-215817r960894_rule",
+   "stig_id": "CISC-ND-000280",
+   "severity": "medium",
+   "title": "The Cisco router must produce audit records containing information to establish when (date and time) the events occurred.",
+   "check": "Verify that the router is configured to include the date and time on all log records as shown in the configuration example below.\n\nservice timestamps log datetime localtime\n\nIf time stamps are not configured, this is a finding.",
+   "fix": "Configure the router to include the date and time on all log records as shown in the example below.\n\nR1(config)#service timestamps log datetime localtime",
+   "cci": [
+    "CCI-000131"
+   ],
+   "check_sha": "8af821dca6bcbf1a"
+  },
+  "V-215818": {
+   "rule": "SV-215818r960897_rule",
+   "stig_id": "CISC-ND-000290",
+   "severity": "medium",
+   "title": "The Cisco router must produce audit records containing information to establish where the events occurred.",
+   "check": "Review the deny statements in all interface ACLs to determine if the log-input parameter has been configured as shown in the example below.\nNote: log-input can only apply to interface bound ACLs.\n\nip access-list extended BLOCK_INBOUND\n deny  icmp any any log-input\n\nIf the router is not configured with the log-input parameter after any deny statements to note where packets have been dropped via an ACL, this is a finding.",
+   "fix": "Configure the log-input parameter after any deny statements to provide the location as to where packets have been dropped via an ACL.\n\nR1(config)#ip access-list extended BLOCK_INBOUND\nR1(config-ext-nacl)#deny icmp any any log-input",
+   "cci": [
+    "CCI-000132"
+   ],
+   "check_sha": "b7737936167b82c1"
+  },
+  "V-215819": {
+   "rule": "SV-215819r1186330_rule",
+   "stig_id": "CISC-ND-000330",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to generate audit records containing the full-text recording of privileged commands.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement. The configuration example below will log all configuration changes.\n\narchive\n log config\n logging enable\n\nNote: Configuration changes can be viewed using the show archive log config all command.\n\nIf the Cisco router is not configured to generate audit records of configuration changes, this is a finding.",
+   "fix": "Configure the Cisco router to log all configuration changes as shown in the example below.\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-000135"
+   ],
+   "check_sha": "c443b0ae2a6345f1"
+  },
+  "V-215820": {
+   "rule": "SV-215820r960933_rule",
+   "stig_id": "CISC-ND-000380",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to protect audit information from unauthorized modification.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement.\n\nStep 1: If persistent logging is enabled as shown in the example below, go to step 2. Otherwise, this requirement is not applicable.\n\nlogging persistent url disk0:/logfile size 134217728 filesize 16384\n\nStep 2: Verify that the router is not configured with a privilege level other than \"15\" to allow access to the file system as shown in the example below.\n\nfile privilege 10 \n\nNote: The default privilege level required for access to the file system is \"15\"; hence, the command file privilege \"15\" will not be shown in the configuration.\n\nIf the router is configured with a privilege level other than \"15\" to allow access to the file system, this is a finding.",
+   "fix": "If persistent logging is enabled, configure the router to only allow administrators with privilege level \"15\" access to the file system as shown in the example below.\n\nR4(config)#file privilege 15",
+   "cci": [
+    "CCI-000163"
+   ],
+   "check_sha": "30b0969412d8cf06"
+  },
+  "V-215821": {
+   "rule": "SV-215821r960936_rule",
+   "stig_id": "CISC-ND-000390",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to protect audit information from unauthorized deletion.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement.\n\nStep 1: If persistent logging is enabled as shown in the example below, go to step 2. Otherwise, this requirement is not applicable.\n\nlogging persistent url disk0:/logfile size 134217728 filesize 16384\n\nStep 2: Verify that the router is not configured with a privilege level other than \"15\" to allow access to the file system as shown in the example below.\n\nfile privilege 10 \n\nNote: The default privilege level required for access to the file system is \"15\"; hence, the command file privilege \"15\" will not be shown in the configuration.\n\nIf the router is configured with a privilege level other than \"15\" to allow access to the file system, this is a finding.",
+   "fix": "If persistent logging is enabled, configure the router to only allow administrators with privilege level \"15\" access to the file system as shown in the example below.\n\nR4(config)#file privilege 15",
+   "cci": [
+    "CCI-000164"
+   ],
+   "check_sha": "30b0969412d8cf06"
+  },
+  "V-215822": {
+   "rule": "SV-215822r960960_rule",
+   "stig_id": "CISC-ND-000460",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to limit privileges to change the software resident within software libraries.",
+   "check": "Verify that the router is not configured with a privilege level other than \"15\" to allow access to the file system as shown in the example below.\n\nfile privilege 10 \n\nNote: The default privilege level required for access to the file system is \"15\"; hence, the command file privilege \"15\" will not be shown in the configuration.\n\nIf the router is configured with a privilege level other than \"15\" to allow access to the file system, this is a finding.",
+   "fix": "Configure the router to only allow administrators with privilege level \"15\" access to the file system as shown in the example below.\n\nR4(config)#file privilege 15",
+   "cci": [
+    "CCI-001499"
+   ],
+   "check_sha": "23cad10fc6c5d422"
+  },
+  "V-215823": {
+   "rule": "SV-215823r1043177_rule",
+   "stig_id": "CISC-ND-000470",
+   "severity": "high",
+   "title": "The Cisco router must be configured to prohibit the use of all unnecessary and nonsecure functions and services.",
+   "check": "Verify that the router does not have any unnecessary or nonsecure ports, protocols, and services enabled. For example, the following commands should not be in the configuration:\n\nboot network\nip boot server\nip bootp server\nip dns server\nip identd\nip finger\nip http server\nip rcmd rcp-enable\nip rcmd rsh-enable\nservice config\nservice finger\nservice tcp-small-servers\nservice udp-small-servers\nservice pad\nservice call-home\n\nNote: Certain legacy devices may require 'service call-home' be enabled to support Smart Licensing as they do not support the newer smart transport configuration. Those devices do not incur a finding for having call-home enabled for Smart Licensing.\n\nIf any unnecessary or nonsecure ports, protocols, or services are enabled, this is a finding.",
+   "fix": "Disable the following services if enabled as shown in the example below.\n\nR2(config)#no boot network\nR2(config)#no ip boot server\nR2(config)#no ip bootp server\nR2(config)#no ip dns server\nR2(config)#no ip identd\nR2(config)#no ip finger\nR2(config)#no ip http server\nR2(config)#no ip rcmd rcp-enable\nR2(config)#no ip rcmd rsh-enable\nR2(config)#no service config\nR2(config)#no service finger\nR2(config)#no service tcp-small-servers\nR2(config)#no service udp-small-servers\nR2(config)#no service pad\nR2(config)#no service call-home\nR2(config)#end",
+   "cci": [
+    "CCI-000382"
+   ],
+   "check_sha": "ad8ca2de7a3d7cfa"
+  },
+  "V-215824": {
+   "rule": "SV-215824r1051115_rule",
+   "stig_id": "CISC-ND-000490",
+   "severity": "medium",
+   "title": "The Cisco router must be configured with only one local account to be used as the account of last resort in the event the authentication server is unavailable.",
+   "check": "Step 1: Review the Cisco router configuration to verify that a local account for last resort has been configured.\n\nusername xxxxxxxxxxx privilege nn common-criteria-policy PASSWORD_POLICY password xxxxxxxxxx\n\nNote: The configured Common Criteria policy must be used when creating or changing the local account password as shown in the example above.\n\nStep 2: Verify that local is defined after radius or tacas+ in the authentication order as shown in the example below.\n\naaa authentication login default group tacacs+ local\n\nIf the Cisco router is not configured with only one local account to be used as the account of last resort in the event the authentication server is unavailable, this is a finding.",
+   "fix": "Step 1: Configure a local account as shown in the example below.\n\nR2(config)#username xxxxxxxxx privilege nn secret xxxxxxx\n\nStep 2: Configure the authentication order to use the local account if the authentication server is not reachable as shown in the following example:\n\nR2(config)#aaa authentication login default group tacacs+ local",
+   "cci": [
+    "CCI-001358",
+    "CCI-002111"
+   ],
+   "check_sha": "4a4c729d7719c63d"
+  },
+  "V-215826": {
+   "rule": "SV-215826r1015288_rule",
+   "stig_id": "CISC-ND-000550",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce a minimum 15-character password length.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\naaa new-model\n!\n!\naaa common-criteria policy PASSWORD_POLICY\n min-length 15\n\nIf the Cisco router is not configured to enforce a minimum 15-character password length, this is a finding.",
+   "fix": "Configure the Cisco router to enforce a minimum 15-character password length as shown in the example below.\n\nR1(config)#aaa common-criteria policy PASSWORD_POLICY\nR1(config-cc-policy)#min-length 15\nR1(config-cc-policy)#exit",
+   "cci": [
+    "CCI-004066",
+    "CCI-000205"
+   ],
+   "check_sha": "f90d25a42a5e183f"
+  },
+  "V-215827": {
+   "rule": "SV-215827r1015289_rule",
+   "stig_id": "CISC-ND-000570",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce password complexity by requiring that at least one uppercase character be used.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\naaa new-model\n!\n!\naaa common-criteria policy PASSWORD_POLICY\nupper-case 1\n\nIf the Cisco router is not configured to enforce password complexity by requiring that at least one uppercase character be used, this is a finding.",
+   "fix": "Configure the Cisco router to enforce password complexity by requiring that at least one uppercase character be used as shown in the example below.\n\nR1(config)#aaa common-criteria policy PASSWORD_POLICY\nR1(config-cc-policy)#upper-case 1\nR1(config-cc-policy)#exit",
+   "cci": [
+    "CCI-004066",
+    "CCI-000192"
+   ],
+   "check_sha": "e515b21af2413a6f"
+  },
+  "V-215828": {
+   "rule": "SV-215828r1015290_rule",
+   "stig_id": "CISC-ND-000580",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce password complexity by requiring that at least one lowercase character be used.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\naaa new-model\n!\n!\naaa common-criteria policy PASSWORD_POLICY\nlower-case 1\n\nIf the Cisco router is not configured to enforce password complexity by requiring that at least one lowercase character be used, this is a finding.",
+   "fix": "Configure the Cisco router to enforce password complexity by requiring that at least one lowercase character be used as shown in the example below.\n\nR1(config)#aaa common-criteria policy PASSWORD_POLICY\nR1(config-cc-policy)#lower-case 1\nR1(config-cc-policy)#exit",
+   "cci": [
+    "CCI-004066",
+    "CCI-000193"
+   ],
+   "check_sha": "68fb7fca250f5c03"
+  },
+  "V-215829": {
+   "rule": "SV-215829r1015291_rule",
+   "stig_id": "CISC-ND-000590",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce password complexity by requiring that at least one numeric character be used.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\naaa new-model\n!\n!\naaa common-criteria policy PASSWORD_POLICY\n numeric-count 1\n\nIf the Cisco router is not configured to enforce password complexity by requiring that at least one numeric character be used, this is a finding.",
+   "fix": "Configure the Cisco router to enforce password complexity by requiring that at least one numeric character be used as shown in the example below.\n\nR1(config)#aaa common-criteria policy PASSWORD_POLICY\nR1(config-cc-policy)#numeric-count 1\nR1(config-cc-policy)#exit",
+   "cci": [
+    "CCI-004066",
+    "CCI-000194"
+   ],
+   "check_sha": "ccad359d92b69401"
+  },
+  "V-215830": {
+   "rule": "SV-215830r1015292_rule",
+   "stig_id": "CISC-ND-000600",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to enforce password complexity by requiring that at least one special character be used.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\naaa new-model\n!\n!\naaa common-criteria policy PASSWORD_POLICY\n special-case 1\n\nIf the Cisco router is not configured to enforce password complexity by requiring that at least one special character be used, this is a finding.",
+   "fix": "Configure the Cisco router to enforce password complexity by requiring that at least one special character be used as shown in the example below.\n\nR1(config)#aaa common-criteria policy PASSWORD_POLICY\nR1(config-cc-policy)#special-case 1\nR1(config-cc-policy)#exit",
+   "cci": [
+    "CCI-004066",
+    "CCI-001619"
+   ],
+   "check_sha": "be2633c8aabfef10"
+  },
+  "V-215831": {
+   "rule": "SV-215831r1043189_rule",
+   "stig_id": "CISC-ND-000610",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to require that when a password is changed, the characters are changed in at least eight of the positions within the password.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\naaa new-model\n!\n!\naaa common-criteria policy PASSWORD_POLICY\n char-changes 8\n\nIf the Cisco router is not configured to require that when a password is changed, the characters are changed in at least eight of the positions within the password, this is a finding.",
+   "fix": "Configure the Cisco router to enforce password complexity by requiring that when a password is changed, the characters are changed in at least eight of the positions within the password as shown in the example below.\n\nR1(config)#aaa common-criteria policy PASSWORD_POLICY\nR1(config-cc-policy)#char-changes 8\nR1(config-cc-policy)#exit",
+   "cci": [
+    "CCI-004066",
+    "CCI-000195"
+   ],
+   "check_sha": "2887da3a6d2377cf"
+  },
+  "V-215832": {
+   "rule": "SV-215832r1015294_rule",
+   "stig_id": "CISC-ND-000620",
+   "severity": "high",
+   "title": "The Cisco router must only store cryptographic representations of passwords.",
+   "check": "Review the router configuration to determine if passwords are encrypted as shown in the example below.\n\nservice password-encryption\n\nIf the router is not configured to encrypt passwords, this is a finding.",
+   "fix": "Configure the router to encrypt all passwords.\n\nR4(config)#service password-encryption \nR4(config)#end",
+   "cci": [
+    "CCI-004062",
+    "CCI-004910",
+    "CCI-000196"
+   ],
+   "check_sha": "da33fe99a2a2e970"
+  },
+  "V-215833": {
+   "rule": "SV-215833r961068_rule",
+   "stig_id": "CISC-ND-000720",
+   "severity": "high",
+   "title": "The Cisco router must be configured to terminate all network connections associated with device management after five minutes of inactivity.",
+   "check": "Review the Cisco router configuration to verify that all network connections associated with a device management have an idle timeout value set to five minutes or less as shown in the following example:\n\nip http secure-server\nip http timeout-policy idle 300 life nnnn requests nn\n…\n…\n…\nline con 0\n exec-timeout 5 0\nline vty 0 1\n exec-timeout 5 0\n\nIf the Cisco router is not configured to terminate all network connections associated with a device management after five minutes of inactivity, this is a finding.",
+   "fix": "Set the idle timeout value to five minutes or less on all configured login classes as shown in the example below.\n\nR1(config)#line vty 0 1\nR1(config-line)#exec-timeout 5 0\nR1(config-line)#exit\nR1(config)#line con 0\nR1(config-line)#exec-timeout 5 0\nR1(config-line)#exit\nR2(config)#ip http timeout-policy idle 300 life nnnn requests nn",
+   "cci": [
+    "CCI-001133"
+   ],
+   "check_sha": "b8d424a8664f6224"
+  },
+  "V-215834": {
+   "rule": "SV-215834r1186332_rule",
+   "stig_id": "CISC-ND-000880",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to automatically audit account enabling actions.",
+   "check": "Review the router configuration to determine if it automatically audits account enabling. The configuration should look similar to the example below:\n\narchive\n log config\n logging enable\n\nNote: Configuration changes can be viewed using the show archive log config all command.\n\nIf account enabling is not automatically audited, this is a finding.",
+   "fix": "Configure the router to log account enabling using the following commands:\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-002130"
+   ],
+   "check_sha": "65acf5be3a0443a9"
+  },
+  "V-215836": {
+   "rule": "SV-215836r961392_rule",
+   "stig_id": "CISC-ND-000980",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to allocate audit record storage capacity in accordance with organization-defined audit record storage requirements.",
+   "check": "Verify that the Cisco router is configured with a logging buffer size. The configuration should look like the example below:\n\nlogging buffered xxxxxxxx informational\n\nIf a logging buffer size is not configured, this is a finding.\n\nIf the Cisco router is not configured to allocate audit record storage capacity in accordance with organization-defined audit record storage requirements, this is a finding.",
+   "fix": "Configure the buffer size for logging as shown in the example below.\n\nR2(config)#logging buffered xxxxxxxx informational",
+   "cci": [
+    "CCI-001849"
+   ],
+   "check_sha": "5dbd814164ba57f4"
+  },
+  "V-215837": {
+   "rule": "SV-215837r991886_rule",
+   "stig_id": "CISC-ND-001000",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to generate an alert for all audit failure events.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\nlogging trap critical\n\nNote: The parameter \"critical\" can replaced with a lesser severity level (i.e. error, warning, notice, informational). Informational is the default severity level; hence, if the severity level is configured to informational, the logging trap command will not be shown in the configuration.\n\nIf the Cisco router is not configured to generate an alert for all audit failure events, this is a finding.",
+   "fix": "Configure the Cisco router to send critical to emergency log messages to the syslog server as shown in the example below.\n\nR4(config)#logging trap critical\n\nNote: The parameter \"critical\" can replaced with a lesser severity level (i.e., error, warning, notice, informational).",
+   "cci": [
+    "CCI-001858",
+    "CCI-003831"
+   ],
+   "check_sha": "9dfdfdcddcbc6d00"
+  },
+  "V-215838": {
+   "rule": "SV-215838r1015295_rule",
+   "stig_id": "CISC-ND-001030",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to synchronize its clock with the primary and secondary time sources using redundant authoritative time sources.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the configuration example below.\n\nntp server x.x.x.x\nntp server y.y.y.y\n\nIf the Cisco router is not configured to synchronize its clock with redundant authoritative time sources, this is a finding.",
+   "fix": "Configure the Cisco router to synchronize its clock with redundant authoritative time sources as shown in the example below.\n\nR2(config)#ntp server x.x.x.x\nR2(config)#ntp server y.y.y.y",
+   "cci": [
+    "CCI-001889",
+    "CCI-001890",
+    "CCI-004928",
+    "CCI-004922",
+    "CCI-004923",
+    "CCI-001893"
+   ],
+   "check_sha": "8551e44b3c414696"
+  },
+  "V-215841": {
+   "rule": "SV-215841r1107207_rule",
+   "stig_id": "CISC-ND-001130",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to authenticate SNMP messages using a FIPS-validated Keyed-Hash Message Authentication Code (HMAC).",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\nsnmp-server group V3GROUP v3 auth read V3READ write V3WRITE \nsnmp-server host x.x.x.x version 3 auth V3USER\n\nAuthentication used by the SNMP users can be viewed via the show snmp user command as shown in the example below:\n\nR4#show snmp user\n\nUser name: V3USER\nEngine ID: 800000090300C2042B540000\nstorage-type: nonvolatile active\nAuthentication Protocol: SHA\nPrivacy Protocol: None\nGroup-name: V3GROUP\n\nIf the Cisco router is not configured to authenticate SNMP messages using a FIPS-validated HMAC, this is a finding.",
+   "fix": "Configure the Cisco router to authenticate SNMP messages as shown in the example below:\n\nR4(config)#snmp-server group V3GROUP v3 auth read V3READ write V3WRITE\nR4(config)#snmp-server user V3USER V3GROUP v3 auth sha xxxxxxx\nR4(config)#snmp-server host x.x.x.x version 3 auth V3USER",
+   "cci": [
+    "CCI-001967"
+   ],
+   "check_sha": "36bd45ef46cb16f7"
+  },
+  "V-215842": {
+   "rule": "SV-215842r961506_rule",
+   "stig_id": "CISC-ND-001140",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to encrypt SNMP messages using a FIPS 140-2 approved algorithm.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\nsnmp-server group V3GROUP v3 priv read V3READ write V3WRITE\nsnmp-server view V3READ iso included\nsnmp-server view V3WRITE iso included\nsnmp-server host x.x.x.x version 3 auth V3USER\n\nEncryption used by the SNMP users can be viewed via the show snmp user command as shown in the example below.\n\nR4#show snmp user\n\nUser name: V3USER\nEngine ID: 800000090300C2042B540000\nstorage-type: nonvolatile active\nAuthentication Protocol: SHA\nPrivacy Protocol: AES256\nGroup-name: V3GROUP\n\nIf the Cisco router is not configured to encrypt SNMP messages using a FIPS 140-2 approved algorithm, this is a finding.",
+   "fix": "Configure the Cisco router to encrypt SNMP messages using a FIPS 140-2 approved algorithm as shown in the example below.\n\nR4(config)#snmp-server group V3GROUP v3 priv read V3READ write V3WRITE\nR4(config)#snmp-server user V3USER V3GROUP v3 auth sha xxxxxx priv aes 256 xxxxxx",
+   "cci": [
+    "CCI-000068"
+   ],
+   "check_sha": "2bf15c3f4bde8152"
+  },
+  "V-215843": {
+   "rule": "SV-215843r1050862_rule",
+   "stig_id": "CISC-ND-001150",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to authenticate Network Time Protocol (NTP) sources using authentication that is cryptographically based.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the configuration example below.\n\nntp authentication-key 1 hmac-sha2-256 xxxxxx\nntp authenticate\nntp trusted-key 1\nntp server x.x.x.x key 1\nntp server y.y.y.y key 1\n\nIf the Cisco router is not configured to authenticate NTP sources using authentication that is cryptographically based, this is a finding.",
+   "fix": "Configure the Cisco router to authenticate NTP sources using authentication that is cryptographically based as shown in the example below.\n\nR2(config)#ntp authenticate\nR2(config)#ntp authentication-key 1 hmac-sha2-256 xxxxxxx\nR2(config)#ntp trusted-key 1\nR2(config)#ntp server x.x.x.x key 1\nR2(config)#ntp server y.y.y.y key 1",
+   "cci": [
+    "CCI-001967"
+   ],
+   "check_sha": "1df3a8ac3f66d709"
+  },
+  "V-215844": {
+   "rule": "SV-215844r961554_rule",
+   "stig_id": "CISC-ND-001200",
+   "severity": "high",
+   "title": "The Cisco router must be configured to use FIPS-validated Keyed-Hash Message Authentication Code (HMAC) to protect the integrity of remote maintenance sessions.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\nNOTE: Although allowed by SP800-131Ar2 for some applications, SHA-1 is considered a compromised hashing standard and is being phased out of use by industry and Government standards. Unless required for legacy use, DoD systems should not be configured to use SHA-1 for integrity of remote access sessions.\n\nSSH Example\n\nip ssh version 2\nip ssh server algorithm mac hmac-sha2-256\n\nIf the Cisco router is not configured to use FIPS-validated HMAC to protect the integrity of remote maintenance sessions, this is a finding.",
+   "fix": "Configure SSH to use FIPS-validated HMAC for remote maintenance sessions as shown in the following example:\n\nSSH Example\n\nR1(config)#ip ssh version 2\nR1(config)#ip ssh server algorithm mac hmac-sha2-256\n",
+   "cci": [
+    "CCI-002890",
+    "CCI-001941"
+   ],
+   "check_sha": "0e710792600e8371"
+  },
+  "V-215845": {
+   "rule": "SV-215845r961557_rule",
+   "stig_id": "CISC-ND-001210",
+   "severity": "high",
+   "title": "The Cisco router must be configured to implement cryptographic mechanisms to protect the confidentiality of remote maintenance sessions.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement.\n\nSSH Example\n\nip ssh version 2\nip ssh server algorithm encryption aes256-ctr aes192-ctr aes128-ctr\n\nIf the router is not configured to implement cryptographic mechanisms to protect the confidentiality of remote maintenance sessions using a FIPS 140-2 approved algorithm, this is a finding.",
+   "fix": "Configure the Cisco router to implement cryptographic mechanisms to protect the confidentiality of remote maintenance sessions using a FIPS 140-2 approved algorithm as shown in the examples below.\n\nSSH Example\n\nR1(config)#ip ssh server algorithm encryption aes256-ctr aes192-ctr aes128-ctr\n\n",
+   "cci": [
+    "CCI-003123"
+   ],
+   "check_sha": "7c17940673eb2e6f"
+  },
+  "V-215848": {
+   "rule": "SV-215848r1186334_rule",
+   "stig_id": "CISC-ND-001250",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to generate log records when administrator privileges are deleted.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example below.\n\narchive\n log config\n logging enable\n\nIf the Cisco router is not configured to generate log records when administrator privileges are deleted, this is a finding.",
+   "fix": "Configure the Cisco router to generate log records when administrator privileges are deleted as shown in the example below.\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "3cee55c890157956"
+  },
+  "V-215849": {
+   "rule": "SV-215849r961824_rule",
+   "stig_id": "CISC-ND-001260",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to generate audit records when successful/unsuccessful logon attempts occur.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the examples below.\n\nlogin on-failure log\nlogin on-success log\n\nIf the Cisco router is not configured to generate audit records when successful/unsuccessful logon attempts occur, this is a finding.",
+   "fix": "Configure the Cisco router to generate audit records when successful/unsuccessful logon attempts occur as shown in the example below.\n\nR5(config)#login on-failure log\nR5(config)#login on-success log",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "03e88774fa8d7f88"
+  },
+  "V-215850": {
+   "rule": "SV-215850r1186336_rule",
+   "stig_id": "CISC-ND-001270",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to generate log records for privileged activities.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement as shown in the example configurations below.\n\narchive\n log config\n logging enable\n\nIf the Cisco router is not configured to generate log records for privileged activities, this is a finding.",
+   "fix": "Configure the Cisco router to generate log records for privileged activities as shown in the example below.\n\nR4(config)#archive\nR4(config-archive)#log config\nR4(config-archive-log-cfg)#logging enable\nR4(config-archive-log-cfg)#logging size 1000\nR4(config-archive-log-cfg)#notify syslog contenttype plaintext\nR4(config-archive-log-cfg)#hidekeys\nR4(config-archive-log-cfg)#end",
+   "cci": [
+    "CCI-000172"
+   ],
+   "check_sha": "f15280b937e31b98"
+  },
+  "V-215854": {
+   "rule": "SV-215854r1156415_rule",
+   "stig_id": "CISC-ND-001370",
+   "severity": "high",
+   "title": "The Cisco router must be configured to use at least two authentication servers for the purpose of authenticating users prior to granting administrative access.",
+   "check": "Review the Cisco router configuration to verify the device is configured to use at least two authentication servers as primary source for authentication as shown in the following example:\n\naaa new-model\n!\naaa authentication CONSOLE  group radius local\naaa authentication login LOGIN_AUTHENTICATION group radius local\n…\n…\n…\nip http authentication aaa login-authentication LOGIN_AUTHENTICATION\nip http secure-server\n…\n…\n…\nradius-server host x.x.x.x auth-port 1812 acct-port 1813 key xxxxxx\nradius-server host x.x.x.x auth-port 1812 acct-port 1813 key xxxxxx\n…\n…\n…\nline con 0\n exec-timeout 5 0\n login authentication CONSOLE\nline vty 0 1\n exec-timeout 5 0\n login authentication LOGIN_AUTHENTICATION\n\nIf the Cisco router is not configured to use at least two authentication servers for the purpose of authenticating users prior to granting administrative access, this is a finding.",
+   "fix": "Step 1: Configure the Cisco router to use at least two authentication servers as shown in the following example:\n\nR4(config)#radius host 10.1.48.2 key xxxxxx\nR4(config)#radius host 10.1.48.3 key xxxxxx\n\nStep 2: Configure the authentication order to use the authentication servers as primary source for authentication as shown in the following example:\n\nR4(config)#aaa authentication CONSOLE group radius local\n\nR4(config)#aaa authentication login LOGIN_AUTHENTICATION group radius local\n\nStep 3: Configure all network connections associated with a device management to use the authentication servers for the purpose of login authentication.\n\nR4(config)#line vty 0 1\nR4(config-line)#login authentication LOGIN_AUTHENTICATION\nR4(config-line)#exit\nR4(config)#line con 0\nR4(config-line)#login authentication CONSOLE\nR4(config-line)#exit \nR4(config)#ip http authentication aaa login-authentication LOGIN_AUTHENTICATION",
+   "cci": [
+    "CCI-000370"
+   ],
+   "check_sha": "af7c1941d28d3d73"
+  },
+  "V-215855": {
+   "rule": "SV-215855r1069501_rule",
+   "stig_id": "CISC-ND-001410",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to back up the configuration when changes occur.",
+   "check": "Review the Cisco router configuration to verify that it is compliant with this requirement. The example configuration below will send the configuration to a SCP server when a configuration change occurs.\n\nevent manager applet BACKUP_CONFIG\n event syslog pattern \"%SYS-5-CONFIG_I\"\n action 1 info type routername\n action 2 cli command \"enable\"\n action 3 cli command \"copy run scp\" pattern \"remote host\"\n action 4 cli command \"x.x.x.x\" pattern \"filename\"\n action 5 cli command \"$_info_routername-config\"\n action 6 syslog priority informational msg \"Configuration backup was executed\"\n\nIf the Cisco router is not configured to conduct backups of the configuration when changes occur, this is a finding.",
+   "fix": "Configure the Cisco router to send the configuration to a SCP server when a configuration change occurs as shown in the example below.\n\nR4(config)#event manager applet BACKUP_CONFIG\nR4(config-applet)#event syslog pattern \"%SYS-5-CONFIG_I\"\nR4(config-applet)#action 1 cli command \"enable\"\nR4(config-applet)#action 2 info type routername\nR4(config-applet)#action 3 cli command \"copy run scp\" pattern \"remote host\"\nR4(config-applet)#action 4 cli command \"x.x.x.x\" pattern \"filename\"\nR4(config-applet)#action 5 cli command \"$_info_routername-config\"\nR4(config-applet)#action 6 syslog priority informational msg \"Configuration backup was executed\"\nR4(config-applet)#end",
+   "cci": [
+    "CCI-000366",
+    "CCI-000537"
+   ],
+   "check_sha": "9ffd25acd38be0da"
+  },
+  "V-215856": {
+   "rule": "SV-215856r991889_rule",
+   "stig_id": "CISC-ND-001440",
+   "severity": "medium",
+   "title": "The Cisco router must be configured to obtain its public key certificates from an appropriate certificate policy through an approved service provider.",
+   "check": "Review the router configuration to determine if a CA trust point has been configured. The CA trust point will contain the URL of the CA in which the router has enrolled with. Verify this is a DOD or DOD-approved CA. This will ensure the router has enrolled and received a certificate from a trusted CA. The CA trust point configuration would look similar to the example below.\n\ncrypto pki trustpoint CA_X\n enrollment url http://trustpoint1.example.com\n\nNote: A remote end-point's certificate will always be validated by the router by verifying the signature of the CA on the certificate using the CA's public key, which is contained in the router's certificate it received at enrollment.\n\nNote: This requirement is not applicable if the router does not have any public key certificates.\n\nIf the Cisco router is not configured to obtain its public key certificates from an appropriate certificate policy through an approved service provider, this is a finding.",
+   "fix": "Configure the router to obtain its public key certificates from an appropriate certificate policy through an approved service provider as shown in the example below.\n\nR2(config)# crypto pki trustpoint CA_X\nR2(ca-trustpoint)#enrollment url http://trustpoint1.example.com\n",
+   "cci": [
+    "CCI-001159",
+    "CCI-004909"
+   ],
+   "check_sha": "9a227250aaed6918"
+  },
+  "V-220139": {
+   "rule": "SV-220139r1137890_rule",
+   "stig_id": "CISC-ND-001450",
+   "severity": "high",
+   "title": "The Cisco router must be configured to send log data to at least two syslog servers for the purpose of forwarding alerts to the administrators and the information system security officer (ISSO).",
+   "check": "Verify that the router is configured to send logs to at least two syslog servers. The configuration should look similar to the example below:\n\nlogging x.x.x.x\nlogging x.x.x.x\n\nIf the router is not configured to send log data to the syslog servers, this is a finding.",
+   "fix": "Configure the router to send log messages to the syslog servers as shown in the example below.\n\nR4(config)#logging host x.x.x.x\nR4(config)#logging host x.x.x.x",
+   "cci": [
+    "CCI-001851"
+   ],
+   "check_sha": "990cbae544bb4e79"
+  },
+  "V-220140": {
+   "rule": "SV-220140r961863_rule",
+   "stig_id": "CISC-ND-001470",
+   "severity": "high",
+   "title": "The Cisco router must be running an IOS release that is currently supported by Cisco Systems.",
+   "check": "Verify that the router is in compliance with this requirement by having the router administrator enter the following command: \n\nshow version\n\nVerify that the release is still supported by Cisco. All releases supported by Cisco can be found on the following URL:\n\nwww.cisco.com/c/en/us/support/ios-nx-os-software\n\nIf the router is not running a supported release, this is a finding.",
+   "fix": "Upgrade the router to a supported release.",
+   "cci": [
+    "CCI-000366"
+   ],
+   "check_sha": "00348395ed2336e3"
+  }
+ }
+}
