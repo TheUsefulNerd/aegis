@@ -143,7 +143,7 @@ export async function getCanonicalFields(): Promise<Record<string, FieldMeta>> {
   return handle<Record<string, FieldMeta>>(res);
 }
 
-export type ConfidenceTier = "tier1" | "tier2_accepted" | "tier3_human_confirmed" | null;
+export type ConfidenceTier = "tier1" | "tier2_accepted" | "tier3_human_confirmed" | "vendor_default" | null;
 
 export type Finding = {
   rule_id: string;

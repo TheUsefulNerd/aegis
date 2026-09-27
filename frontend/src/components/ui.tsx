@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Cpu, Sparkles, UserCheck, Check, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronDown, Cpu, Settings2, Sparkles, UserCheck, Check, CheckCircle2, XCircle } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 
 /* Design language: enterprise console, not marketing page.
@@ -121,10 +121,11 @@ export function Badge({
  * classification, or a human confirmation. Same three states everywhere
  * (findings table, PDF "Source" column, review queue) so a viewer only has
  * to learn this vocabulary once. */
-const SOURCE_META: Record<string, { icon: typeof Cpu; color: "emerald" | "indigo" | "amber"; label: string }> = {
+const SOURCE_META: Record<string, { icon: typeof Cpu; color: "emerald" | "indigo" | "amber" | "slate"; label: string }> = {
   tier1: { icon: Cpu, color: "emerald", label: "Instantly recognized" },
   tier2_accepted: { icon: Sparkles, color: "indigo", label: "AI-classified" },
   tier3_human_confirmed: { icon: UserCheck, color: "amber", label: "Human-confirmed" },
+  vendor_default: { icon: Settings2, color: "slate", label: "Vendor default" },
 };
 
 export function SourceBadge({ tier }: { tier: string | null | undefined }) {

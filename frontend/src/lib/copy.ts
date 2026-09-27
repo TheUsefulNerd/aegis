@@ -12,6 +12,7 @@ export const CONFIDENCE_TIER_LABELS: Record<string, string> = {
   tier1: "Instantly recognized",
   tier2_accepted: "AI-classified",
   tier3_human_confirmed: "Human-confirmed",
+  vendor_default: "Vendor default",
 };
 
 // Mirrors backend/app/canonical_schema.py's CONTROL_FAMILIES - the prefix of

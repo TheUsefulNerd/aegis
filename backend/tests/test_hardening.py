@@ -41,11 +41,13 @@ def test_banner_text_is_never_read_as_configuration(client):
     body = _ingest_text(client, "banner.txt", (
         "version 17.3\nbanner motd ^C\nAuthorized users only\ntransport input ssh\nip ssh version 2\n"
         "service password-encryption\n^C\nline vty 0 4\n transport input all\n"))
-    assert "IA.ssh_version" not in body["fields"]
-    assert "IA.password_encryption_enabled" not in body["fields"]
+    # The banner's `ip ssh version 2` / `service password-encryption` are
+    # ignored; the IOS defaults (SSHv1 allowed, encryption off) apply instead.
+    assert body["fields"]["IA.ssh_version"] == 1 and body["fields"]["IA.password_encryption_enabled"] is False
     assert body["fields"].get("AC.login_banner_configured") is True
     r = _eval(client, body["config_id"])
-    assert r["CIS-2.1.1.2"]["result"] == NOT_EVALUATED and r["CIS-1.4.2"]["result"] == NOT_EVALUATED
+    assert r["CIS-2.1.1.2"]["result"] == FAIL and r["CIS-2.1.1.2"]["confidence_tier"] == "vendor_default"
+    assert r["CIS-1.4.2"]["result"] == FAIL
 
 
 def test_banner_split_keeps_only_the_header():
@@ -312,3 +314,23 @@ def test_pfsense_weak_openvpn_digest_fails_deterministically(client):
     r = _eval(client, body["config_id"])
     assert r["CIS-PF-5.5.1"]["result"] == FAIL and r["CIS-PF-5.5.1"]["confidence_tier"] == "tier1"
     assert r["CIS-PF-1.8"]["result"] == PASS
+
+
+def test_vendor_defaults_can_fail_but_never_pass(client):
+    body = _ingest_text(client, "d.txt", "version 15.5\nhostname r1\nline vty 0 4\n transport input ssh\n"
+                                         "interface Gi1\n ip address 10.0.0.1 255.255.255.0\n!\n"
+                                         "interface Gi2\n no ip proxy-arp\n!\n")
+    r = _eval(client, body["config_id"])
+    # silent insecure defaults -> FAIL, labelled as defaults
+    assert r["CIS-2.2.4"]["result"] == FAIL and r["CIS-2.2.4"]["confidence_tier"] == "vendor_default"
+    assert r["CIS-3.1.1"]["result"] == FAIL
+    # proxy ARP: Gi2 disables it, Gi1 is left at the default -> the device FAILs
+    assert r["CIS-3.1.2"]["result"] == FAIL and "interface Gi1" in r["CIS-3.1.2"]["source_lines"][0]
+    # a PASS resting only on a default (exec-timeout 10) stays unknown
+    assert r["CIS-1.2.8"]["result"] == NOT_EVALUATED and r["CIS-1.2.8"]["evidence"]["would_be"] == "PASS_DEFAULT"
+
+
+def test_vendor_defaults_never_apply_to_a_fragment(client):
+    # medium-confidence fingerprint (no `line vty`): a fragment, so no defaults
+    body = _ingest_text(client, "frag.txt", "version 15.5\nhostname r1\n")
+    assert "AU.logging_host" not in body["fields"]

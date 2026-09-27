@@ -25,4 +25,4 @@ def test_no_wrong_verdicts_on_labelled_configs(client):
                 if out != want:
                     wrong.append((name, rule_id, want, out))
     assert wrong == []
-    assert decided / total >= 0.85, f"deterministic coverage fell to {decided}/{total}"
+    assert decided / total >= 0.95, f"deterministic coverage fell to {decided}/{total}"

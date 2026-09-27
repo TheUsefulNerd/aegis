@@ -150,3 +150,28 @@ entries:
   - {syntax_pattern: '^no ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: false}
   - {syntax_pattern: '^ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: true}
   - {syntax_pattern: '^service-policy input \S+$', pattern_type: regex, canonical_field: SC.control_plane_protection, value: true}
+
+# What IOS / IOS-XE does when the config is silent (Cisco command references;
+# the CIS benchmark items exist precisely because these defaults are
+# insecure). Used only for a high-confidence full export, and only ever to
+# FAIL a rule - a PASS resting on a default stays NOT_EVALUATED.
+defaults:
+  - {field: IA.password_encryption_enabled, value: false, note: "service password-encryption is off by default"}
+  - {field: AC.login_banner_configured, value: false, note: "no banner is configured by default"}
+  - {field: AU.ntp_authentication_enabled, value: false, note: "ntp authenticate is off by default"}
+  - {field: AU.logging_host, value: [], note: "no remote syslog host by default"}
+  - {field: SC.ip_source_routing_enabled, value: true, note: "ip source-route is enabled by default"}
+  - {field: SC.pad_enabled, value: true, note: "service pad is enabled by default"}
+  - {field: SC.control_plane_protection, value: false, note: "no control-plane service-policy by default"}
+  - {field: AC.vty_access_class, value: false, note: "VTY lines have no access-class by default"}
+  - {field: IA.ssh_version, value: 1, note: "SSH runs in 1.99 compatibility mode (v1 allowed) unless ip ssh version 2"}
+  - {field: AU.logging_enabled, value: false, note: "archive config-change logging is off by default"}
+  - {field: AC.session_idle_timeout_minutes, value: 10, note: "exec-timeout defaults to 10 minutes"}
+
+interface_defaults:
+  - field: SC.proxy_arp_enabled
+    value: true
+    unless: '^\s*no ip proxy-arp\s*$'
+    unless_text: no ip proxy-arp
+    skip: '^interface (Loopback|Null|Tunnel|Virtual-Template)'
+    note: "proxy ARP is enabled on every interface by default"

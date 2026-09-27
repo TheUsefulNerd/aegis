@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import audit_chain, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
+from . import audit_chain, vendor_defaults, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
@@ -230,6 +230,8 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
         bindings = _acl_bindings(unit_list)
         if bindings:
             fields["AC.acl_bindings"] = bindings
+        if fp["format"] == "cli":
+            vendor_defaults.apply(fp["vendor"], fp["confidence"], redacted.text, fields, provenance)
         ingest_span.update(output={"tier_counts": tier_counts})
     langfuse.flush()
 
@@ -366,7 +368,7 @@ def _redaction_examples(unit_list: list[str], limit: int = 5) -> list[dict]:
     return out
 
 
-_TIER_STRENGTH = {"tier3_human_confirmed": 0, "tier2_accepted": 1, "tier1": 2}
+_TIER_STRENGTH = {"vendor_default": -1, "tier3_human_confirmed": 0, "tier2_accepted": 1, "tier1": 2}
 
 
 def _finding_tier(prov: dict, evidence: dict) -> str | None:
@@ -440,7 +442,14 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
         field_name = rule.predicate.get("field") if isinstance(rule.predicate, dict) else None
         prov = (config.provenance or {}).get(field_name) if field_name else None
         confidence_tier = _finding_tier(prov, eval_result.evidence) if prov else None
-        if eval_result.result == rule_engine.PASS and rule.severity == "CAT_I" and confidence_tier == "tier2_accepted":
+        if eval_result.result == rule_engine.PASS and confidence_tier == "vendor_default":
+            # A default may FAIL a rule (an insecure default is a finding)
+            # but never PASS one: an export that merely omits a line must not
+            # look compliant.
+            eval_result = rule_engine.EvalResult(rule_engine.NOT_EVALUATED, {
+                **eval_result.evidence, "reason": "passes only on the vendor default, which this config does not state",
+                "would_be": "PASS_DEFAULT"})
+        elif eval_result.result == rule_engine.PASS and rule.severity == "CAT_I" and confidence_tier == "tier2_accepted":
             # Asymmetric trust: AI-derived evidence may FAIL a control on its
             # own, but it never PASSES a CAT_I control without a human. The
             # auditor sees exactly what the AI read and confirms it once.
@@ -521,6 +530,7 @@ def reload_rules(request: Request, db: Session = Depends(get_db)):
     a new framework or a corrected rule is a new file, not a redeploy."""
     _verified_reviewer(request, None)
     fingerprint.reload_signatures()
+    vendor_defaults.reload()
     added = load_rule_files(db)
     seeds = load_seed_kb(db)
     return {"rules_added": added, "rules_total": db.query(Rule).count(), "seed_entries_added": seeds}
@@ -841,7 +851,7 @@ def stats(db: Session = Depends(get_db)):
     for row in db.query(KnowledgeBaseEntry.source).all():
         by_source[row[0]] = by_source.get(row[0], 0) + 1
     pending = db.query(ReviewQueueItem).filter(ReviewQueueItem.status == "pending").count()
-    findings_by_tier = {"tier1": 0, "tier2_accepted": 0, "tier3_human_confirmed": 0}
+    findings_by_tier = {"tier1": 0, "tier2_accepted": 0, "tier3_human_confirmed": 0, "vendor_default": 0}
     for row in db.query(Finding.confidence_tier).all():
         if row[0] in findings_by_tier:
             findings_by_tier[row[0]] += 1

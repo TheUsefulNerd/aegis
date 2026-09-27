@@ -16,7 +16,7 @@ export default function InsightsPage() {
   }, []);
 
   const tierRows = stats
-    ? (["tier1", "tier2_accepted", "tier3_human_confirmed"] as const).map((key) => ({
+    ? (["tier1", "tier2_accepted", "tier3_human_confirmed", "vendor_default"] as const).map((key) => ({
         key,
         label: CONFIDENCE_TIER_LABELS[key],
         value: stats.findings_by_tier[key] ?? 0,

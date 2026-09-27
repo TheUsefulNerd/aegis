@@ -28,6 +28,7 @@ _TIER_LABELS = {
     "tier1": "Instantly recognized",
     "tier2_accepted": "AI-classified",
     "tier3_human_confirmed": "Human-confirmed",
+    "vendor_default": "Vendor default",
     None: "-",
 }
 _NAVY = colors.HexColor("#0f172a")
@@ -309,6 +310,8 @@ def _keep_indent(line: str) -> str:
 
 def _unknown_reason(f: dict) -> str:
     ev = f.get("evidence") or {}
+    if ev.get("would_be") == "PASS_DEFAULT":
+        return "Would pass only on the vendor default, which this config does not state."
     if ev.get("would_be") == "PASS":
         return "Needs human confirmation: the only evidence is an AI reading."
     reason = ev.get("reason") or ""
@@ -338,7 +341,9 @@ def _legend_table(styles) -> Table:
         [Paragraph("<b>Source</b>", cell),
          Paragraph("How the setting was identified: <b>Instantly recognized</b> (matched a known pattern, no AI "
                    "involved), <b>AI-classified</b> (identified by an AI model, schema-validated), or "
-                   "<b>Human-confirmed</b> (a reviewer confirmed it once; recognized instantly from then on).", cell)],
+                   "<b>Human-confirmed</b> (a reviewer confirmed it once; recognized instantly from then on), or "
+                   "<b>Vendor default</b> (the config is silent, so the vendor's documented default applies; a "
+                   "default can fail a rule but never pass one).", cell)],
     ]
     t = Table(rows, colWidths=[1.1 * inch, 5.5 * inch])
     t.setStyle(TableStyle([

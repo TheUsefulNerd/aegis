@@ -31,6 +31,7 @@ devices:
     CIS-2.3.1.1: FAIL          # ntp servers without `ntp authenticate`
     CIS-SUPPLEMENT-ACL-TELNET: FAIL   # applied VTY_LINES ends `permit ip any any`
     STIG-V-216662: FAIL        # applied ACL ends in permit-all
+    CIS-3.1.2: FAIL            # no interface has `no ip proxy-arp` (on by default)
 
   04_cisco_csr1000v_edge_misconfigured.txt:
     CIS-1.2.2: FAIL            # transport input telnet
@@ -47,6 +48,10 @@ devices:
     NIST-AC-4: FAIL
     STIG-V-216662: FAIL
     STIG-V-216650: FAIL        # bare `control-plane`, no service-policy
+    CIS-3.1.2: FAIL            # no interface has `no ip proxy-arp`
+    CIS-3.1.1: FAIL            # no `no ip source-route` (enabled by default)
+    CIS-2.1.7: FAIL            # no `no service pad` (enabled by default)
+    CIS-1.3.2: FAIL            # no banner
 
   06_cisco_csr1000v_edge_remediated.txt:
     CIS-1.2.2: PASS            # vty 0 4: transport input ssh
@@ -68,6 +73,7 @@ devices:
     NIST-AC-4: PASS
     STIG-V-216662: FAIL        # still ends in permit ip any any
     STIG-V-216650: FAIL        # bare `control-plane`
+    CIS-3.1.2: FAIL            # only Gi2 has `no ip proxy-arp`; Gi1 and Gi3 are left at the default
 
   02_pfsense_hq_firewall.xml:
     CIS-PF-1.8: PASS           # webgui protocol https
