@@ -20,7 +20,7 @@ import yaml
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def run(live: bool) -> dict:
+def run(live: bool, labels_file: str = "verdict_labels.yaml") -> dict:
     if not live:
         os.environ["AEGIS_LLM_MODE"] = "off"
     tmp = tempfile.mkdtemp(prefix="aegis-eval-")
@@ -51,7 +51,7 @@ def run(live: bool) -> dict:
 
     app.dependency_overrides[db_mod.get_db] = _get_db
     app.router.on_startup.clear()  # rules/seeds already loaded above; skip the embedding warm-up
-    labels = yaml.safe_load(open(os.path.join(HERE, "verdict_labels.yaml"), encoding="utf-8"))
+    labels = yaml.safe_load(open(os.path.join(HERE, labels_file), encoding="utf-8"))
     samples = os.path.normpath(os.path.join(HERE, labels["samples_dir"]))
     rows, totals = [], {"labelled": 0, "correct": 0, "false_pass": 0, "false_fail": 0, "undecided": 0}
     with TestClient(app) as client:
@@ -74,6 +74,7 @@ def run(live: bool) -> dict:
         "accuracy_when_decided": round(totals["correct"] / decided, 4) if decided else None,
         "coverage": round(decided / totals["labelled"], 4) if totals["labelled"] else None,
         "mode": "live" if live else "ai_off",
+        "labels": labels_file,
         "run_at": dt.datetime.now().isoformat(timespec="seconds"),
     }
     return {"summary": summary, "rows": rows}
@@ -82,15 +83,17 @@ def run(live: bool) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="use the configured AI provider (real API calls)")
+    ap.add_argument("--labels", default="verdict_labels.yaml", help="e.g. heldout_labels.yaml")
     args = ap.parse_args()
-    result = run(args.live)
+    result = run(args.live, args.labels)
     s = result["summary"]
     for r in result["rows"]:
         if r["outcome"] != "correct":
             print(f"  {r['outcome']:10} {r['device'][:34]:34} {r['rule']:28} expected {r['expected']:5} got {r['got']}")
     print(json.dumps(s, indent=1))
     os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
-    out = os.path.join(HERE, "results", f"verdicts-{s['mode']}-{dt.datetime.now():%Y%m%d-%H%M%S}.json")
+    tag = os.path.splitext(args.labels)[0]
+    out = os.path.join(HERE, "results", f"{tag}-{s['mode']}-{dt.datetime.now():%Y%m%d-%H%M%S}.json")
     json.dump(result, open(out, "w", encoding="utf-8"), indent=1)
     print("wrote", out)
     return 0 if s["false_pass"] == 0 else 1
