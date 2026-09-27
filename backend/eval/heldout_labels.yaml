@@ -1,0 +1,84 @@
+# HELD-OUT verdict ground truth (2026-09-27).
+#
+# The configs in samples/heldout/ are real, published configs (Batfish,
+# NAPALM, netutils; Apache-2.0, pinned commits - see that folder's README),
+# collected by a separate agent. These labels were written by reading each
+# file's text (and the vendor's documented default where the config is
+# silent), and COMMITTED BEFORE AEGIS WAS EVER RUN ON THESE FILES - the git
+# history shows the order. They are never edited to match AEGIS's output;
+# misses are reported as misses.
+#
+# Rules only get a label when the correct verdict is clear from the text.
+
+samples_dir: ../../samples/heldout
+
+devices:
+  heldout_01_cisco_ios_lhr_border_02.cfg:          # IOS 15.2
+    CIS-1.2.2: FAIL              # line vty 0 2: transport input telnet
+    NIST-AC-17-2: FAIL
+    CIS-2.1.1.2: PASS            # ip ssh version 2
+    NIST-SC-8: PASS
+    CIS-1.4.2: FAIL              # no service password-encryption (off by default)
+    CIS-2.2.4: FAIL              # no logging host
+    NIST-AU-4-1: FAIL
+    CIS-1.3.2: FAIL              # no banner
+    CIS-2.3.1.1: FAIL            # no ntp authenticate
+    CIS-3.1.1: FAIL              # no `no ip source-route` (on by default)
+    CIS-2.1.7: FAIL              # no `no service pad`
+    CIS-3.1.2: FAIL              # most interfaces lack `no ip proxy-arp`
+    CIS-1.2.5: FAIL              # no access-class on the vty lines
+    CIS-1.2.8: PASS              # vty lines at the 10-minute default (exec-timeout 0 0 is on con/aux only)
+    CIS-1.5.2: PASS              # no SNMP communities at all
+    CIS-1.5.3: PASS
+    STIG-V-216650: FAIL          # bare control-plane, no service-policy
+    CIS-SUPPLEMENT-ACL-TELNET: PASS   # applied LIMIT_PEER permits only specific sources (implicit deny)
+    ISO-A.8.20: PASS
+    NIST-AC-4: PASS
+
+  heldout_02_cisco_ios_as2border1.cfg:             # IOS 15.2
+    CIS-1.2.2: FAIL              # vty 0 4 has no transport input: IOS default includes telnet
+    NIST-AC-17-2: FAIL
+    CIS-2.1.1.2: FAIL            # no ip ssh version 2 (1.99 by default)
+    NIST-SC-8: FAIL
+    CIS-1.4.2: FAIL
+    CIS-2.2.4: FAIL
+    NIST-AU-4-1: FAIL
+    CIS-1.3.2: FAIL
+    CIS-2.3.1.1: FAIL            # ntp servers, but no ntp authenticate
+    CIS-3.1.1: FAIL
+    CIS-2.1.7: FAIL
+    CIS-3.1.2: FAIL              # no interface has `no ip proxy-arp`
+    CIS-1.2.5: FAIL
+    CIS-1.2.8: PASS              # vty at the 10-minute default (0 0 is on con/aux only)
+    CIS-1.5.2: PASS
+    CIS-1.5.3: PASS
+    STIG-V-216650: FAIL
+    CIS-SUPPLEMENT-ACL-TELNET: FAIL   # applied OUTSIDE_TO_INSIDE (in) ends `permit ip any any`
+    ISO-A.8.20: FAIL
+    NIST-AC-4: FAIL
+    STIG-V-216662: FAIL          # the inbound ACL is allow-by-default
+
+  heldout_03_junos_set_srx1.cfg:                    # Junos 15.1X49 SRX, set format
+    NIST-AC-17-2: PASS           # system services: ssh and http only; telnet service not enabled
+    NIST-SC-8: PASS              # Junos SSH is protocol v2 by default
+    NIST-AU-4-1: FAIL            # syslog to files only, no remote host
+
+  heldout_04_junos_qfx5200.conf:                    # Junos QFX5200, hierarchical
+    NIST-AC-17-2: FAIL           # system services telnet
+    NIST-SC-8: PASS              # SSH protocol v2 by default
+    NIST-AU-4-1: FAIL            # no syslog host
+
+  heldout_05_fortigate_fgvm.conf:                   # FortiGate-VM
+    NIST-AC-17-2: PASS           # no interface allowaccess includes telnet
+    NIST-AU-4-1: FAIL            # no log syslogd setting
+    NIST-AC-4: PASS              # the one policy allows HTTP from a named host group only
+    ISO-A.8.20: PASS
+
+  heldout_06_fortigate_fwf60d.conf:                 # FortiWiFi 60D, FortiOS 5.0
+    NIST-AC-17-2: PASS           # no interface allowaccess includes telnet
+    NIST-AU-4-1: FAIL
+    NIST-AC-4: FAIL              # policy 5: internal -> wifi, all -> all, service ALL, accept
+    ISO-A.8.20: FAIL
+
+  heldout_07_arista_eos_nyc_leaf_01.txt:            # Arista EOS (a vendor AEGIS has no seeds for)
+    NIST-AU-4-1: PASS            # logging host 10.125.1.171
