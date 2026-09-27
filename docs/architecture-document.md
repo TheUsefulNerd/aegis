@@ -29,14 +29,14 @@ compliance engine.
 | Fingerprint (signature-based) + device identity extraction | **Built**; signatures are data in each `seeds/<vendor>.yaml` (Cisco IOS, pfSense, SONiC, Juniper Junos, FortiOS). Serial/model from `license udi`, `show version`, Arista/Junos/FortiOS headers. Embedding-based fallback not built |
 | Tier 1 exact/regex KB match → Tier 2 LLM (schema + value-type validated) → Tier 3 review queue with KB write-back | **Built** |
 | Review queue: control-family-grouped picker, confirmation step, auditor judgment (security-relevant + notes) | **Built** |
-| Cross-reference / linking stage (§3.5) | Partly built: ACLs are grouped per list and evaluated only if applied (`ip access-group` / `access-class`); block-structured CLI keeps each setting's parent path. Linking by name (AAA method lists, FortiOS policies) **not built** |
+| Cross-reference / linking stage (§3.5) | Partly built: ACLs are grouped per list and evaluated only if applied (`ip access-group` / `access-class`); block-structured CLI keeps each setting's parent path. FortiGate firewall policies are reassembled into ACL lines. Linking by name (AAA method lists) **not built** |
 | Canonical model on NIST 800-53 families with per-field provenance | **Built** |
 | Rule engine: 6 predicate types incl. ordered first-match; vendor-scoped benchmarks; 39 rules across CIS / NIST / STIG / ISO | **Built**; fail-closed ACL grammar (2026-09-27); least-secure merge of repeated settings; AI evidence alone never PASSes a CAT I control |
 | Remediation from vetted per-vendor templates | **Built** (Cisco IOS, pfSense, SONiC), Cisco fixes as paste-in changes targeting the failing ACL. LLM-drafted remediation deliberately **not built** |
 | Per-device PDF (executive summary, legend, severity-sorted findings, source of each decision) | **Built**, with an integrity panel (input SHA-256, rule-set fingerprint, findings digest) and the evidence line behind every finding |
 | Single and bulk upload | **Built** (bulk = sequential, client-driven) |
 | Langfuse tracing of LLM calls + human decision scored on the trace | **Built** |
-| Automated tests + CI | **Built**, 240 offline tests, GitHub Actions, including verdict ground truth and the injection probe |
+| Automated tests + CI | **Built**, 242 offline tests, GitHub Actions, including verdict ground truth and the injection probe |
 | SQLite | Current DB. Postgres + pgvector is the production path, **not started** |
 | Prometheus/Grafana | **Not built**, a plain `/stats` endpoint + Insights page instead |
 | RBAC, multi-tenant enforcement | Verified reviewer identity **built** (optional reviewer tokens, `AEGIS_REVIEWERS`); CORS limited to the frontend. Roles, login UI and tenant isolation **not built** |
@@ -44,7 +44,8 @@ compliance engine.
 | Tamper-evident hash-chained audit log | **Built** for human decisions (2026-09-27): each reviewer decision is SHA-256 chained, `GET /audit/verify` recomputes it |
 | Job queue, LLM rate limiting, live device polling (Netmiko) | **Not built** |
 | Air-gapped operation | **Built**: `AEGIS_LLM_MODE=local` (self-hosted OpenAI-compatible model only, Langfuse export off) or `off` (no AI) |
-| Verdict-level ground truth (§9) | **Built and run**: 65 hand-labelled verdicts over 7 configs / 5 vendors, 0 wrong, 91% decided, AI off and on; enforced in CI |
+| Verdict-level ground truth (§9) | **Built and run**: 73 hand-labelled verdicts over 7 configs / 5 vendors, 73/73 correct, AI off and on; enforced in CI |
+| Vendor defaults | **Built** for Cisco IOS as data (`defaults` / `interface_defaults` in the seed YAML); a default can FAIL a rule, never PASS one; proxy ARP evaluated per interface |
 | Golden-set precision/recall measurement (§9) | **Built and run**, 33 items; latest batch run 95.8% precision on auto-accepted (1 wrong); the first run had 92% (2 wrong), see §9 |
 
 ---
@@ -73,7 +74,7 @@ in service of keeping this true.
 | LLM | Groq `qwen/qwen3.8-27b` primary, Gemini `gemini-2.5-flash` fallback | free-tier, abstracted behind one interface so a real deployment swaps in self-hosted Ollama without touching calling code (see §4, redaction). **Verified live Sept 13** with real API keys, the original picks (`llama-3.3-70b-versatile`, `gemini-2.0-flash`) were both decommissioned earlier in 2026 and would have failed outright; `openai/gpt-oss-120b` was also tested but is a reasoning model needing a much larger token budget, so `qwen3.8-27b` was chosen for speed and free-tier quota efficiency instead. Re-verify before the grand finale, `gemini-2.5-flash` itself is slated to retire ~Oct 16 2026. |
 | PDF | ReportLab (programmatic, pure Python) | **Changed Sept 14**, WeasyPrint requires GTK3/Pango system libraries that failed to load on the dev machine (`libgobject-2.0-0` not found) and aren't guaranteed present on the actual demo machine either; not a risk worth carrying this close to the deadline. ReportLab has zero external system dependencies and is the brief's own named alternative ("ReportLab or FPDF"). |
 | Parsing helper | None. `ciscoconfparse2` was considered and not adopted | units are plain CLI lines / flattened XML and JSON paths (`units.py`), so there is genuinely one resolution path for every vendor. Hierarchy-aware parsing belongs in the cross-reference stage (§3.5) when it's built. |
-| Testing | pytest (240 offline tests) + GitHub Actions CI | keys blanked, LLM and embedder mocked, in-memory DB, CI needs no secrets and can't spend API quota |
+| Testing | pytest (242 offline tests) + GitHub Actions CI | keys blanked, LLM and embedder mocked, in-memory DB, CI needs no secrets and can't spend API quota |
 | LLM observability | Langfuse (cloud free tier, a few lines of decorator code, not infra to stand up) | traces every Tier-2/3 LLM call (prompt → completion → latency/cost), and, the actual reason it's here, lets the human confirm/reject decision in the review queue attach as a score on that exact trace, which is most of our audit trail for free instead of hand-built. Cheap enough to keep even for the Sept 16 demo. |
 | Pipeline observability | **A plain Next.js stats page, direct SQL queries, for the Sept 16 demo**; Prometheus + Grafana is the stated production choice | same numbers either way (tier distribution, parse coverage, queue depth, see §5), Prometheus/Grafana is real infra setup with no demo-visible difference in the numbers shown, so it's deferred, not the stats themselves |
 

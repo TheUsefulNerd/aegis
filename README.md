@@ -9,9 +9,9 @@ An AI-augmented, vendor-agnostic network device compliance engine, built for Sma
 AEGIS reads a network device's configuration (any vendor, any format: CLI text, brace- or block-structured CLI, XML, JSON), identifies its security-relevant settings through a tiered deterministic → AI → human pipeline, and checks them against **39 rules across all four frameworks the brief names: CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001** (38 cite a benchmark section; one is an AEGIS supplementary ACL check, labelled as such). When it meets syntax it has never seen, it asks a human once in the review queue and recognizes it instantly on every device afterwards, with no code change and no redeploy. A new vendor is one YAML file.
 
 **At a glance** (all reproducible, see [Measured results](#measured-results)):
-- 65 hand-labelled verdicts over 7 configs and 5 vendors: **0 wrong verdicts, 91% decided**; the rest are reported as *unknown*, never guessed
-- **0 of 52** prompt-injection lines reach the AI; the gate alone catches 32/32 tuned and 12/20 held-out variants with 0 false positives on 397 real config lines
-- AI evidence can **fail** a control on its own but never **pass** a CAT I control without a human
+- 73 hand-labelled verdicts over 7 configs and 5 vendors: **73 of 73 correct, 0 wrong**, with the AI off or on
+- **0 of 52** prompt-injection lines reach the AI; the gate alone catches 32/32 tuned and 12/20 held-out variants with 0 false positives on 416 real config lines
+- AI evidence can **fail** a control on its own but never **pass** a CAT I control without a human; a vendor default can fail a rule but never pass one
 - Runs **fully offline** (`AEGIS_LLM_MODE=local` with Ollama/vLLM, or `off`); every human decision is **hash-chained** and verifiable
 
 ## Submission deliverables (SIH 2026, PS 26155, Team SIX ORIGINS)
@@ -70,7 +70,7 @@ backend/
     rules/*.yaml        the 39 rules (each file's header states its source + verification)
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                240 offline tests (no API keys, LLM/embedder mocked)
+  tests/                242 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -146,9 +146,9 @@ Measured with free-tier Groq/Gemini: **8-17 s per fresh file** (it was 2-12 minu
 
 ## Measured results
 
-**Verdict accuracy** (`backend/eval/verdict_labels.yaml`, `python -m eval.verdict_eval [--live]`): 65 verdicts hand-labelled from the configuration text itself, over 7 configs (Cisco IOS ×3, pfSense, SONiC, Junos, FortiOS). With the AI off: 59 decided, **all 59 correct, 0 false PASS, 0 false FAIL**; 6 reported as unknown (settings the config doesn't contain). With the live AI: identical. CI fails the build on any wrong verdict (`tests/test_verdicts.py`). A running flow also found one false PASS the unit tests had missed (a cipher check comparing `SHA1` to `sha1` case-sensitively); it is fixed and now labelled.
+**Verdict accuracy** (`backend/eval/verdict_labels.yaml`, `python -m eval.verdict_eval [--live]`): 73 verdicts hand-labelled from the configuration text itself (and the vendor's documented default where the config is silent), over 7 configs (Cisco IOS ×3, pfSense, SONiC, Junos, FortiOS). With the AI off: **73 of 73 correct, 0 false PASS, 0 false FAIL, none left undecided**. With the live AI: identical. CI fails the build on any wrong verdict (`tests/test_verdicts.py`). A running flow also found one false PASS the unit tests had missed (a cipher check comparing `SHA1` to `sha1` case-sensitively); it is fixed and now labelled.
 
-**Prompt injection** (`backend/eval/injection_corpus.yaml`, `python -m eval.injection_probe`): the gate catches 32/32 variants in its tuning set and **12/20 in a held-out set written afterwards and never tuned against**, with **0 false positives** on 397 real config lines. End to end, **0 of 52** attack lines reach the AI, because free-text fields are never sent to it. The held-out number is the honest one for the gate on its own; the structural rule is what makes it safe.
+**Prompt injection** (`backend/eval/injection_corpus.yaml`, `python -m eval.injection_probe`): the gate catches 32/32 variants in its tuning set and **12/20 in a held-out set written afterwards and never tuned against**, with **0 false positives** on 416 real config lines. End to end, **0 of 52** attack lines reach the AI, because free-text fields are never sent to it. The held-out number is the honest one for the gate on its own; the structural rule is what makes it safe.
 
 **AI classifier** (golden set of 33 config lines (24 security settings + 9 negatives, Cisco IOS / pfSense / SONiC; `backend/eval/`), the production (batched) Tier-2 classifier reached **95.8% precision on the mappings it auto-accepted** and 95.8% recall, and declined all 9 non-settings. Its one wrong auto-accept (`snmp-server community public RO` read with the value "public RO", which would have hidden a default community) is now handled by a deterministic Tier-1 pattern, which is the point of the design: known shapes never depend on the AI, and every finding shows how it was decided. A small, honestly scoped set, not a broad benchmark. Re-run it with `cd backend && python -m eval.run_eval` (real API calls; results land in `backend/eval/results/`).
 
@@ -159,7 +159,7 @@ Stated up front; see `docs/architecture-document.md` §10 for the full list:
 - **Cloud AI by default.** In `cloud` mode, secrets are redacted first but config structure (hostnames, interfaces, ACL layout) goes to Groq/Gemini. `local` and `off` modes keep everything on your network; local mode is covered by tests against a stand-in endpoint, not yet benchmarked against a real local model.
 - **Redaction is regex-based.** It covers the common credential shapes of the supported vendors (see `tests/test_hardening.py`), not every format: a keyword-less vendor blob, a password containing spaces, and an all-numeric key in an indented `key` line are disclosed gaps.
 - **Rule coverage is a representative slice**: 39 rules, not full benchmarks; 6 check settings no sample config sets yet (ciphers, log access, segmentation). CAT levels on CIS/NIST/ISO rules are AEGIS-assigned on the STIG scale, and ISO/NIST results are device-level evidence supporting a control, not a certification of it.
-- **Per-interface semantics are coarse.** Settings like CDP or proxy-ARP are one device-wide value (the least secure one seen); vendor defaults for settings a config never mentions are not modelled (they are reported as unknown). Cross-reference linking by name (e.g. AAA method lists, FortiOS firewall policies) is not built; Cisco ACL bindings, named ACLs, SONiC ACL rows and pfSense filter rules are.
+- **Some per-interface semantics are coarse.** Proxy ARP is evaluated per interface; CDP is still one device-wide value, because a config doesn't say which interfaces are external. Vendor defaults are modelled for Cisco IOS (a default can fail a rule, never pass one); other vendors report a silent setting as unknown. Cross-reference linking by name (e.g. AAA method lists) is not built; Cisco ACL bindings, named ACLs, SONiC ACL rows, pfSense filter rules and FortiGate firewall policies are.
 - **Learning is pattern-based**: a reviewer's decision is an exact line (or a validated regex through the API), not a model that generalizes.
 - **Single-tenant build.** Reviewer tokens give verified identity, but there is no login UI or role model; the database is SQLite (Postgres + pgvector is the production path).
 - **Ingestion is synchronous** (one request per file, batched AI calls inside it) with no job queue yet; free-tier API limits (for example Groq's 200,000 tokens per day) cap how many fresh devices can be classified per day.

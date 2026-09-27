@@ -28,9 +28,9 @@ DB or server was involved. Anything that depends on Tier 2 (LLM) is labeled
 | 05 | `05_arista_veos_unseen_vendor.txt` | Arista vEOS 4.15 CLI → `unknown` / low (unsupported vendor, on purpose) | [napalm-automation/napalm `test/eos/eos/mock_data/show_running_config.txt`](https://github.com/napalm-automation/napalm/blob/820a06b2069eb1d7b0cbe8943ee2dea6e2949d1a/test/eos/eos/mock_data/show_running_config.txt) | Apache-2.0 | Nothing | **18** |
 | 06 *(optional)* | `06_cisco_csr1000v_edge_remediated.txt` | Cisco IOS-XE 15.5 CLI → `cisco_ios` / high | Same napalm file as 04: this is **04's remediated twin** (same device, with 04's findings fixed) | Apache-2.0 | As 04 | **62** (the 3-line banner is now one unit) |
 | 07 | `07_juniper_srx_branch.conf` | Junos 20.4 hierarchical config → `juniper_junos` / high | **Synthetic**, written by the team in documented Junos syntax (system services / login / syslog / snmp). Not a real device export | This repository | n/a | **20** (brace blocks flattened to `set ...` paths) |
-| 08 | `08_fortigate_60f_edge.conf` | FortiOS 7.2 config → `fortinet_fortios` / high | **Synthetic**, written by the team in documented FortiOS syntax (config system global / interface / snmp / log syslogd). Not a real device export | This repository | n/a | **21** (config/edit blocks flattened with their paths) |
+| 08 | `08_fortigate_60f_edge.conf` | FortiOS 7.2 config → `fortinet_fortios` / high | **Synthetic**, written by the team in documented FortiOS syntax (config system global / interface / snmp / log syslogd / firewall policy). Not a real device export | This repository | n/a | **40** (config/edit blocks flattened with their paths; the two firewall policies also become ordered ACL lines) |
 
-Core set (01-05) = **281 units**; all eight = **384**. Unmatched lines are sent to
+Core set (01-05) = **281 units**; all eight = **403**. Unmatched lines are sent to
 the AI in parallel batches (8-17 s per fresh file on free tiers), so every file
 fits in a live run.
 
@@ -38,7 +38,7 @@ fits in a live run.
 `fortinet_fortios.yaml` each hold the vendor's fingerprint and Tier-1 patterns; no
 Python was written for either vendor. Planted in both: telnet enabled (a
 deterministic NIST AC-17(2) FAIL), a default `public` SNMP community, HTTP web
-management, a remote syslog server (PASS), and two fake secrets each (Junos quoted
+management, a remote syslog server (PASS), two fake secrets each, and in 08 an accept-ALL firewall policy placed before a telnet deny (a deterministic NIST AC-4 / ISO A.8.20 FAIL) (Junos quoted
 `encrypted-password`, FortiOS `ENC` values), all redacted.
 
 One idea (not text) was borrowed from
