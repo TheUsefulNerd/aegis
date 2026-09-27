@@ -472,10 +472,12 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
             eval_result = rule_engine.EvalResult(rule_engine.NOT_EVALUATED, {
                 **eval_result.evidence, "reason": "passes only on the vendor default, which this config does not state",
                 "would_be": "PASS_DEFAULT"})
-        elif eval_result.result == rule_engine.PASS and rule.severity == "CAT_I" and confidence_tier == "tier2_accepted":
+        elif eval_result.result == rule_engine.PASS and confidence_tier == "tier2_accepted":
             # Asymmetric trust: AI-derived evidence may FAIL a control on its
-            # own, but it never PASSES a CAT_I control without a human. The
-            # auditor sees exactly what the AI read and confirms it once.
+            # own, but it never PASSES one without a human. The auditor sees
+            # exactly what the AI read and confirms it once. (Was CAT I only
+            # until a live held-out run, 2026-09-27: the AI read a Junos SNMP
+            # trap target as a syslog host and passed a CAT III control.)
             eval_result = rule_engine.EvalResult(rule_engine.NOT_EVALUATED, {
                 **eval_result.evidence, "reason": "needs human confirmation: the only evidence is an AI reading",
                 "would_be": "PASS"})

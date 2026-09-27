@@ -10,10 +10,10 @@ AEGIS reads a network device's configuration (any vendor, any format: CLI text, 
 
 **At a glance** (all reproducible, see [Measured results](#measured-results)):
 - 73 hand-labelled verdicts over 7 configs and 5 vendors: **73 of 73 correct, 0 wrong**, with the AI off or on
-- **Held-out real configs** (7 public configs from Batfish, NAPALM and netutils; 56 labels committed before AEGIS first ran on them): first run **0 false PASS**, 33 of 35 decided verdicts correct; after fixing the gaps it exposed, **42 of 42 correct** with the live AI (41 of 41 with the AI off), 14 left undecided rather than guessed
+- **Held-out real configs** (7 public configs from Batfish, NAPALM and netutils; 56 labels committed before AEGIS first ran on them): first run **0 false PASS**, 33 of 35 decided verdicts correct; on the current build **41 of 41 correct with the AI off and with the live AI**, 15 left undecided rather than guessed
 - **DISA STIG catalogs** imported from the official releases, with update detection (`python -m app.stig_sync check`): a rule DISA changes upstream is set aside for re-review instead of silently checked against old text
 - **0 of 52** prompt-injection lines reach the AI; the gate alone catches 32/32 tuned and 12/20 held-out variants with 0 false positives on 416 real config lines
-- AI evidence can **fail** a control on its own but never **pass** a CAT I control without a human; a vendor default can fail a rule but never pass one
+- AI evidence can **fail** a control on its own but never **pass** one without a human; a vendor default can fail a rule but never pass one
 - Runs **fully offline** (`AEGIS_LLM_MODE=local` with Ollama/vLLM, or `off`); every human decision is **hash-chained** and verifiable
 
 ## Submission deliverables (SIH 2026, PS 26155, Team SIX ORIGINS)
@@ -34,7 +34,7 @@ AEGIS reads a network device's configuration (any vendor, any format: CLI text, 
 3. **Units with context**: one unit per setting. Block-structured CLI (Junos `{ }`, FortiOS `config/edit/end`) is flattened with each setting's full parent path; banner text and free-text fields (descriptions, remarks) are never classified.
 4. **Input-sanity gate**: any line shaped like an instruction to an AI is quarantined to human review *before any AI call*. It is one of two layers: free-text fields never reach the AI at all, so an injection the gate misses there still reaches nothing.
 5. **Tiered resolution**: Tier 1: exact/regex match against the knowledge base (instant, deterministic), including known non-security structure. Tier 2: AI classification (Groq, then Gemini; or your own local model), about 12 lines per call, in parallel, cached, strictly schema- and type-validated; anything malformed, invented or mistyped falls to Tier 3. Tier 3: the human review queue; a confirmation becomes a new pattern immediately and is recorded as *human-confirmed*.
-6. **Deterministic rule engine**: six predicate types, no AI in the verdict path. ACLs are evaluated in order, per list, and only the lists the device actually applies (`ip access-group`, `access-class`); a deny must cover all of the traffic in question, any overlapping permit is a violation, and an unreadable line before the decision gives *unknown*, never PASS. When one setting appears several times (two `line vty` blocks), the least secure value counts, and every source line is kept as evidence. AI-derived evidence alone never passes a CAT I control.
+6. **Deterministic rule engine**: six predicate types, no AI in the verdict path. ACLs are evaluated in order, per list, and only the lists the device actually applies (`ip access-group`, `access-class`); a deny must cover all of the traffic in question, any overlapping permit is a violation, and an unreadable line before the decision gives *unknown*, never PASS. When one setting appears several times (two `line vty` blocks), the least secure value counts, and every source line is kept as evidence. AI-derived evidence alone never passes a control.
 7. **PDF report**: a report-integrity panel (input SHA-256, rule-set fingerprint, findings digest), device identification, a plain-English summary, findings most-urgent first with the evidence line each rests on, how each was decided (instantly recognized / AI-classified / human-confirmed), why anything is unknown, and a paste-in fix (`configure terminal … write memory`) that targets the device's own failing ACL.
 
 ## Features
@@ -74,7 +74,7 @@ backend/
     catalog/            imported DISA STIG releases (stig_sync.py) + sources.yaml
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                277 offline tests (no API keys, LLM/embedder mocked)
+  tests/                278 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -158,10 +158,13 @@ Measured with free-tier Groq/Gemini: **8-17 s per fresh file** (it was 2-12 minu
 |---|---|---|---|---|---|
 | First run, AI off | 35 | 33 | 0 | 2 | 21 |
 | First run, live AI | 37 | 34 | 0 | 3 | 19 |
-| After fixes, AI off | 41 | 41 | 0 | 0 | 15 |
-| After fixes, live AI | 42 | 42 | 0 | 0 | 14 |
+| After held-out fixes, AI off | 41 | 41 | 0 | 0 | 15 |
+| After held-out fixes, live AI | 42 | 42 | 0 | 0 | 14 |
+| After second-review fixes, live AI | 43 | 41 | **1** | 1 | 13 |
+| **Current build**, AI off | 41 | 41 | 0 | 0 | 15 |
+| **Current build**, live AI | 41 | 41 | 0 | 0 | 15 |
 
-The first run's misses were real gaps, now fixed as vendor data: console `exec-timeout 0 0` was failing the VTY-only CIS 1.2.8; Cisco VTY lines without `transport input` (telnet on IOS 15), FortiGate `allowaccess` lists without telnet, and Junos/FortiOS remote-syslog defaults were not modelled; the AI read FortiOS's built-in `TELNET` service object as telnet enabled; two full exports were fingerprinted as fragments. The 14 still undecided are by design: passes that would rest on a vendor default (no SNMP configured, Junos SSH v2 by default), ACL checks where the AI declined, and the Arista file (no seeds for that vendor).
+The first run's misses were real gaps, now fixed as vendor data: console `exec-timeout 0 0` was failing the VTY-only CIS 1.2.8; Cisco VTY lines without `transport input` (telnet on IOS 15), FortiGate `allowaccess` lists without telnet, and Junos/FortiOS remote-syslog defaults were not modelled; the AI read FortiOS's built-in `TELNET` service object as telnet enabled; two full exports were fingerprinted as fragments. The live AI is not deterministic: one live run produced a **false PASS** (the AI read a Junos `snmp trap-group` target as a syslog host and passed NIST AU-4(1), a CAT III rule) and a false FAIL (a zone's `host-inbound-traffic ... telnet` read as telnet enabled). Both lines now have Tier-1 patterns, and AI-only evidence now can never PASS any control, not just CAT I: it can fail one, and a human confirmation turns it into a pass. The 15 still undecided are by design: passes that would rest on a vendor default (no SNMP configured, Junos SSH v2 by default), ACL checks where the AI declined, and the Arista file (no seeds for that vendor).
 
 **DISA STIG coverage** (`GET /frameworks/coverage`, Insights page): the full official catalogs are imported from DISA's published content (`backend/app/stig_sync.py`, `backend/app/catalog/`). Each automated rule is a reviewed mapping in `rules/stig_catalog_map.yaml` that quotes the DISA check text and is pinned to its hash.
 

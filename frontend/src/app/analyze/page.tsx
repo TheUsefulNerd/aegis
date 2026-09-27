@@ -795,7 +795,7 @@ function FindingsPanel({
                       {f.evidence?.would_be === "PASS_DEFAULT"
                         ? "Would pass only on the vendor default, which this config does not state. A default can fail a rule but never pass one."
                         : f.evidence?.would_be === "PASS"
-                        ? "Needs human confirmation: the only evidence is an AI reading, and AI evidence never passes a CAT I control on its own."
+                        ? "Needs human confirmation: the only evidence is an AI reading, and AI evidence never passes a control on its own."
                         : typeof f.evidence?.reason === "string" && f.evidence.reason.startsWith("ACL line not understood")
                         ? "An ACL line couldn't be fully read before the decision, so this is reported as unknown, never assumed to pass."
                         : "Not found in this config, or still waiting in the review queue. Reported as unknown, never assumed to pass."}

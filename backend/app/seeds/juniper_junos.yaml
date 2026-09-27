@@ -53,6 +53,12 @@ entries:
 
   # Known non-security structure: instant, no AI call, no review item.
   - {syntax_pattern: '^set version ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  # Found by the live held-out run, where the AI misread both:
+  # an SNMP trap target is not a syslog destination, and a zone's
+  # host-inbound-traffic only admits traffic to services that `system
+  # services` enables (telnet there is not telnet enabled).
+  - {syntax_pattern: '^set snmp trap-group ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^set security zones security-zone \S+ (interfaces \S+ )?host-inbound-traffic ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set system (host-name|domain-name|name-server|time-zone) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set interfaces \S+ (unit \d+ family \S+ address|mtu|speed|link-mode) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set routing-options (static|router-id|autonomous-system) ', pattern_type: regex, canonical_field: NOT_SECURITY}

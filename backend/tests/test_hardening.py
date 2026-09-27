@@ -334,3 +334,16 @@ def test_vendor_defaults_never_apply_to_a_fragment(client):
     # medium-confidence fingerprint (no `line vty`): a fragment, so no defaults
     body = _ingest_text(client, "frag.txt", "version 15.5\nhostname r1\n")
     assert "AU.logging_host" not in body["fields"]
+
+
+def test_ai_evidence_alone_never_passes_any_control(client, monkeypatch):
+    # Live held-out run: the AI read a Junos SNMP trap target as a syslog
+    # host and passed a CAT III control. AI evidence may FAIL, never PASS.
+    def fake(u, c="", s=None):
+        if u == "remote-sink 10.0.0.9":
+            return LLMCandidate("AU.logging_host", "10.0.0.9", 0.95, "a log sink", "fake", "fake")
+        return None
+    monkeypatch.setattr(llm_client, "classify", fake)
+    body = _ingest_text(client, "ai3.txt", "version 17.3\nline vty 0 4\nremote-sink 10.0.0.9\n")
+    f = _eval(client, body["config_id"])["NIST-AU-4-1"]
+    assert f["severity"] == "CAT_III" and f["result"] == NOT_EVALUATED and f["evidence"]["would_be"] == "PASS"
