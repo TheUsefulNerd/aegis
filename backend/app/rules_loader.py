@@ -21,6 +21,8 @@ def load_rule_files(db: Session) -> int:
     loaded = 0
     seen = set()
     for path in sorted(glob.glob(os.path.join(_RULES_DIR, "*.yaml"))):
+        if os.path.basename(path) == os.path.basename(catalog_rules.MAP_FILE):
+            continue  # catalog mappings, loaded below
         with open(path, "r", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
         framework = doc["framework"]

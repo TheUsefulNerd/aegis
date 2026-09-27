@@ -79,3 +79,15 @@ def coverage(extra_implemented: dict = None) -> list:
             "needs_rereview": stale, "manual": len(cat["rules"]) - len(implemented),
         })
     return out
+
+
+def fix_text(vendor: str, vid: str):
+    """DISA's own fix text for an imported rule of this vendor's benchmarks."""
+    for src in _sources():
+        if src["vendor"] != vendor:
+            continue
+        cat = _catalog(src["name"])
+        rule = (cat or {}).get("rules", {}).get(vid)
+        if rule and rule.get("fix"):
+            return rule["fix"].strip()
+    return None

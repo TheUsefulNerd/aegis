@@ -151,6 +151,29 @@ entries:
   - {syntax_pattern: '^ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: true}
   - {syntax_pattern: '^service-policy input \S+$', pattern_type: regex, canonical_field: SC.control_plane_protection, value: true}
 
+  # For the imported DISA STIG catalog (rules/stig_catalog_map.yaml). Patterns
+  # follow the STIG check/fix text and the IOS-XE command reference.
+  # `logging enable` exists only under `archive` > `log config` (config-change
+  # logging, CIS 2.2.1 and the NDM STIG audit-record checks).
+  - {syntax_pattern: '^logging enable$', pattern_type: regex, canonical_field: AU.logging_enabled, value: true}
+  # V-215813 wants 3 attempts AND a 15-minute block: only a block of 900 s or
+  # more records the attempt count; a shorter block is no compliant lockout.
+  - {syntax_pattern: '^login block-for (?:9\d\d|[1-9]\d{3,}) attempts (\d+) within \d+', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: "$1"}
+  - {syntax_pattern: '^login block-for \d+ attempts \d+', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: 0}
+  - {syntax_pattern: '^ntp server (?:vrf \S+ )?(?:ip |ipv6 )?([\w.:-]+)', pattern_type: regex, canonical_field: AU.ntp_servers, value: "$1"}
+  # Child lines of `aaa common-criteria policy NAME`.
+  - {syntax_pattern: '^min-length (\d+)$', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
+  - {syntax_pattern: '^upper-case (\d+)$', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
+  - {syntax_pattern: '^lower-case (\d+)$', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
+  - {syntax_pattern: '^numeric-count (\d+)$', pattern_type: regex, canonical_field: IA.password_min_numeric, value: "$1"}
+  - {syntax_pattern: '^special-case (\d+)$', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
+  - {syntax_pattern: '^char-changes (\d+)$', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: "$1"}
+  # SSH algorithm lists: SHA-2 MACs only; FIPS-approved AES ciphers only.
+  - {syntax_pattern: '^ip ssh server algorithm mac( hmac-sha2-(256|512)(-etm@openssh\.com)?)+$', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: true}
+  - {syntax_pattern: '^ip ssh server algorithm mac ', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
+  - {syntax_pattern: '^ip ssh server algorithm encryption( (aes(128|192|256)-(ctr|cbc)|aes(128|256)-gcm(@openssh\.com)?))+$', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: true}
+  - {syntax_pattern: '^ip ssh server algorithm encryption ', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: false}
+
 # What IOS / IOS-XE does when the config is silent (Cisco command references;
 # the CIS benchmark items exist precisely because these defaults are
 # insecure). Used only for a high-confidence full export, and only ever to
@@ -167,6 +190,18 @@ defaults:
   - {field: IA.ssh_version, value: 1, note: "SSH runs in 1.99 compatibility mode (v1 allowed) unless ip ssh version 2"}
   - {field: AU.logging_enabled, value: false, note: "archive config-change logging is off by default"}
   - {field: AC.session_idle_timeout_minutes, value: 10, note: "exec-timeout defaults to 10 minutes"}
+  - {field: SC.ssh_macs_fips_only, value: false, note: "without ip ssh server algorithm mac, the default MAC list includes hmac-sha1"}
+
+# CIS 1.2.8 is about `line vty`: only VTY blocks decide the idle timeout
+# (`exec-timeout 0 0` on the console is a different item), and a VTY block
+# with no exec-timeout runs at the 10-minute default. Found by the held-out
+# run: console/aux `exec-timeout 0 0` was failing the VTY rule.
+line_scoped:
+  - field: AC.session_idle_timeout_minutes
+    block: '^line vty '
+    value_from: '^\s*exec-timeout (\d+)'
+    default: 10
+    note: "only VTY lines count; a VTY block without exec-timeout runs at the 10-minute default"
 
 interface_defaults:
   - field: SC.proxy_arp_enabled
@@ -175,3 +210,13 @@ interface_defaults:
     unless_text: no ip proxy-arp
     skip: '^interface (Loopback|Null|Tunnel|Virtual-Template)'
     note: "proxy ARP is enabled on every interface by default"
+  # A VTY block with no `transport input` accepts telnet on classic IOS
+  # (12.x/15.x). Later IOS-XE releases changed this default, so it is only
+  # applied when the export says version 15 or older.
+  - field: AC.telnet_enabled
+    value: true
+    block: '^line vty '
+    unless: '^\s*transport input '
+    unless_text: transport input
+    only_if: '^version 1[0-5]\.'
+    note: "on IOS 15 and older, a VTY line without transport input accepts telnet"

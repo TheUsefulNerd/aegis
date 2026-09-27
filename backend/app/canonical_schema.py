@@ -186,6 +186,87 @@ FIELD_METADATA = {
         "label": "Network segmentation",
         "description": "Whether security-sensitive networks/systems are logically separated (VLANs, zones, ACLs) rather than sharing one flat network.",
     },
+    # Added 2026-09-27 for the imported DISA STIG catalogs (rules/stig_catalog_map.yaml).
+    "AU.admin_event_logging": {
+        "type": "scalar",
+        "value_kind": "bool",
+        "insecure": False,
+        "label": "Admin event logging",
+        "description": "Whether the device records administrative and system events (account changes, privilege changes, logons) as audit records.",
+    },
+    "AC.login_max_failed_attempts": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "higher_or_zero",
+        "label": "Failed logon attempts before lockout",
+        "description": "How many consecutive invalid logon attempts are allowed before the device blocks further logons (0 = no enforced lockout).",
+    },
+    "AU.ntp_servers": {
+        "type": "list",
+        "label": "NTP servers",
+        "description": "The time servers the device synchronizes its clock with.",
+    },
+    "IA.password_min_length": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "lower",
+        "label": "Minimum password length",
+        "description": "Minimum number of characters the device's local password policy requires (0 = policy disabled).",
+    },
+    "IA.password_min_uppercase": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "lower",
+        "label": "Required uppercase characters",
+        "description": "Minimum number of uppercase letters the local password policy requires.",
+    },
+    "IA.password_min_lowercase": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "lower",
+        "label": "Required lowercase characters",
+        "description": "Minimum number of lowercase letters the local password policy requires.",
+    },
+    "IA.password_min_numeric": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "lower",
+        "label": "Required numeric characters",
+        "description": "Minimum number of digits the local password policy requires.",
+    },
+    "IA.password_min_special": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "lower",
+        "label": "Required special characters",
+        "description": "Minimum number of special (non-alphanumeric) characters the local password policy requires.",
+    },
+    "IA.password_min_changed_chars": {
+        "type": "scalar",
+        "value_kind": "number",
+        "worse": "lower",
+        "label": "Characters changed on password change",
+        "description": "Minimum number of character positions that must differ when a password is changed.",
+    },
+    "IA.remote_auth_servers": {
+        "type": "list",
+        "label": "Central authentication servers",
+        "description": "RADIUS / TACACS+ servers configured for administrator authentication.",
+    },
+    "SC.ssh_macs_fips_only": {
+        "type": "scalar",
+        "value_kind": "bool",
+        "insecure": False,
+        "label": "SSH MACs restricted to SHA-2",
+        "description": "Whether the SSH server is explicitly restricted to FIPS-validated SHA-2 HMACs (no SHA-1 or MD5).",
+    },
+    "SC.ssh_ciphers_fips_only": {
+        "type": "scalar",
+        "value_kind": "bool",
+        "insecure": False,
+        "label": "SSH ciphers restricted to FIPS AES",
+        "description": "Whether the SSH server is explicitly restricted to FIPS-approved AES ciphers (no 3DES, ChaCha20 or other non-approved cipher).",
+    },
 }
 
 # Pseudo-field for KB patterns that mean "this line is not a security

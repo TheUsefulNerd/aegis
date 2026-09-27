@@ -28,16 +28,53 @@ entries:
   - {syntax_pattern: '^system interface edit \S+ set allowaccess .*\bhttp\b', pattern_type: regex, canonical_field: SC.webgui_protocol, value: false}
   - {syntax_pattern: '^system global set admintimeout (\d+)', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}
   - {syntax_pattern: '^system global set pre-login-banner enable\b', pattern_type: regex, canonical_field: AC.login_banner_configured, value: true}
-  - {syntax_pattern: '^log syslogd setting set status enable\b', pattern_type: regex, canonical_field: AU.logging_enabled, value: true}
-  - {syntax_pattern: '^log syslogd setting set server "?([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
+  # Remote logging: syslogd..syslogd4 or FortiAnalyzer..fortianalyzer3.
+  - {syntax_pattern: '^log (syslogd\d?|fortianalyzer\d?) setting set status enable\b', pattern_type: regex, canonical_field: AU.logging_enabled, value: true}
+  - {syntax_pattern: '^log (?:syslogd\d?|fortianalyzer\d?) setting set server "?([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
   - {syntax_pattern: '^system snmp community edit \S+ set name "?(public|private)\b', pattern_type: regex, canonical_field: AC.snmp_community_strings, value: "$1"}
   - {syntax_pattern: '^system ntp set authentication enable\b', pattern_type: regex, canonical_field: AU.ntp_authentication_enabled, value: true}
+
+  # For the imported DISA STIG catalog (rules/stig_catalog_map.yaml); keywords
+  # follow the FortiGate NDM STIG check text. Event and system logging both
+  # default to enable, so a plain export often omits them (field absent).
+  - {syntax_pattern: '^log eventfilter set (event|system) disable\b', pattern_type: regex, canonical_field: AU.admin_event_logging, value: false}
+  - {syntax_pattern: '^log eventfilter set (event|system) enable\b', pattern_type: regex, canonical_field: AU.admin_event_logging, value: true}
+  # A disabled password policy enforces no minimum: 0 (the lowest wins).
+  - {syntax_pattern: '^system password-policy set status disable\b', pattern_type: regex, canonical_field: IA.password_min_length, value: 0}
+  - {syntax_pattern: '^system password-policy set minimum-length (\d+)', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
+  - {syntax_pattern: '^system password-policy set min-upper-case-letter (\d+)', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
+  - {syntax_pattern: '^system password-policy set min-lower-case-letter (\d+)', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
+  - {syntax_pattern: '^system password-policy set min-number (\d+)', pattern_type: regex, canonical_field: IA.password_min_numeric, value: "$1"}
+  - {syntax_pattern: '^system password-policy set min-non-alphanumeric (\d+)', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
+  - {syntax_pattern: '^system password-policy set change-8-characters enable\b', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: 8}
+  - {syntax_pattern: '^system password-policy set change-8-characters disable\b', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: 0}
 
   - {syntax_pattern: '^access-list fortios-\S+ (permit|deny) ', pattern_type: regex, canonical_field: AC.acl_rules}
   - {syntax_pattern: '^firewall policy edit \S+ set (name|comments|srcintf|dstintf|srcaddr|dstaddr|action|schedule|service|status|nat|logtraffic) ', pattern_type: regex, canonical_field: NOT_SECURITY}
 
   # Known non-security structure.
+  # Service and address objects only name ports and hosts (every FortiGate
+  # ships a predefined TELNET service on port 23); the policies that use them
+  # become ACL lines above. Found by the held-out run: the AI read
+  # `firewall service custom edit TELNET set tcp-portrange 23` as telnet enabled.
+  - {syntax_pattern: '^firewall (service (custom|group|category)|address6?|addrgrp6?) edit ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^system global set (hostname|timezone|alias|gui-theme) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^system interface edit \S+ set (ip|type|vdom|mode|role|vlanid|interface) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^router static edit \d+ set ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^system dns set ', pattern_type: regex, canonical_field: NOT_SECURITY}
+
+# Vendor defaults (vendor_defaults.py): only for a high-confidence full
+# export, and only ever to FAIL a rule.
+defaults:
+  - {field: AU.logging_host, value: [], note: "log syslogd setting is disabled, with no server, by default"}
+
+# Explicit evidence from the whole export: administrative telnet is reachable
+# only through an interface's allowaccess list, so when every allowaccess
+# line in a full export omits telnet, telnet is off. (A line that includes
+# telnet, or `admin-telnet enable`, is matched by the entries above instead.)
+absent_facts:
+  - field: AC.telnet_enabled
+    value: false
+    lines: '^system interface edit \S+ (ipv6 )?set (ip6-)?allowaccess '
+    none_match: '\btelnet\b'
+    note: "no interface allowaccess list includes telnet"

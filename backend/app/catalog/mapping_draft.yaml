@@ -1,0 +1,731 @@
+# DRAFT - executable-check mappings for the imported DISA STIG catalogs
+# (cyber.trackr.live JSON in this folder). Not loaded by anything yet.
+# Generated 2026-09-27 by reading every rule's CHECK text.
+#
+# decision:
+#   map                 - an EXISTING canonical field + predicate decides the check text
+#   new_field           - decidable with one of the new_fields below (seeds proposed)
+#   manual              - needs docs / org values / runtime state / GUI, or too complex
+#   already_implemented - live in backend/app/rules/stig_cisco_ios_xe.yaml
+# caveat:          a known limit of the mapping (read before enabling the rule)
+# requires_engine: the rule needs the engine change named in engine_changes before
+#                  it can ever decide (until then it is NOT_EVALUATED, never wrong)
+
+engine_changes:
+  - id: list_count_range
+    description: 'rule_engine._eval_range on a list field should compare len(set(values)) with min/max ("at least two NTP / syslog servers"). Today float(list) raises and the rule returns NOT_EVALUATED.'
+
+new_fields:
+  - field: AU.admin_event_logging
+    type: scalar
+    value_kind: bool
+    insecure: false
+    label: "Admin/config-change event logging"
+    description: "Whether the device records administrative and configuration-change events (account creation/modification/removal, privilege changes, config commands) as audit records."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^logging enable$', pattern_type: regex, canonical_field: AU.admin_event_logging, value: true}
+      juniper_junos:
+        - {syntax_pattern: '^set system syslog host \S+ (any|change-log) (info|any)$', pattern_type: regex, canonical_field: AU.admin_event_logging, value: true}
+      fortinet_fortios:
+        - {syntax_pattern: '^log eventfilter set (event|system) disable\b', pattern_type: regex, canonical_field: AU.admin_event_logging, value: false}
+        - {syntax_pattern: '^log eventfilter set (event|system) enable\b', pattern_type: regex, canonical_field: AU.admin_event_logging, value: true}
+    defaults:
+      cisco_ios: {value: false, note: "archive / log config / logging enable is off by default"}
+    notes: "Cisco: `logging enable` only exists under `archive` > `log config` (units are standalone lines, parent not kept). Juniper: only an external `host` stanza at facility any|change-log, severity info|any counts, per the STIG check; no false-seed on purpose (a second, weaker host would otherwise win the least-secure merge). FortiOS: event and system both default to enable, so a plain `show` export often omits them (field absent -> NOT_EVALUATED)."
+  - field: AC.login_max_failed_attempts
+    type: scalar
+    value_kind: number
+    worse: higher_or_zero
+    label: "Failed logon attempts before lockout"
+    description: "How many consecutive invalid logon attempts are allowed before the device blocks further logons."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^login block-for \d+ attempts (\d+) within \d+', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system login retry-options tries-before-disconnect (\d+)', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system global set admin-lockout-threshold (\d+)', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: "$1"}
+    notes: "The Cisco `login block-for` line also carries the lockout period, but one unit resolves to one field, so the period is not captured."
+  - field: AU.ntp_servers
+    type: list
+    label: "NTP servers"
+    description: "Address(es) of the time servers the device synchronizes its clock with."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^ntp server (?:vrf \S+ )?(?:ip |ipv6 )?([\w.:-]+)', pattern_type: regex, canonical_field: AU.ntp_servers, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system ntp server ([\w.:-]+)', pattern_type: regex, canonical_field: AU.ntp_servers, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system ntp ntpserver edit \S+ set server \"?([\w.:-]+)', pattern_type: regex, canonical_field: AU.ntp_servers, value: "$1"}
+    notes: "The primary+secondary rules need a count (>= 2): see engine_changes."
+  - field: IA.password_min_length
+    type: scalar
+    value_kind: number
+    worse: lower
+    label: "Minimum password length"
+    description: "Minimum number of characters the device's local password policy requires."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^min-length (\d+)$', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system login password minimum-length (\d+)', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system password-policy set status disable\b', pattern_type: regex, canonical_field: IA.password_min_length, value: 0}
+        - {syntax_pattern: '^system password-policy set minimum-length (\d+)', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
+    notes: "Cisco: child line of `aaa common-criteria policy NAME`. FortiOS: a disabled policy enforces no minimum, so `status disable` resolves to 0 (lowest wins the merge)."
+  - field: IA.password_min_uppercase
+    type: scalar
+    value_kind: number
+    worse: lower
+    label: "Required uppercase characters"
+    description: "Minimum number of uppercase letters the local password policy requires."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^upper-case (\d+)$', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system login password minimum-upper-cases (\d+)', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system password-policy set min-upper-case-letter (\d+)', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
+  - field: IA.password_min_lowercase
+    type: scalar
+    value_kind: number
+    worse: lower
+    label: "Required lowercase characters"
+    description: "Minimum number of lowercase letters the local password policy requires."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^lower-case (\d+)$', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system login password minimum-lower-cases (\d+)', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system password-policy set min-lower-case-letter (\d+)', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
+  - field: IA.password_min_numeric
+    type: scalar
+    value_kind: number
+    worse: lower
+    label: "Required numeric characters"
+    description: "Minimum number of digits the local password policy requires."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^numeric-count (\d+)$', pattern_type: regex, canonical_field: IA.password_min_numeric, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system login password minimum-numerics (\d+)', pattern_type: regex, canonical_field: IA.password_min_numeric, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system password-policy set min-number (\d+)', pattern_type: regex, canonical_field: IA.password_min_numeric, value: "$1"}
+  - field: IA.password_min_special
+    type: scalar
+    value_kind: number
+    worse: lower
+    label: "Required special characters"
+    description: "Minimum number of special (punctuation / non-alphanumeric) characters the local password policy requires."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^special-case (\d+)$', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system login password minimum-punctuations? (\d+)', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system password-policy set min-non-alphanumeric (\d+)', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
+  - field: IA.password_min_changed_chars
+    type: scalar
+    value_kind: number
+    worse: lower
+    label: "Characters changed on password change"
+    description: "Minimum number of character positions that must differ when a password is changed."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^char-changes (\d+)$', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^system password-policy set change-8-characters enable\b', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: 8}
+        - {syntax_pattern: '^system password-policy set change-8-characters disable\b', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: 0}
+    notes: "FortiOS keyword taken verbatim from the STIG check text (`change-8-characters`); if a FortiOS release spells it differently nothing matches and the rule stays NOT_EVALUATED. Juniper has no equivalent setting."
+  - field: IA.remote_auth_servers
+    type: list
+    label: "Central authentication servers"
+    description: "RADIUS / TACACS+ / LDAP servers configured for administrator authentication."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^(?:radius-server|tacacs-server) host ([\w.:-]+)', pattern_type: regex, canonical_field: IA.remote_auth_servers, value: "$1"}
+      juniper_junos:
+        - {syntax_pattern: '^set system (?:radius-server|tacplus-server) ([\w.:-]+)', pattern_type: regex, canonical_field: IA.remote_auth_servers, value: "$1"}
+      fortinet_fortios:
+        - {syntax_pattern: '^user (?:ldap|radius|tacacs\+) edit \S+ set server \"?([\w.:-]+)', pattern_type: regex, canonical_field: IA.remote_auth_servers, value: "$1"}
+    notes: "Server presence only - not whether an AAA method list uses it. That is enough for the Juniper checks (\"configured to use at least one RADIUS or TACACS+ server\") but not for Cisco V-215854, which stays manual. The newer IOS-XE `radius server NAME` / `address ipv4 X` block form is not seeded (the child line is ambiguous without its parent)."
+  - field: SC.ssh_macs_fips_only
+    type: scalar
+    value_kind: bool
+    insecure: false
+    label: "SSH MACs restricted to FIPS SHA-2"
+    description: "Whether the SSH server is explicitly restricted to FIPS-validated SHA-2 HMACs (hmac-sha2-256/512), with no SHA-1 or MD5 MAC allowed."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^ip ssh server algorithm mac( hmac-sha2-(256|512)(-etm@openssh\.com)?)+$', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: true}
+        - {syntax_pattern: '^ip ssh server algorithm mac (?!((hmac-sha2-(256|512)(-etm@openssh\.com)?) ?)+$)', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
+      juniper_junos:
+        - {syntax_pattern: '^set system services ssh macs (\[ )?((hmac-sha2-(256|512)(-etm@openssh\.com)?) ?)+\]?$', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: true}
+        - {syntax_pattern: '^set system services ssh macs (?!(\[ )?((hmac-sha2-(256|512)(-etm@openssh\.com)?) ?)+\]?$)', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
+      fortinet_fortios:
+        - {syntax_pattern: '^system global set ssh-hmac-md5 enable\b', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
+    defaults:
+      cisco_ios: {value: false, note: "without `ip ssh server algorithm mac`, the IOS-XE default MAC list includes hmac-sha1"}
+    notes: "Junos set-style exports give one `macs X` line per algorithm; each resolves separately and the least-secure value wins, which is the right aggregate. Regexes tested against sample lines (both list forms)."
+  - field: SC.ssh_ciphers_fips_only
+    type: scalar
+    value_kind: bool
+    insecure: false
+    label: "SSH ciphers restricted to FIPS AES"
+    description: "Whether the SSH server is explicitly restricted to FIPS-approved AES CTR/GCM ciphers, with no CBC, 3DES or other cipher allowed."
+    seeds:
+      cisco_ios:
+        - {syntax_pattern: '^ip ssh server algorithm encryption( (aes(128|192|256)-ctr|aes(128|256)-gcm(@openssh\.com)?))+$', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: true}
+        - {syntax_pattern: '^ip ssh server algorithm encryption (?!((aes(128|192|256)-ctr|aes(128|256)-gcm(@openssh\.com)?) ?)+$)', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: false}
+      juniper_junos:
+        - {syntax_pattern: '^set system services ssh ciphers (\[ )?((aes(128|192|256)-ctr|aes(128|256)-gcm@openssh\.com) ?)+\]?$', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: true}
+        - {syntax_pattern: '^set system services ssh ciphers (?!(\[ )?((aes(128|192|256)-ctr|aes(128|256)-gcm@openssh\.com) ?)+\]?$)', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: false}
+      fortinet_fortios:
+        - {syntax_pattern: '^system global set ssh-cbc-cipher enable\b', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: false}
+    notes: "Juniper V-223227 also requires key-exchange algorithms, which this field does not cover, so it stays manual."
+
+benchmarks:
+  Cisco_IOS_XE_Router_NDM:
+    # Cisco IOS XE Router NDM Security Technical Implementation Guide V3R7
+    V-215807: {decision: manual}
+    V-215808:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215809:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215810:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215811:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215812: {decision: manual}
+    V-215813:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "AC.login_max_failed_attempts", "max": 3, "exclusive_min": 0}
+      why: "check text: 'login block-for 900 attempts 3 within 120' / finding if 'not configured to enforce the limit of three consecutive invalid logon attempts'"
+      caveat: "the 900-second block period on the same line is not captured (one field per line); the finding clause only names the attempt limit"
+    V-215814: {decision: manual}
+    V-215815: {decision: manual}
+    V-215817: {decision: manual}
+    V-215818: {decision: manual}
+    V-215819:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215820: {decision: manual}
+    V-215821: {decision: manual}
+    V-215822: {decision: manual}
+    V-215823: {decision: manual}
+    V-215824: {decision: manual}
+    V-215826:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_length", "min": 15}
+      why: "check text: 'aaa common-criteria policy PASSWORD_POLICY / min-length 15'"
+    V-215827:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_uppercase", "min": 1}
+      why: "check text: 'aaa common-criteria policy ... upper-case 1'"
+    V-215828:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_lowercase", "min": 1}
+      why: "check text: 'aaa common-criteria policy ... lower-case 1'"
+    V-215829:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_numeric", "min": 1}
+      why: "check text: 'aaa common-criteria policy ... numeric-count 1'"
+    V-215830:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_special", "min": 1}
+      why: "check text: 'aaa common-criteria policy ... special-case 1'"
+    V-215831:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_changed_chars", "min": 8}
+      why: "check text: 'aaa common-criteria policy ... char-changes 8'"
+    V-215832:
+      decision: map
+      check_type: boolean
+      predicate: {"field": "IA.password_encryption_enabled", "equals": true}
+      why: "check text: 'service password-encryption' / finding if 'not configured to encrypt passwords'"
+    V-215833:
+      decision: map
+      check_type: range
+      predicate: {"field": "AC.session_idle_timeout_minutes", "max": 5, "exclusive_min": 0}
+      why: "check text: 'idle timeout value set to five minutes or less ... line con 0 / exec-timeout 5 0, line vty ... exec-timeout 5 0'"
+      caveat: "the seed keeps only the minutes of `exec-timeout M S`; a line block with NO exec-timeout (device default 10) contributes nothing, so a config setting 5 on con but nothing on vty would PASS. The HTTP `ip http timeout-policy idle` part is not checked (IOS default is 180 s, compliant)."
+    V-215834:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215836: {decision: manual}
+    V-215837: {decision: manual}
+    V-215838:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "AU.ntp_servers", "min": 2}
+      why: "check text: 'ntp server x.x.x.x / ntp server y.y.y.y' - primary and secondary (redundant) time sources"
+      requires_engine: "list_count_range"
+    V-215841: {decision: manual}
+    V-215842: {decision: manual}
+    V-215843:
+      decision: map
+      check_type: boolean
+      predicate: {"field": "AU.ntp_authentication_enabled", "equals": true}
+      why: "check text: 'ntp authentication-key 1 hmac-sha2-256 ... / ntp authenticate / ntp trusted-key 1' - with `ntp authenticate` IOS only syncs to sources that authenticate with a trusted key"
+      caveat: "does not check the key algorithm (md5 vs hmac-sha2); the finding clause only asks for cryptographically based authentication"
+    V-215844:
+      decision: new_field
+      check_type: compound
+      predicate: {"op": "AND", "conditions": [{"check_type": "range", "predicate": {"field": "IA.ssh_version", "min": 2, "max": 2}}, {"check_type": "boolean", "predicate": {"field": "SC.ssh_macs_fips_only", "equals": true}}]}
+      why: "check text: 'ip ssh version 2 / ip ssh server algorithm mac hmac-sha2-256' and the note that SHA-1 should not be used"
+    V-215845:
+      decision: new_field
+      check_type: compound
+      predicate: {"op": "AND", "conditions": [{"check_type": "range", "predicate": {"field": "IA.ssh_version", "min": 2, "max": 2}}, {"check_type": "boolean", "predicate": {"field": "SC.ssh_ciphers_fips_only", "equals": true}}]}
+      why: "check text: 'ip ssh version 2 / ip ssh server algorithm encryption aes256-ctr aes192-ctr aes128-ctr'"
+    V-215848:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215849: {decision: manual}
+    V-215850:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'archive / log config / logging enable'"
+    V-215854: {decision: manual}
+    V-215855: {decision: manual}
+    V-215856: {decision: manual}
+    V-220139:
+      decision: map
+      check_type: range
+      predicate: {"field": "AU.logging_host", "min": 2}
+      why: "check text: 'configured to send logs to at least two syslog servers ... logging x.x.x.x / logging x.x.x.x'"
+      requires_engine: "list_count_range"
+    V-220140: {decision: manual}
+  Cisco_IOS_XE_Router_RTR:
+    # Cisco IOS XE Router RTR Security Technical Implementation Guide V3R5
+    V-216641: {decision: manual}
+    V-216645: {decision: already_implemented, aegis_rule: STIG-V-216645}
+    V-216646: {decision: manual}
+    V-216649: {decision: manual}
+    V-216650: {decision: already_implemented, aegis_rule: STIG-V-216650}
+    V-216653: {decision: manual}
+    V-216654: {decision: manual}
+    V-216655: {decision: manual}
+    V-216656: {decision: manual}
+    V-216657: {decision: manual}
+    V-216658: {decision: manual}
+    V-216659: {decision: manual}
+    V-216660: {decision: manual}
+    V-216661: {decision: manual}
+    V-216662: {decision: already_implemented, aegis_rule: STIG-V-216662}
+    V-216663: {decision: manual}
+    V-216664: {decision: manual}
+    V-216665: {decision: manual}
+    V-216666: {decision: manual}
+    V-216667: {decision: manual}
+    V-216668: {decision: manual}
+    V-216670: {decision: manual}
+    V-216671: {decision: manual}
+    V-216672: {decision: manual}
+    V-216674: {decision: manual}
+    V-216675: {decision: already_implemented, aegis_rule: STIG-V-216675}
+    V-216676: {decision: manual}
+    V-216677: {decision: manual}
+    V-216678: {decision: manual}
+    V-216679: {decision: manual}
+    V-216680: {decision: manual}
+    V-216681: {decision: manual}
+    V-216682: {decision: manual}
+    V-216683: {decision: manual}
+    V-216684: {decision: manual}
+    V-216687: {decision: manual}
+    V-216688: {decision: manual}
+    V-216689: {decision: manual}
+    V-216690: {decision: manual}
+    V-216691: {decision: manual}
+    V-216692: {decision: manual}
+    V-216693: {decision: manual}
+    V-216694: {decision: manual}
+    V-216695: {decision: manual}
+    V-216696: {decision: manual}
+    V-216697: {decision: manual}
+    V-216698: {decision: manual}
+    V-216699: {decision: manual}
+    V-216700: {decision: manual}
+    V-216701: {decision: manual}
+    V-216702: {decision: manual}
+    V-216703: {decision: manual}
+    V-216704: {decision: manual}
+    V-216705: {decision: manual}
+    V-216706: {decision: manual}
+    V-216707: {decision: manual}
+    V-216708: {decision: manual}
+    V-216709: {decision: manual}
+    V-216710: {decision: manual}
+    V-216711: {decision: manual}
+    V-216712: {decision: manual}
+    V-216714: {decision: manual}
+    V-216715: {decision: manual}
+    V-216716: {decision: manual}
+    V-216717: {decision: manual}
+    V-216718: {decision: manual}
+    V-216719: {decision: manual}
+    V-216720: {decision: manual}
+    V-216721: {decision: manual}
+    V-216722: {decision: manual}
+    V-216723: {decision: manual}
+    V-216724: {decision: manual}
+    V-216725: {decision: manual}
+    V-216726: {decision: manual}
+    V-216727: {decision: manual}
+    V-216728: {decision: manual}
+    V-216729: {decision: manual}
+    V-216730: {decision: manual}
+    V-216731: {decision: manual}
+    V-216732: {decision: manual}
+    V-216733: {decision: manual}
+    V-216997: {decision: manual}
+    V-216998: {decision: manual}
+    V-216999: {decision: manual}
+    V-217000: {decision: manual}
+    V-217001: {decision: manual}
+    V-229031: {decision: manual}
+    V-230039: {decision: manual}
+    V-230042: {decision: manual}
+    V-230045: {decision: already_implemented, aegis_rule: STIG-V-230045}
+    V-230048: {decision: manual}
+    V-230051: {decision: manual}
+    V-230146: {decision: manual}
+    V-230150: {decision: manual}
+    V-230153: {decision: manual}
+    V-230156: {decision: manual}
+    V-230159: {decision: manual}
+  Juniper_SRX_Services_Gateway_NDM:
+    # Juniper SRX Services Gateway NDM Security Technical Implementation Guide V3R3
+    V-223180: {decision: manual}
+    V-223181:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'external syslog host ... configured to log facility change-log severity <info | any>, or ... facility any severity <info | any>'"
+    V-223182:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'external syslog host ... configured to log facility change-log severity <info | any>, or ... facility any severity <info | any>'"
+    V-223183:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'external syslog host ... configured to log facility change-log severity <info | any>, or ... facility any severity <info | any>'"
+    V-223184:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'external syslog host ... configured to log facility change-log severity <info | any>, or ... facility any severity <info | any>'"
+    V-223185: {decision: manual}
+    V-223186: {decision: manual}
+    V-223187: {decision: manual}
+    V-223188:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "AC.login_max_failed_attempts", "min": 3, "max": 3}
+      why: "check text: 'show system login retry-options' / finding if 'the number of unsuccessful logon attempts is not set to 3'"
+    V-223189: {decision: manual}
+    V-223191: {decision: manual}
+    V-223192:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'external syslog host ... configured to log facility change-log severity <info | any>, or ... facility any severity <info | any>'"
+    V-223193:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'external syslog host ... configured to log facility change-log severity <info | any>, or ... facility any severity <info | any>'"
+    V-223194: {decision: manual}
+    V-223195: {decision: manual}
+    V-223196: {decision: manual}
+    V-223197: {decision: manual}
+    V-223198: {decision: manual}
+    V-223199: {decision: manual}
+    V-223201: {decision: manual}
+    V-223202: {decision: manual}
+    V-223203: {decision: manual}
+    V-223204: {decision: manual}
+    V-223205:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "AU.ntp_servers", "min": 2}
+      why: "check text: 'synchronize ... with the primary and secondary NTP sources' ('show system ntp')"
+      caveat: "the finding clause alone says 'an NTP server' (>= 1); the verify step says primary and secondary, used here"
+      requires_engine: "list_count_range"
+    V-223206:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "IA.remote_auth_servers", "equals": true}
+      why: "check text: 'show system radius-server or show system tacplus-server' / finding if not configured to support the use of RADIUS and/or TACACS+ servers"
+    V-223207: {decision: manual}
+    V-223208: {decision: manual}
+    V-223209: {decision: manual}
+    V-223211:
+      decision: map
+      check_type: boolean
+      predicate: {"field": "AC.snmp_community_strings", "equals": false}
+      why: "check text: 'If an SNMP stanza does not exist, this is not a finding ... If versions earlier than SNMPv3 are enabled, this is a finding' - any `snmp community` means v1/v2c is enabled"
+      caveat: "FAIL-only: the field exists only when a community is configured, so a v3-only or SNMP-less device is NOT_EVALUATED, never PASS"
+    V-223212: {decision: manual}
+    V-223213: {decision: manual}
+    V-223214: {decision: manual}
+    V-223215: {decision: manual}
+    V-223216: {decision: manual}
+    V-223217:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_length", "min": 15}
+      why: "check text: 'show system login password' / finding if 'minimum password length ... is not set to at least a 15-character length'"
+    V-223218: {decision: manual}
+    V-223219:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_uppercase", "min": 1}
+      why: "check text: finding if 'the minimum-upper-cases is not set to at least 1'"
+    V-223220:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_lowercase", "min": 1}
+      why: "check text: finding if 'the minimum-lower-cases is not set to at least 1'"
+    V-223221:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_numeric", "min": 1}
+      why: "check text: finding if 'the minimum numerics are not set to at least 1'"
+    V-223222:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_special", "min": 1}
+      why: "check text: finding if 'the minimum-punctuation is not set to at least 1'"
+    V-223223: {decision: manual}
+    V-223224: {decision: manual}
+    V-223225:
+      decision: new_field
+      check_type: compound
+      predicate: {"op": "AND", "conditions": [{"check_type": "range", "predicate": {"field": "IA.ssh_version", "min": 2, "max": 2}}, {"check_type": "boolean", "predicate": {"field": "SC.ssh_macs_fips_only", "equals": true}}]}
+      why: "check text: 'Verify SSHv2 and HMAC algorithms for integrity checking' (fix: protocol-version v2, macs hmac-sha2-512, macs hmac-sha2-256)"
+    V-223226: {decision: manual}
+    V-223227: {decision: manual}
+    V-223228: {decision: manual}
+    V-223231:
+      decision: map
+      check_type: range
+      predicate: {"field": "AC.session_idle_timeout_minutes", "max": 10, "exclusive_min": 0}
+      why: "check text: finding if 'a timeout value of 10 or less is not set for each class'"
+      caveat: "per-class: a login class with no idle-timeout line contributes nothing, so one compliant class can hide another with no timeout"
+    V-223232: {decision: manual}
+    V-223233: {decision: manual}
+    V-223234: {decision: manual}
+    V-223235: {decision: manual}
+    V-223236: {decision: manual}
+    V-223237: {decision: manual}
+    V-229014: {decision: manual}
+    V-229015: {decision: manual}
+    V-229016: {decision: manual}
+    V-229017: {decision: manual}
+    V-229018: {decision: manual}
+    V-229019: {decision: manual}
+    V-229021: {decision: manual}
+    V-229022: {decision: manual}
+    V-229023: {decision: manual}
+    V-229024:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "IA.remote_auth_servers", "equals": true}
+      why: "check text: 'show system radius-server or show system tacplus-server' / finding if not configured to support the use of RADIUS and/or TACACS+ servers"
+    V-229025:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "IA.remote_auth_servers", "equals": true}
+      why: "check text: finding if 'not configured to use at least one RADIUS or TACACS+ server'"
+    V-229026: {decision: manual}
+    V-229027: {decision: manual}
+    V-229028: {decision: manual}
+    V-229029: {decision: manual}
+  Fortinet_FortiGate_Firewall_NDM:
+    # Fortinet FortiGate Firewall NDM Security Technical Implementation Guide V1R5
+    V-234162:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234163: {decision: manual}
+    V-234164:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234165: {decision: manual}
+    V-234166: {decision: manual}
+    V-234167:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234168: {decision: manual}
+    V-234169: {decision: manual}
+    V-234170: {decision: manual}
+    V-234171:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234172:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234173:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234174:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234175:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234176:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234177:
+      decision: new_field
+      check_type: boolean
+      predicate: {"field": "AU.admin_event_logging", "equals": true}
+      why: "check text: 'show full-configuration log eventfilter ... set event enable / set system enable'"
+    V-234178: {decision: manual}
+    V-234179: {decision: manual}
+    V-234180: {decision: manual}
+    V-234181:
+      decision: map
+      check_type: compound
+      predicate: {"op": "AND", "conditions": [{"check_type": "boolean", "predicate": {"field": "AU.logging_enabled", "equals": true}}, {"check_type": "boolean", "predicate": {"field": "AU.logging_host", "equals": true}}]}
+      why: "check text: 'log syslogd setting ... The output should indicate enabled and an IP address' / finding if 'not logging to a fortianalyzer or syslog server'"
+      caveat: "FortiAnalyzer-only and syslogd2-4 setups are not seeded -> NOT_EVALUATED, never FAIL"
+    V-234182: {decision: manual}
+    V-234183:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "AU.ntp_servers", "min": 2}
+      why: "check text: 'show full-configuration system ntp | grep server ... set server {NTP server 1} / set server {NTP server 2}'"
+      caveat: "does not check `set ntpsync enable` / `set type custom`"
+      requires_engine: "list_count_range"
+    V-234184: {decision: manual}
+    V-234185: {decision: manual}
+    V-234186: {decision: manual}
+    V-234187: {decision: manual}
+    V-234188: {decision: manual}
+    V-234189: {decision: manual}
+    V-234190: {decision: manual}
+    V-234191: {decision: manual}
+    V-234192: {decision: manual}
+    V-234193: {decision: manual}
+    V-234194: {decision: manual}
+    V-234195: {decision: manual}
+    V-234196: {decision: manual}
+    V-234197: {decision: manual}
+    V-234198: {decision: manual}
+    V-234199: {decision: manual}
+    V-234200: {decision: manual}
+    V-234201: {decision: manual}
+    V-234202: {decision: manual}
+    V-234203:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_length", "min": 15}
+      why: "check text: 'system password-policy ... set minimum-length 15'"
+    V-234204:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_uppercase", "min": 1}
+      why: "check text: finding if 'the min-upper-case-letter parameter is not set to 1 or greater'"
+      caveat: "relies on FortiOS hiding password-policy sub-options while `status` is disable; `status disable` is only seeded onto the length field"
+    V-234205:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_lowercase", "min": 1}
+      why: "check text: finding if 'the min-lower-case-letter parameter is not set to 1 or greater'"
+      caveat: "relies on FortiOS hiding password-policy sub-options while `status` is disable"
+    V-234206:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_numeric", "min": 1}
+      why: "check text: finding if 'the min-number parameter is not set to 1 or greater'"
+      caveat: "relies on FortiOS hiding password-policy sub-options while `status` is disable"
+    V-234207:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_special", "min": 1}
+      why: "check text: finding if 'the min-non-alphanumeric parameter is not set to 1 greater'"
+      caveat: "relies on FortiOS hiding password-policy sub-options while `status` is disable"
+    V-234208: {decision: manual}
+    V-234209: {decision: manual}
+    V-234210: {decision: manual}
+    V-234211: {decision: manual}
+    V-234212: {decision: manual}
+    V-234213:
+      decision: map
+      check_type: range
+      predicate: {"field": "AC.session_idle_timeout_minutes", "max": 10, "exclusive_min": 0}
+      why: "check text: 'show full-configuration sys global | grep -i admintimeout ... set admintimeout 10'"
+      caveat: "check wording is 'not set to 10'; a shorter timeout is treated as compliant (the requirement is 'after 10 minutes of inactivity')"
+    V-234214:
+      decision: map
+      check_type: range
+      predicate: {"field": "AC.session_idle_timeout_minutes", "max": 10, "exclusive_min": 0}
+      why: "check text: 'show full-configuration sys global | grep -i admintimeout ... set admintimeout 10'"
+      caveat: "check wording is 'not set to 10'; a shorter timeout is treated as compliant"
+    V-234215: {decision: manual}
+    V-234216: {decision: manual}
+    V-234217: {decision: manual}
+    V-234218:
+      decision: map
+      check_type: compound
+      predicate: {"op": "AND", "conditions": [{"check_type": "boolean", "predicate": {"field": "AU.logging_enabled", "equals": true}}, {"check_type": "boolean", "predicate": {"field": "AU.logging_host", "equals": true}}]}
+      why: "check text: 'verify that at least one of the settings reflects \"set status enable\"' for log fortianalyzer / log syslogd"
+      caveat: "FortiAnalyzer-only and syslogd2-4 setups are not seeded -> NOT_EVALUATED, never FAIL"
+    V-234219: {decision: manual}
+    V-234220: {decision: manual}
+    V-234221:
+      decision: new_field
+      check_type: range
+      predicate: {"field": "IA.password_min_changed_chars", "min": 8}
+      why: "check text: 'system password-policy ... set change-8-characters enable' / finding if set to disable"

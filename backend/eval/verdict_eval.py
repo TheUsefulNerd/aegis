@@ -66,7 +66,8 @@ def run(live: bool, labels_file: str = "verdict_labels.yaml") -> dict:
                 totals["labelled"] += 1
                 totals[kind] += 1
                 rows.append({"device": name, "rule": rule_id, "expected": want, "got": out, "outcome": kind,
-                             "source": got.get(rule_id, {}).get("confidence_tier")})
+                             "source": got.get(rule_id, {}).get("confidence_tier"),
+                             "evidence": got.get(rule_id, {}).get("source_lines") if kind != "correct" else None})
     decided = totals["correct"] + totals["false_pass"] + totals["false_fail"]
     summary = {
         **totals,

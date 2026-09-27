@@ -1,0 +1,473 @@
+# Reviewed mappings: imported DISA STIG rule -> executable AEGIS check.
+#
+# catalog/<benchmark>.json holds every rule of the benchmark as DISA publishes
+# it (app/stig_sync.py). A rule is evaluated only if it is listed here, and
+# only while its check_sha still matches the imported check text: when DISA
+# revises a check in a new release the mapping is set aside as "needs
+# re-review" (catalog_rules.py) instead of evaluating an outdated check.
+# Everything not listed is reported as manual review.
+#
+# Each mapping was checked against the rule's DISA check text (2026-09-27),
+# quoted in `note`. Rules left out on purpose, although a draft proposed them:
+#   V-215833  Cisco 5-min timeout on ALL management lines incl. console; only
+#             VTY blocks are scoped, so a console at 0 could hide -> false PASS
+#   V-223231  Juniper per-class idle-timeout: a class with no timeout line
+#             can hide behind a compliant one -> false PASS
+#   V-234213, V-234214  FortiGate admintimeout: check says exactly 10
+#   V-234183  FortiGate NTP: ntpsync / type custom not checked -> false PASS
+#   V-223181..184, V-223192, V-223193  Juniper change-log to an external host:
+#             that line already sets AU.logging_host (one field per line)
+# Severity comes from the catalog (high/medium/low -> CAT I/II/III). A failed
+# rule shows its remediation template, or else DISA's own fix text.
+
+benchmarks:
+  Cisco_IOS_XE_Router_NDM:
+    V-215808:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: 6d9f3743c6036901
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215809:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: 85235ef2e952c3d2
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215810:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: 0bc8ee51349640b3
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215811:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: 7d346996f1a21324
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215813:
+      check_type: range
+      predicate:
+        field: AC.login_max_failed_attempts
+        max: 3
+        exclusive_min: 0
+      check_sha: b2a7e30b709b6332
+      note: 'check text: ''login block-for 900 attempts 3 within 120''; the seed records the attempt count only when the block is at least 900
+        s (15 min), a shorter block records 0 (no compliant lockout)'
+    V-215819:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: c443b0ae2a6345f1
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215826:
+      check_type: range
+      predicate:
+        field: IA.password_min_length
+        min: 15
+      check_sha: f90d25a42a5e183f
+      note: 'check text: ''aaa common-criteria policy ... min-length 15'''
+    V-215827:
+      check_type: range
+      predicate:
+        field: IA.password_min_uppercase
+        min: 1
+      check_sha: e515b21af2413a6f
+      note: 'check text: ''aaa common-criteria policy ... upper-case 1'''
+    V-215828:
+      check_type: range
+      predicate:
+        field: IA.password_min_lowercase
+        min: 1
+      check_sha: 68fb7fca250f5c03
+      note: 'check text: ''aaa common-criteria policy ... lower-case 1'''
+    V-215829:
+      check_type: range
+      predicate:
+        field: IA.password_min_numeric
+        min: 1
+      check_sha: ccad359d92b69401
+      note: 'check text: ''aaa common-criteria policy ... numeric-count 1'''
+    V-215830:
+      check_type: range
+      predicate:
+        field: IA.password_min_special
+        min: 1
+      check_sha: be2633c8aabfef10
+      note: 'check text: ''aaa common-criteria policy ... special-case 1'''
+    V-215831:
+      check_type: range
+      predicate:
+        field: IA.password_min_changed_chars
+        min: 8
+      check_sha: 2887da3a6d2377cf
+      note: 'check text: ''aaa common-criteria policy ... char-changes 8'''
+    V-215832:
+      check_type: boolean
+      predicate:
+        field: IA.password_encryption_enabled
+        equals: true
+      check_sha: da33fe99a2a2e970
+      remediation_template_ref: CIS-1.4.2
+      note: 'check text: ''service password-encryption'''
+    V-215834:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: 65acf5be3a0443a9
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215838:
+      check_type: range
+      predicate:
+        field: AU.ntp_servers
+        min: 2
+      check_sha: 8551e44b3c414696
+      note: 'check text: ''ntp server x.x.x.x / ntp server y.y.y.y'' (redundant sources: at least two distinct servers)'
+    V-215843:
+      check_type: boolean
+      predicate:
+        field: AU.ntp_authentication_enabled
+        equals: true
+      check_sha: 1df3a8ac3f66d709
+      remediation_template_ref: CIS-2.3.1.1
+      note: 'check text: ''ntp authenticate'' with keyed servers; the key algorithm is not checked'
+    V-215844:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - &id001
+          check_type: range
+          predicate:
+            field: IA.ssh_version
+            min: 2
+            max: 2
+        - check_type: boolean
+          predicate:
+            field: SC.ssh_macs_fips_only
+            equals: true
+      check_sha: 0e710792600e8371
+      control_family: IA
+      note: 'check text: ''ip ssh version 2 / ip ssh server algorithm mac hmac-sha2-256'''
+    V-215845:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id001
+        - check_type: boolean
+          predicate:
+            field: SC.ssh_ciphers_fips_only
+            equals: true
+      check_sha: 7c17940673eb2e6f
+      control_family: SC
+      note: 'check text: ''ip ssh version 2 / ip ssh server algorithm encryption aes256-ctr ...'' (any FIPS-approved AES mode accepted)'
+    V-215848:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: 3cee55c890157956
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-215850:
+      check_type: boolean
+      predicate:
+        field: AU.logging_enabled
+        equals: true
+      check_sha: f15280b937e31b98
+      remediation_template_ref: CIS-2.2.1
+      note: 'check text: ''archive / log config / logging enable'''
+    V-220139:
+      check_type: range
+      predicate:
+        field: AU.logging_host
+        min: 2
+      check_sha: 990cbae544bb4e79
+      remediation_template_ref: CIS-2.2.4
+      note: 'title: ''at least two syslog servers''; check text: ''logging x.x.x.x / logging x.x.x.x'''
+  Juniper_SRX_Services_Gateway_NDM:
+    V-223188:
+      check_type: range
+      predicate:
+        field: AC.login_max_failed_attempts
+        min: 3
+        max: 3
+      check_sha: a44f4a4097c18f94
+      note: 'check text: ''number of unsuccessful logon attempts is set to 3'' (fix: retry-options tries-before-disconnect 3)'
+    V-223205:
+      check_type: range
+      predicate:
+        field: AU.ntp_servers
+        min: 2
+      check_sha: 71cefa11d7cc29a5
+      note: 'check text: ''primary and secondary NTP sources'' (fix: two system ntp server lines)'
+    V-223206:
+      check_type: boolean
+      predicate:
+        field: IA.remote_auth_servers
+        equals: true
+      check_sha: 831e807a608c0e28
+      note: 'check text: ''show system radius-server or show system tacplus-server'' (at least one server configured)'
+    V-223211:
+      check_type: boolean
+      predicate:
+        field: AC.snmp_community_strings
+        equals: false
+      check_sha: a19783622c4b7d69
+      note: 'check text: ''If versions earlier than SNMPv3 are enabled, this is a finding'' - a community string means v1/v2c; FAIL-only, a device
+        without communities stays NOT_EVALUATED'
+    V-223217:
+      check_type: range
+      predicate:
+        field: IA.password_min_length
+        min: 15
+      check_sha: b9b4b8a6817f1bb5
+      note: 'check text: ''minimum password length ... at least a 15-character length'''
+    V-223219:
+      check_type: range
+      predicate:
+        field: IA.password_min_uppercase
+        min: 1
+      check_sha: a3614382180a51f9
+      note: 'check text: ''minimum-upper-cases is not set to at least 1'''
+    V-223220:
+      check_type: range
+      predicate:
+        field: IA.password_min_lowercase
+        min: 1
+      check_sha: 194c00f4e4a0f647
+      note: 'check text: ''minimum-lower-cases is not set to at least 1'''
+    V-223221:
+      check_type: range
+      predicate:
+        field: IA.password_min_numeric
+        min: 1
+      check_sha: 515aaaf6535c13ec
+      note: 'check text: ''minimum numerics are not set to at least 1'''
+    V-223222:
+      check_type: range
+      predicate:
+        field: IA.password_min_special
+        min: 1
+      check_sha: edd4754d50ea5b2f
+      note: 'check text: ''minimum-punctuation is not set to at least 1'''
+    V-223225:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id001
+        - check_type: boolean
+          predicate:
+            field: SC.ssh_macs_fips_only
+            equals: true
+      check_sha: 7d0ca1078f6dc81c
+      control_family: IA
+      note: 'check/fix text: ''ssh protocol-version v2 / ssh macs hmac-sha2-512 / hmac-sha2-256'''
+    V-229024:
+      check_type: boolean
+      predicate:
+        field: IA.remote_auth_servers
+        equals: true
+      check_sha: 10f3192ca0bfa5e7
+      note: 'check text: ''show system radius-server or show system tacplus-server'' (at least one server configured)'
+    V-229025:
+      check_type: boolean
+      predicate:
+        field: IA.remote_auth_servers
+        equals: true
+      check_sha: 18ccd252de1a273d
+      note: 'check text: ''show system radius-server or show system tacplus-server'' (at least one server configured)'
+  Fortinet_FortiGate_Firewall_NDM:
+    V-234162:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8cdf8b91fc420e65
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234164:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: dec97ebc3f06a6f8
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234167:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234171:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 839c1ca43da8ead5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234172:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234173:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234174:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234175:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234176:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234177:
+      check_type: boolean
+      predicate:
+        field: AU.admin_event_logging
+        equals: true
+      check_sha: 8b137ed764a671f5
+      note: 'check text: ''show full-configuration log eventfilter ... set event enable / set system enable'''
+    V-234181:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.logging_enabled
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.logging_host
+            equals: true
+      check_sha: f03740411e8f62fa
+      control_family: AU
+      note: 'check text: ''log fortianalyzer / syslogd setting ... should indicate enabled and an IP address'''
+    V-234203:
+      check_type: range
+      predicate:
+        field: IA.password_min_length
+        min: 15
+      check_sha: 94412c1053735651
+      note: 'check text: ''set minimum-length 15'' (a disabled policy counts as 0)'
+    V-234204:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - &id002
+          check_type: range
+          predicate:
+            field: IA.password_min_length
+            min: 1
+        - check_type: range
+          predicate:
+            field: IA.password_min_uppercase
+            min: 1
+      check_sha: 402bd08ea23c5bd5
+      control_family: IA
+      note: 'check text: ''min-upper-case-letter ... 1 or greater'' with the password policy enabled'
+    V-234205:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id002
+        - check_type: range
+          predicate:
+            field: IA.password_min_lowercase
+            min: 1
+      check_sha: e4b01f0717d4344d
+      control_family: IA
+      note: 'check text: ''min-lower-case-letter ... 1 or greater'' with the password policy enabled'
+    V-234206:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id002
+        - check_type: range
+          predicate:
+            field: IA.password_min_numeric
+            min: 1
+      check_sha: 08fcf9b86a97675e
+      control_family: IA
+      note: 'check text: ''min-number ... 1 or greater'' with the password policy enabled'
+    V-234207:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id002
+        - check_type: range
+          predicate:
+            field: IA.password_min_special
+            min: 1
+      check_sha: 4c6f5697b06156b9
+      control_family: IA
+      note: 'check text: ''min-non-alphanumeric ... 1 or greater'' with the password policy enabled'
+    V-234218:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.logging_enabled
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.logging_host
+            equals: true
+      check_sha: a78d082184bb833c
+      control_family: AU
+      note: 'check text: ''log fortianalyzer / syslogd setting ... should indicate enabled and an IP address'''
+    V-234221:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id002
+        - check_type: range
+          predicate:
+            field: IA.password_min_changed_chars
+            min: 8
+      check_sha: 9a4c9be617cb8e5a
+      control_family: IA
+      note: 'check text: ''set change-8-characters enable'' with the password policy enabled'

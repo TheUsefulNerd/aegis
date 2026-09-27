@@ -151,4 +151,10 @@ def get_remediation(vendor: str, rule_id: str, template_ref: Optional[str] = Non
             if "{acl}" in text:
                 text = text.replace("{acl}", ctx["acl"])
             return Remediation(text=_wrap(vendor, text), source="template")
+    # An imported DISA STIG rule without a template: DISA's own fix text,
+    # verbatim (official guidance, not an improvised fix).
+    if rule_id and rule_id.startswith("V-"):
+        from . import catalog_rules
+        if fix := catalog_rules.fix_text(vendor, rule_id):
+            return Remediation(text=fix, source="DISA STIG fix text")
     return None

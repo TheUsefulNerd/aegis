@@ -82,6 +82,14 @@ def _eval_range(predicate: dict, fields: dict) -> EvalResult:
         # `float(True)` is 1.0 - a boolean reaching a numeric check is a
         # classification error upstream, not the number 1.
         return EvalResult(NOT_EVALUATED, {"field": predicate["field"], "reason": "not numeric", "actual": value})
+    if isinstance(value, list):
+        # A range on a list counts its distinct entries ("at least two NTP
+        # servers"). An empty list is only ever a vendor default (no line
+        # added to it), which can FAIL here but never PASS.
+        num = len({str(v).strip().lower() for v in value})
+        lo, hi = predicate.get("min", float("-inf")), predicate.get("max", float("inf"))
+        return EvalResult(PASS if lo <= num <= hi else FAIL,
+                          {"field": predicate["field"], "actual": value, "count": num})
     try:
         num = float(value)
     except (TypeError, ValueError):

@@ -14,6 +14,7 @@ fingerprint:
   priority: 10
   signals:
     - '^version \S+;\s*$'                                # hierarchical export header
+    - '^set version \S+'                                  # set-format export header
     - '^set (system|interfaces|security|firewall|protocols) '
     - '^\s*system \{\s*$'
     - '^## Last (commit|changed)'
@@ -36,9 +37,28 @@ entries:
   - {syntax_pattern: '^set snmp community \[REDACTED:', pattern_type: regex, canonical_field: AC.snmp_community_strings, value: "custom (redacted)"}
   - {syntax_pattern: '^set protocols (ospf|bgp|isis) .*authentication', pattern_type: regex, canonical_field: SC.routing_authentication, value: true}
 
+  # For the imported DISA STIG catalog (rules/stig_catalog_map.yaml); patterns
+  # follow the SRX NDM STIG fix text.
+  - {syntax_pattern: '^set system login retry-options tries-before-disconnect (\d+)', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: "$1"}
+  - {syntax_pattern: '^set system ntp server ([\w.:-]+)', pattern_type: regex, canonical_field: AU.ntp_servers, value: "$1"}
+  - {syntax_pattern: '^set system login password minimum-length (\d+)', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
+  - {syntax_pattern: '^set system login password minimum-upper-cases (\d+)', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
+  - {syntax_pattern: '^set system login password minimum-lower-cases (\d+)', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
+  - {syntax_pattern: '^set system login password minimum-numerics (\d+)', pattern_type: regex, canonical_field: IA.password_min_numeric, value: "$1"}
+  - {syntax_pattern: '^set system login password minimum-punctuations? (\d+)', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
+  - {syntax_pattern: '^set system (?:radius-server|tacplus-server) ([\w.:-]+)', pattern_type: regex, canonical_field: IA.remote_auth_servers, value: "$1"}
+  # One `macs X` line per algorithm in set form; the least secure line wins.
+  - {syntax_pattern: '^set system services ssh macs (\[ )?(hmac-sha2-(256|512)(-etm@openssh\.com)? ?)+\]?$', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: true}
+  - {syntax_pattern: '^set system services ssh macs ', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
+
   # Known non-security structure: instant, no AI call, no review item.
   - {syntax_pattern: '^set version ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set system (host-name|domain-name|name-server|time-zone) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set interfaces \S+ (unit \d+ family \S+ address|mtu|speed|link-mode) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set routing-options (static|router-id|autonomous-system) ', pattern_type: regex, canonical_field: NOT_SECURITY}
   - {syntax_pattern: '^set chassis ', pattern_type: regex, canonical_field: NOT_SECURITY}
+
+# Vendor defaults (vendor_defaults.py): only for a high-confidence full
+# export, and only ever to FAIL a rule.
+defaults:
+  - {field: AU.logging_host, value: [], note: "Junos sends syslog to no remote host unless system syslog host is set"}

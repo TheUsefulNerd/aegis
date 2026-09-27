@@ -70,7 +70,9 @@ def fingerprint(raw_text: str, learned: list = None) -> dict:
     the file into units for resolve_unit (§3, step 4)."""
     stripped = raw_text.strip()
     fmt, obj = _detect_format(stripped)
-    head = stripped[:20000]
+    # Long exports put later sections (FortiOS `config firewall policy`) far
+    # down; the held-out FortiGate-VM backup had it at line 3087.
+    head = stripped[:200000]
     for sig in _signatures():
         if sig["format"] != fmt:
             continue

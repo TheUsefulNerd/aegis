@@ -232,7 +232,7 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
         if bindings:
             fields["AC.acl_bindings"] = bindings
         if fp["format"] == "cli":
-            vendor_defaults.apply(fp["vendor"], fp["confidence"], redacted.text, fields, provenance)
+            vendor_defaults.apply(fp["vendor"], fp["confidence"], redacted.text, fields, provenance, unit_list)
         ingest_span.update(output={"tier_counts": tier_counts})
     langfuse.flush()
 
@@ -394,6 +394,14 @@ def _finding_tier(prov: dict, evidence: dict) -> str | None:
     return min(tiers, key=lambda t: _TIER_STRENGTH.get(t, -1))
 
 
+def _predicate_fields(check_type: str, predicate: dict) -> list:
+    """Every canonical field a (possibly compound) predicate reads."""
+    if check_type == "compound":
+        conds = predicate.get("conditions") or [predicate.get("condition")]
+        return [f for c in conds if c for f in _predicate_fields(c["check_type"], c["predicate"])]
+    return [predicate["field"]] if predicate.get("field") else []
+
+
 def _source_lines(prov: dict | None, evidence: dict) -> list:
     """The config lines a finding rests on, for the report's evidence column:
     the deciding ACL line(s) when there is one, else every line that set the
@@ -444,6 +452,16 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
         field_name = rule.predicate.get("field") if isinstance(rule.predicate, dict) else None
         prov = (config.provenance or {}).get(field_name) if field_name else None
         confidence_tier = _finding_tier(prov, eval_result.evidence) if prov else None
+        if rule.check_type == "compound":
+            # Several fields decide it: the weakest evidence among them
+            # governs, so the default / AI-only guards below apply to
+            # compound rules too.
+            provs = [(config.provenance or {}).get(f) for f in _predicate_fields(rule.check_type, rule.predicate)]
+            provs = [p for p in provs if p]
+            if provs:
+                confidence_tier = min((_finding_tier(p, {}) for p in provs), key=lambda t: _TIER_STRENGTH.get(t, -1))
+                prov = {"confidence_tier": confidence_tier,
+                        "all_sources": [s for p in provs for s in _source_lines(p, {})]}
         if eval_result.result == rule_engine.PASS and confidence_tier == "vendor_default":
             # A default may FAIL a rule (an insecure default is a finding)
             # but never PASS one: an export that merely omits a line must not
