@@ -26,10 +26,20 @@ DB or server was involved. Anything that depends on Tier 2 (LLM) is labeled
 | 03 | `03_sonic_spine_linecard_config_db.json` | SONiC nested `config_db.json` → `sonic` / high | [sonic-net/sonic-mgmt `tests/vs_voq_cfgs/vlab-t2-01_config_db.json`](https://github.com/sonic-net/sonic-mgmt/blob/15fa4996348b7e260756bbac40d1cf2616140d5b/tests/vs_voq_cfgs/vlab-t2-01_config_db.json) (virtual-lab T2 linecard) | Apache-2.0 (repo `LICENSE`; GitHub's API shows "NOASSERTION" only because the file has a copyright header) | 42 tables → 18 kept (17 from source + 1 planted): dropped QoS/buffer/queue/system-port/VOQ/CRM/FEATURE/DHCP/KDUMP etc.; `PORT` 32 → 2 ports and 5 fields each; `BGP_NEIGHBOR` 4 → 1; `ACL_TABLE` 5 → 3; `DEVICE_METADATA` 18 → 5 fields; `RESTAPI`/`TELEMETRY` cert paths dropped | **70** |
 | 04 | `04_cisco_csr1000v_edge_misconfigured.txt` | Cisco IOS-XE 15.5 (CSR1000v) CLI → `cisco_ios` / high | [napalm-automation/napalm `test/ios/mocked_data/test_get_config/normal/show_running_config.txt`](https://github.com/napalm-automation/napalm/blob/820a06b2069eb1d7b0cbe8943ee2dea6e2949d1a/test/ios/mocked_data/test_get_config/normal/show_running_config.txt) | Apache-2.0 | Only runs of empty `!` lines (they produce no units anyway) | **55** |
 | 05 | `05_arista_veos_unseen_vendor.txt` | Arista vEOS 4.15 CLI → `unknown` / low (unsupported vendor, on purpose) | [napalm-automation/napalm `test/eos/eos/mock_data/show_running_config.txt`](https://github.com/napalm-automation/napalm/blob/820a06b2069eb1d7b0cbe8943ee2dea6e2949d1a/test/eos/eos/mock_data/show_running_config.txt) | Apache-2.0 | Nothing | **18** |
-| 06 *(optional)* | `06_cisco_csr1000v_edge_remediated.txt` | Cisco IOS-XE 15.5 CLI → `cisco_ios` / high | Same napalm file as 04: this is **04's remediated twin** (same device, with 04's findings fixed) | Apache-2.0 | As 04 | **64** |
+| 06 *(optional)* | `06_cisco_csr1000v_edge_remediated.txt` | Cisco IOS-XE 15.5 CLI → `cisco_ios` / high | Same napalm file as 04: this is **04's remediated twin** (same device, with 04's findings fixed) | Apache-2.0 | As 04 | **62** (the 3-line banner is now one unit) |
+| 07 | `07_juniper_srx_branch.conf` | Junos 20.4 hierarchical config → `juniper_junos` / high | **Synthetic**, written by the team in documented Junos syntax (system services / login / syslog / snmp). Not a real device export | This repository | n/a | **20** (brace blocks flattened to `set ...` paths) |
+| 08 | `08_fortigate_60f_edge.conf` | FortiOS 7.2 config → `fortinet_fortios` / high | **Synthetic**, written by the team in documented FortiOS syntax (config system global / interface / snmp / log syslogd). Not a real device export | This repository | n/a | **21** (config/edit blocks flattened with their paths) |
 
-Core set (01-05) = **281 units**. With 06 = **345**. Every unit that doesn't hit
-Tier 1 becomes one sequential LLM call, so leave 06 out of a time-boxed live run.
+Core set (01-05) = **281 units**; all eight = **384**. Unmatched lines are sent to
+the AI in parallel batches (8-17 s per fresh file on free tiers), so every file
+fits in a live run.
+
+**07 and 08 were added as data only**: `backend/app/seeds/juniper_junos.yaml` and
+`fortinet_fortios.yaml` each hold the vendor's fingerprint and Tier-1 patterns; no
+Python was written for either vendor. Planted in both: telnet enabled (a
+deterministic NIST AC-17(2) FAIL), a default `public` SNMP community, HTTP web
+management, a remote syslog server (PASS), and two fake secrets each (Junos quoted
+`encrypted-password`, FortiOS `ENC` values), all redacted.
 
 One idea (not text) was borrowed from
 [grounzero/pfsense-redactor `canary-corpus.xml`](https://github.com/grounzero/pfsense-redactor) (MIT):
