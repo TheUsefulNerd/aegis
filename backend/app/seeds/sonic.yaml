@@ -3,6 +3,14 @@
 # across multiple flattened JSON paths (the same §3.5 cross-reference gap)
 # and are deliberately NOT seeded here for that reason.
 
+fingerprint:
+  format: json
+  version_family: sonic
+  priority: 10
+  json_keys: [PORT, VLAN, ACL_RULE, DEVICE_METADATA, MGMT_INTERFACE]
+  min: 1
+  high_at: 1
+
 vendor: sonic
 entries:
   - syntax_pattern: "MGMT_INTERFACE.eth0|192.168.1.1/24.telnet=disabled"

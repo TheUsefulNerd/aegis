@@ -96,15 +96,20 @@ def generate(
     )
     story = []
 
-    # Authenticity seal - directly answers "is this really an AEGIS output":
-    # a bordered badge naming the report id and generation time. Does NOT
-    # claim a hash-chained audit log - that's not built yet (roadmap item),
-    # and this project doesn't put unbuilt claims in front of judges.
-    seal_style = ParagraphStyle("seal", parent=styles["Normal"], fontSize=8, textColor=_SEAL_GREEN, leading=11)
+    # Report integrity - checkable facts instead of a "verified" badge (a
+    # printed seal proves nothing). The input hash ties this report to one
+    # exact config export; the rule-set fingerprint says which rule versions
+    # judged it; the findings digest can be recomputed from the evaluation
+    # API and compared, so any edit to a verdict is detectable.
+    seal_style = ParagraphStyle("seal", parent=styles["Normal"], fontSize=7.5, textColor=_SEAL_GREEN, leading=10.5)
+    integ = evaluation.get("integrity") or {}
     seal_table = Table(
         [[Paragraph(
-            f"<b>&#10003; AEGIS VERIFIED OUTPUT</b> &nbsp;·&nbsp; Report ID {rid} &nbsp;·&nbsp; "
-            f"Generated {_current_report_meta['generated_at']}",
+            f"<b>Report integrity</b> &nbsp;·&nbsp; Report ID {rid} &nbsp;·&nbsp; "
+            f"Generated {_current_report_meta['generated_at']}<br/>"
+            f"Input file SHA-256: <font face='Courier'>{_escape(device.get('input_sha256') or 'not recorded')}</font><br/>"
+            f"Rule set: <font face='Courier'>{_escape(integ.get('ruleset_sha256', '')[:16] or 'n/a')}</font> "
+            f"&nbsp;·&nbsp; Findings digest: <font face='Courier'>{_escape(integ.get('findings_sha256', '')[:32] or 'n/a')}</font>",
             seal_style,
         )]],
         colWidths=[6.6 * inch],
@@ -124,7 +129,7 @@ def generate(
         ["Vendor", device.get("vendor") or "unknown"],
         ["Model", device.get("model") or "not available"],
         ["Firmware / Version", device.get("firmware_version") or "not available"],
-        ["Serial Number", device.get("serial_number") or "not available (not present in this config export)"],
+        ["Serial Number", device.get("serial_number") or "not found in this config export"],
     ]
     id_table = Table(id_rows, colWidths=[1.6 * inch, 4.9 * inch])
     id_table.setStyle(TableStyle([
@@ -188,9 +193,16 @@ def generate(
     rows = [header]
     for f in evaluation["findings"]:
         rem = f.get("remediation") or ("no template available" if f["result"] == "FAIL" else "")
+        control = _escape(f.get("title") or f["rule_id"])
+        if f["result"] == "NOT_EVALUATED":
+            control += f"<br/><font color='#64748b' size='6.5'>{_escape(_unknown_reason(f))}</font>"
+        lines = f.get("source_lines") or []
+        if lines:
+            shown = "  |  ".join(lines[:2]) + (f"  (+{len(lines) - 2} more)" if len(lines) > 2 else "")
+            control += f"<br/><font face='Courier' color='#475569' size='6.5'>Evidence: {_escape(shown)}</font>"
         rows.append([
             _RESULT_LABELS.get(f["result"], f["result"]),
-            Paragraph(_escape(f.get("title") or f["rule_id"]), cell_style),
+            Paragraph(control, cell_style),
             # Same bare-string overflow bug as Source below - a long rule id
             # (e.g. "CIS / CIS-SUPPLEMENT-ACL-TELNET") doesn't wrap and spills
             # into the Severity/Source columns instead.
@@ -204,7 +216,7 @@ def generate(
             # to 3+ lines and made the row tall enough for the overflow to
             # become visible). Same fix as Control/Remediation - wrap it too.
             Paragraph(_escape(_TIER_LABELS.get(f.get("confidence_tier"), "-")), cell_style),
-            Paragraph(_escape(rem).replace("\n", "<br/>"), cell_style),
+            Paragraph("<br/>".join(_keep_indent(_escape(line)) for line in rem.split("\n")), cell_style),
         ])
 
     findings_table = Table(
@@ -238,7 +250,10 @@ def generate(
         "Remediation commands above are drafted from known-good templates and have not been tested "
         "against a live device. Verify in a non-production environment before applying. \"Source\" shows "
         "how each finding's underlying setting was determined: instantly recognized from a previously "
-        "learned pattern, classified automatically by AI, or confirmed by a human reviewer.",
+        "learned pattern, classified automatically by AI, or confirmed by a human reviewer. \"Evidence\" is "
+        "the configuration line the verdict rests on, after secret redaction. ISO/IEC 27001 and NIST SP 800-53 "
+        "results are device-level technical evidence supporting those controls, not a certification of the "
+        "control itself. CAT levels on CIS, NIST and ISO rules are assigned by AEGIS on the DISA STIG scale.",
         disclaimer_style,
     ))
 
@@ -265,8 +280,8 @@ def _executive_summary(device: dict, evaluation: dict, framework_label: str | No
     text = (
         f"<b>{name}</b> was checked against <b>{total}</b> compliance rules from {fw}. "
         f"<b>{counts['PASS']}</b> passed, <b>{counts['FAIL']}</b> failed, and "
-        f"<b>{counts['NOT_EVALUATED']}</b> could not be evaluated because the setting they check "
-        f"was never mentioned in the configuration. "
+        f"<b>{counts['NOT_EVALUATED']}</b> could not be evaluated: the setting was not found in the "
+        f"configuration, is waiting for a reviewer, or rests only on AI evidence that a human must confirm. "
     )
     fails = [f for f in evaluation["findings"] if f["result"] == "FAIL"]
     if not fails:
@@ -286,6 +301,24 @@ def _executive_summary(device: dict, evaluation: dict, framework_label: str | No
     return text
 
 
+def _keep_indent(line: str) -> str:
+    """CLI sub-mode lines are indented; a Paragraph collapses leading spaces."""
+    stripped = line.lstrip(" ")
+    return "&nbsp;" * (len(line) - len(stripped)) + stripped
+
+
+def _unknown_reason(f: dict) -> str:
+    ev = f.get("evidence") or {}
+    if ev.get("would_be") == "PASS":
+        return "Needs human confirmation: the only evidence is an AI reading."
+    reason = ev.get("reason") or ""
+    if reason.startswith("ACL line not understood"):
+        return "An ACL line before the decision could not be read fully."
+    if reason:
+        return reason[0].upper() + reason[1:] + "."
+    return "Setting not found in this config, or waiting in the review queue."
+
+
 def _legend_table(styles) -> Table:
     """What the report's vocabulary means, once per report - especially
     that "Unknown" is neither a failure nor a guess."""
@@ -295,9 +328,10 @@ def _legend_table(styles) -> Table:
         [Paragraph("<b>Pass / Fail</b>", cell),
          Paragraph("The device's setting was found and does / does not meet the rule.", cell)],
         [Paragraph("<b>Unknown</b>", cell),
-         Paragraph("The setting this rule checks was never mentioned in the configuration. This is "
-                   "<b>not</b> a failure and <b>not</b> a guess. AEGIS reports what it cannot see "
-                   "instead of assuming it is compliant.", cell)],
+         Paragraph("AEGIS could not decide this rule: the setting was not found in the configuration, is "
+                   "still waiting in the review queue, could not be read reliably, or would pass only on an AI "
+                   "reading that a human has not confirmed. This is <b>not</b> a failure and <b>not</b> a guess. "
+                   "AEGIS reports what it cannot verify instead of assuming it is compliant.", cell)],
         [Paragraph("<b>Severity</b>", cell),
          Paragraph("CAT_I = high (fix first), CAT_II = medium, CAT_III = low (DISA STIG's "
                    "category scale, applied to every framework).", cell)],

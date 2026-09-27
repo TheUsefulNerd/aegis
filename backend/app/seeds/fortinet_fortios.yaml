@@ -1,0 +1,39 @@
+# Fortinet FortiGate (FortiOS), added 2026-09-27 as data only: fingerprint +
+# Tier-1 patterns, no Python. units.py flattens FortiOS `config ... / edit
+# ... / set ... / next / end` blocks into one line per setting with its path,
+# e.g. `system global set admintimeout 5`, which is what these match.
+#
+# Patterns follow the FortiOS CLI reference (config system global, system
+# interface allowaccess, log syslogd setting, system snmp community).
+# Firewall policies are not reassembled into ACL lines yet (a policy's
+# fields are separate `set` lines), so policy checks go to the AI/human.
+
+fingerprint:
+  format: cli
+  version_family: fortios
+  priority: 10
+  signals:
+    - '^#config-version=F'
+    - '^config system global\s*$'
+    - '^config firewall policy\s*$'
+  min: 1
+  high_at: 2
+
+vendor: fortinet_fortios
+entries:
+  - {syntax_pattern: '^system global set admin-telnet enable\b', pattern_type: regex, canonical_field: AC.telnet_enabled, value: true}
+  - {syntax_pattern: '^system global set admin-telnet disable\b', pattern_type: regex, canonical_field: AC.telnet_enabled, value: false}
+  - {syntax_pattern: '^system interface edit \S+ set allowaccess .*\btelnet\b', pattern_type: regex, canonical_field: AC.telnet_enabled, value: true}
+  - {syntax_pattern: '^system interface edit \S+ set allowaccess .*\bhttp\b', pattern_type: regex, canonical_field: SC.webgui_protocol, value: false}
+  - {syntax_pattern: '^system global set admintimeout (\d+)', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}
+  - {syntax_pattern: '^system global set pre-login-banner enable\b', pattern_type: regex, canonical_field: AC.login_banner_configured, value: true}
+  - {syntax_pattern: '^log syslogd setting set status enable\b', pattern_type: regex, canonical_field: AU.logging_enabled, value: true}
+  - {syntax_pattern: '^log syslogd setting set server "?([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
+  - {syntax_pattern: '^system snmp community edit \S+ set name "?(public|private)\b', pattern_type: regex, canonical_field: AC.snmp_community_strings, value: "$1"}
+  - {syntax_pattern: '^system ntp set authentication enable\b', pattern_type: regex, canonical_field: AU.ntp_authentication_enabled, value: true}
+
+  # Known non-security structure.
+  - {syntax_pattern: '^system global set (hostname|timezone|alias|gui-theme) ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^system interface edit \S+ set (ip|type|vdom|mode|role|vlanid|interface) ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^router static edit \d+ set ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^system dns set ', pattern_type: regex, canonical_field: NOT_SECURITY}

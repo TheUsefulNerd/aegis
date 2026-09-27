@@ -1,0 +1,44 @@
+# Juniper Junos (SRX / MX / EX), added 2026-09-27 as data only: this file is
+# the whole vendor - its fingerprint and its Tier-1 patterns. No Python was
+# written for it. units.py flattens brace blocks (`system { services {
+# telnet; } }`) and set-style exports alike into `set system services
+# telnet`, so every pattern below is written once, in set form.
+#
+# Patterns follow the Junos CLI reference (system services, system syslog,
+# system login, snmp). Anything not listed goes to the AI and then a human,
+# like every other vendor.
+
+fingerprint:
+  format: cli
+  version_family: junos
+  priority: 10
+  signals:
+    - '^version \S+;\s*$'                                # hierarchical export header
+    - '^set (system|interfaces|security|firewall|protocols) '
+    - '^\s*system \{\s*$'
+    - '^## Last (commit|changed)'
+  min: 1
+  high_at: 2
+
+vendor: juniper_junos
+entries:
+  - {syntax_pattern: '^set system services telnet\b', pattern_type: regex, canonical_field: AC.telnet_enabled, value: true}
+  - {syntax_pattern: '^set system services ssh protocol-version v2\b', pattern_type: regex, canonical_field: IA.ssh_version, value: 2}
+  - {syntax_pattern: '^set system services ssh protocol-version v1\b', pattern_type: regex, canonical_field: IA.ssh_version, value: 1}
+  - {syntax_pattern: '^set system services web-management https\b', pattern_type: regex, canonical_field: SC.webgui_protocol, value: true}
+  - {syntax_pattern: '^set system services web-management http( |$)', pattern_type: regex, canonical_field: SC.webgui_protocol, value: false}
+  - {syntax_pattern: '^set system syslog host ([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
+  - {syntax_pattern: '^set system syslog (host|file) ', pattern_type: regex, canonical_field: AU.logging_enabled, value: true}
+  - {syntax_pattern: '^set system login message ', pattern_type: regex, canonical_field: AC.login_banner_configured, value: true}
+  - {syntax_pattern: '^set system login class \S+ idle-timeout (\d+)', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}
+  - {syntax_pattern: '^set system ntp authentication-key ', pattern_type: regex, canonical_field: AU.ntp_authentication_enabled, value: true}
+  - {syntax_pattern: '^set snmp community (public|private)\b', pattern_type: regex, canonical_field: AC.snmp_community_strings, value: "$1"}
+  - {syntax_pattern: '^set snmp community \[REDACTED:', pattern_type: regex, canonical_field: AC.snmp_community_strings, value: "custom (redacted)"}
+  - {syntax_pattern: '^set protocols (ospf|bgp|isis) .*authentication', pattern_type: regex, canonical_field: SC.routing_authentication, value: true}
+
+  # Known non-security structure: instant, no AI call, no review item.
+  - {syntax_pattern: '^set version ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^set system (host-name|domain-name|name-server|time-zone) ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^set interfaces \S+ (unit \d+ family \S+ address|mtu|speed|link-mode) ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^set routing-options (static|router-id|autonomous-system) ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  - {syntax_pattern: '^set chassis ', pattern_type: regex, canonical_field: NOT_SECURITY}

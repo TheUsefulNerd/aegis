@@ -6,6 +6,17 @@
 # limitation that's supposed to stay visible, not hide it. Only the one
 # field that maps cleanly to a single atomic unit is seeded.
 
+fingerprint:
+  format: xml
+  version_family: netgate
+  priority: 10
+  # Gated on the actual <pfsense> root tag, not just "this is XML" (any
+  # other vendor's XML export was once labeled pfSense at high confidence).
+  signals:
+    - '<pfsense>'
+  min: 1
+  high_at: 1
+
 vendor: pfsense
 entries:
   - syntax_pattern: "pfsense.syslog.remoteserver=10.0.0.5"

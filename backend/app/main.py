@@ -1,5 +1,6 @@
 import datetime as dt
 import hashlib
+import json
 import os
 import re
 
@@ -490,10 +491,17 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
     findings.sort(key=lambda f: (
         _RESULT_ORDER.get(f["result"], 9), _SEVERITY_ORDER.get(f["severity"], 9), f["rule_id"],
     ))
+    ruleset = hashlib.sha256(json.dumps(sorted(
+        [r.framework, r.standard_ref, r.standard_version, r.check_type, r.predicate] for r in rules
+    ), sort_keys=True, default=str).encode()).hexdigest()
+    digest = hashlib.sha256(json.dumps(
+        [[f["rule_id"], f["result"], f["confidence_tier"], f["source_lines"]] for f in findings],
+        sort_keys=True, default=str).encode()).hexdigest()
     return {
         "config_id": config.id,
         "device_id": config.device_id,
         "vendor": config.vendor,
+        "integrity": {"ruleset_sha256": ruleset, "findings_sha256": digest},
         "counts": counts,
         "counts_by_severity": counts_by_severity,
         "findings": findings,
@@ -505,6 +513,7 @@ def reload_rules(request: Request, db: Session = Depends(get_db)):
     """Re-read backend/app/rules/*.yaml and the seed KB without restarting:
     a new framework or a corrected rule is a new file, not a redeploy."""
     _verified_reviewer(request, None)
+    fingerprint.reload_signatures()
     added = load_rule_files(db)
     seeds = load_seed_kb(db)
     return {"rules_added": added, "rules_total": db.query(Rule).count(), "seed_entries_added": seeds}
@@ -544,6 +553,7 @@ def download_report(
             "model": device.model if device else None,
             "firmware_version": device.firmware_version if device else None,
             "serial_number": device.serial_number if device else None,
+            "input_sha256": device.input_sha256 if device else None,
         },
         evaluation=evaluation,
         framework_label=framework or "All loaded frameworks",

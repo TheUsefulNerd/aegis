@@ -11,7 +11,7 @@ import numpy as np
 from sqlalchemy.orm import Session
 
 from . import llm_client
-from .canonical_schema import CANONICAL_FIELDS, NOT_SECURITY, is_valid_field
+from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY, is_valid_field
 from .models import KnowledgeBaseEntry, LLMCacheEntry, ReviewQueueItem
 
 _embedding_model = None
@@ -85,7 +85,8 @@ _FREE_TEXT = re.compile(
     r"^(description|remark|alias)\b"            # interface / ACL prose
     r"|^access-list\s+\S+\s+remark\b"
     r"|^\d+\s+remark\b"                          # sequenced named-ACL remark
-    r"|\.(descr|description|alias|comment)=",    # XML/JSON prose fields
+    r"|\.(descr|description|alias|comment)="     # XML/JSON prose fields
+    r"|\s(description|comments?|alias)\s",      # block-CLI leaves: `set interfaces ge-0/0/0 description ...`
     re.IGNORECASE,
 )
 
@@ -94,17 +95,40 @@ def is_free_text(unit_text: str) -> bool:
     return bool(_FREE_TEXT.search(unit_text.strip()))
 
 
-def _match_tier1(entries: list, unit_text: str) -> Optional[KnowledgeBaseEntry]:
+def _match_tier1(entries: list, unit_text: str):
+    """-> (entry, regex match or None), or (None, None)."""
     for entry in entries:
         if entry.pattern_type == "exact" and entry.syntax_pattern.strip() == unit_text.strip():
-            return entry
+            return entry, None
         if entry.pattern_type == "regex":
             try:
-                if re.search(entry.syntax_pattern, unit_text):
-                    return entry
+                m = re.search(entry.syntax_pattern, unit_text)
             except re.error:
                 continue
-    return None
+            if m:
+                return entry, m
+    return None, None
+
+
+def _entry_value(entry, m, text: str):
+    """A KB entry's value. `$1` (etc.) takes the regex's captured text, so
+    one pattern generalizes over the varying part of a line (`idle-timeout
+    (\d+)` -> the number itself), typed to the field's kind."""
+    value = entry.value
+    if isinstance(value, str) and m is not None and re.fullmatch(r"\$\d", value):
+        value = m.group(int(value[1:]))
+        kind = FIELD_METADATA.get(entry.canonical_field, {}).get("value_kind")
+        if kind == "number":
+            try:
+                value = int(value) if value.isdigit() else float(value)
+            except ValueError:
+                pass
+        return value
+    if value is not None:
+        return value
+    # A regex entry for a list field (e.g. "any numbered ACL line") carries
+    # no fixed value - the matched line IS the value.
+    return text if CANONICAL_FIELDS.get(entry.canonical_field) == "list" else True
 
 
 def _similar_many(entries: list, unit_texts: list, top_k: int = 5) -> list:
@@ -167,7 +191,7 @@ def resolve_units(
             # already scanned it (an injection there is still flagged).
             results[i] = ResolveResult(tier="not_security", confidence=1.0)
             continue
-        hit = _match_tier1(entries, text)
+        hit, m = _match_tier1(entries, text)
         if hit is not None and hit.canonical_field == NOT_SECURITY:
             # Known structure, or a line a human already judged irrelevant:
             # instant, no AI call, no review item.
@@ -179,11 +203,7 @@ def resolve_units(
                 # say who decided it.
                 tier="tier3_human_confirmed" if hit.source == "tier3_human" else "tier1",
                 canonical_field=hit.canonical_field,
-                # A regex entry for a list field (e.g. "any numbered ACL line")
-                # carries no fixed value - the matched line IS the value.
-                value=hit.value if hit.value is not None else (
-                    text if CANONICAL_FIELDS.get(hit.canonical_field) == "list" else True
-                ),
+                value=_entry_value(hit, m, text),
                 kb_entry_id=hit.id,
                 kb_entry_version=hit.version,
                 confidence=1.0,

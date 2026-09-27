@@ -22,6 +22,18 @@
 # docstring is aspirational without this file) - verified via a direct
 # repeated Tier-2 test, not assumed.
 
+fingerprint:
+  format: cli
+  version_family: ios
+  priority: 50
+  # IOS/IOS-XE: a `version 15.5` banner (no trailing semicolon - that is
+  # Junos) and `line vty` blocks; either alone is medium confidence.
+  signals:
+    - '^version \d+\.\d+[^;\s]*$'
+    - '^line vty '
+  min: 1
+  high_at: 2
+
 vendor: cisco_ios
 entries:
   - syntax_pattern: "transport input ssh"

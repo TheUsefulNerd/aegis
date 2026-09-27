@@ -36,7 +36,63 @@ def split_into_units(raw_text: str, fmt: str) -> list:
             raise UnparseableConfig(str(e))
     if fmt == "xml":
         return _flatten_xml(raw_text)
+    if _BRACE_BLOCK_RE.search(raw_text):
+        return _flatten_braces(raw_text)
+    if _CONFIG_BLOCK_RE.search(raw_text):
+        return _flatten_config_blocks(raw_text)
     return _split_cli(raw_text)
+
+
+# Block-structured CLI dialects, flattened generically (no vendor names in
+# the code): each leaf line becomes one unit carrying its full parent path,
+# so `telnet;` inside `system { services { ... } }` is classified as
+# "set system services telnet", never as a bare word out of context.
+_BRACE_BLOCK_RE = re.compile(r"^\s*[\w-][^\n;]*\{\s*$", re.MULTILINE)          # `system {`
+_CONFIG_BLOCK_RE = re.compile(r"^\s*config\s+\S+.*$\n(?:.*\n)*?^\s*end\s*$", re.MULTILINE)  # config ... end
+
+
+def _flatten_braces(raw_text: str) -> list:
+    """`a { b { c d; } }` -> ["set a b c d"], the same form as set-style
+    exports, so one set of patterns covers both."""
+    units, stack = [], []
+    for line in raw_text.splitlines():
+        t = line.strip()
+        if not t or t.startswith(("#", "/*", "*", "//")):
+            continue
+        t = re.sub(r"^(inactive|protect):\s*", "", t)
+        t = re.sub(r"\s*##.*$", "", t)  # Junos trailing annotations (`## SECRET-DATA`)
+        if t.endswith("{"):
+            stack.append(t[:-1].strip())
+        elif t.startswith("}"):
+            if stack:
+                stack.pop()
+        else:
+            leaf = t[:-1].strip() if t.endswith(";") else t
+            if leaf.startswith("set ") and not stack:
+                units.append(leaf)  # already set-style
+            else:
+                units.append("set " + " ".join(stack + [leaf]))
+    return units
+
+
+def _flatten_config_blocks(raw_text: str) -> list:
+    """`config system global / set x y / end` -> ["system global set x y"];
+    `edit <id>` ... `next` scopes a table entry."""
+    units, stack = [], []
+    for line in raw_text.splitlines():
+        t = line.strip()
+        if not t or t.startswith("#"):
+            continue
+        if t.startswith("config "):
+            stack.append(t[len("config "):].strip())
+        elif t.startswith("edit "):
+            stack.append("edit " + t[len("edit "):].strip().strip('"'))
+        elif t in ("next", "end"):
+            if stack:
+                stack.pop()
+        else:
+            units.append(" ".join(stack + [t]) if stack else t)
+    return units
 
 
 _BANNER_RE = re.compile(r"^banner\s+(\S+)\s+(\S)(\S?)(.*)$")

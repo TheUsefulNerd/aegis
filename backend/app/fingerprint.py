@@ -1,15 +1,67 @@
-"""Fingerprinting - signature/banner match only for this build
-(architecture-document.md §7: no embedding-based file-level fallback yet).
+"""Fingerprinting: which vendor, and which format (cli text / JSON / XML).
 
-Also does the format split (cli text vs JSON vs XML) that step 3c
-(structured-config normalizer) needs downstream - this is the one place in
-the pipeline that has to look at the raw shape of the file before anything
-else can run.
+The format split is generic code - it's the raw shape of the file, which the
+unit splitter needs before anything else can run. WHICH VENDOR is data, not
+code: every seeds/<vendor>.yaml may carry a `fingerprint:` block, so adding
+a vendor is one YAML file (its signature + its knowledge-base rows) with no
+code change and no redeploy.
+
+    fingerprint:
+      format: cli            # cli | xml | json
+      version_family: junos
+      priority: 10           # lower is tried first (specific before generic)
+      signals:               # regexes (multiline) against the raw file,
+        - '^version \\S+;$'   #   or `json_keys:` (any top-level key) for JSON
+      min: 1                 # signals needed to claim this vendor
+      high_at: 2             # signals needed for "high" confidence
 """
+import functools
+import glob
 import json
+import os
 import re
 
-_SONIC_TABLE_MARKERS = {"PORT", "VLAN", "ACL_RULE", "DEVICE_METADATA", "MGMT_INTERFACE"}
+import yaml
+
+_SEEDS_DIR = os.path.join(os.path.dirname(__file__), "seeds")
+
+
+@functools.lru_cache(maxsize=1)
+def _signatures() -> tuple:
+    sigs = []
+    for path in sorted(glob.glob(os.path.join(_SEEDS_DIR, "*.yaml"))):
+        with open(path, "r", encoding="utf-8") as f:
+            doc = yaml.safe_load(f) or {}
+        fp = doc.get("fingerprint")
+        if not fp:
+            continue
+        sigs.append({
+            "vendor": doc["vendor"],
+            "format": fp.get("format", "cli"),
+            "version_family": fp.get("version_family"),
+            "priority": fp.get("priority", 50),
+            "signals": [re.compile(s, re.MULTILINE) for s in fp.get("signals", [])],
+            "json_keys": set(fp.get("json_keys", [])),
+            "min": fp.get("min", 1),
+            "high_at": fp.get("high_at", 1),
+        })
+    return tuple(sorted(sigs, key=lambda s: (s["priority"], s["vendor"])))
+
+
+def reload_signatures() -> None:
+    _signatures.cache_clear()
+
+
+def _detect_format(stripped: str):
+    """-> (format, parsed_json_or_None)."""
+    if stripped[:1] in ("{", "["):
+        try:
+            return "json", json.loads(stripped)
+        except (json.JSONDecodeError, ValueError):
+            pass
+    if stripped.startswith("<"):
+        return "xml", None  # with or without an <?xml ...?> prolog
+    return "cli", None
 
 
 def fingerprint(raw_text: str) -> dict:
@@ -17,38 +69,21 @@ def fingerprint(raw_text: str) -> dict:
     format is one of "json" | "xml" | "cli" - tells the caller how to split
     the file into units for resolve_unit (§3, step 4)."""
     stripped = raw_text.strip()
-
-    # SONiC config_db.json - structured JSON, identified by its table keys.
-    try:
-        obj = json.loads(stripped)
-    except (json.JSONDecodeError, ValueError):
-        obj = None
-    if isinstance(obj, dict):
-        if _SONIC_TABLE_MARKERS & set(obj.keys()):
-            return {"vendor": "sonic", "version_family": "sonic", "format": "json", "confidence": "high"}
-        return {"vendor": "unknown_json", "version_family": None, "format": "json", "confidence": "low"}
-
-    # pfSense config.xml - gated on the actual <pfsense> root tag, not just
-    # "this is XML" (a bug: any other vendor's XML export, e.g. Juniper's
-    # XML API output, was getting labeled "pfsense" at high confidence -
-    # wrong vendor identification AND wrong (pfSense) remediation text
-    # shown for a non-pfSense device).
-    head = stripped[:2000]
-    if "<pfsense>" in head:
-        return {"vendor": "pfsense", "version_family": "netgate", "format": "xml", "confidence": "high"}
-    if stripped.startswith("<?xml"):
-        return {"vendor": "unknown_xml", "version_family": None, "format": "xml", "confidence": "low"}
-
-    # Cisco IOS - version banner + vty lines is a strong signal together;
-    # either alone is a weaker (medium-confidence) signal.
-    has_version_banner = bool(re.search(r"^version \d+\.\d+", stripped, re.MULTILINE))
-    has_vty = "line vty" in stripped
-    if has_version_banner and has_vty:
-        return {"vendor": "cisco_ios", "version_family": "ios", "format": "cli", "confidence": "high"}
-    if has_version_banner or has_vty:
-        return {"vendor": "cisco_ios", "version_family": "ios", "format": "cli", "confidence": "medium"}
-
-    # No signature matched - a partial/truncated config with no clean banner.
-    # Per architecture-document.md §3 step 3a, this degrades gracefully: every
-    # unit just routes through Tier 2/3 more often, it doesn't fail outright.
-    return {"vendor": "unknown", "version_family": None, "format": "cli", "confidence": "low"}
+    fmt, obj = _detect_format(stripped)
+    head = stripped[:20000]
+    for sig in _signatures():
+        if sig["format"] != fmt:
+            continue
+        if fmt == "json":
+            hits = len(sig["json_keys"] & set(obj.keys())) if isinstance(obj, dict) else 0
+            hits += sum(1 for s in sig["signals"] if s.search(head))
+        else:
+            hits = sum(1 for s in sig["signals"] if s.search(head))
+        if hits >= sig["min"]:
+            return {"vendor": sig["vendor"], "version_family": sig["version_family"], "format": fmt,
+                    "confidence": "high" if hits >= sig["high_at"] else "medium"}
+    # No signature matched. Per architecture-document.md §3 step 3a this
+    # degrades gracefully: every unit routes through Tier 2/3 more often, it
+    # doesn't fail outright.
+    vendor = {"json": "unknown_json", "xml": "unknown_xml"}.get(fmt, "unknown")
+    return {"vendor": vendor, "version_family": None, "format": fmt, "confidence": "low"}
