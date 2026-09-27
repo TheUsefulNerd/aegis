@@ -24,7 +24,7 @@
   <rect x="14" y="32" width="95" height="66" rx="8" fill="#595959"/>
   <text class="t" x="61" y="58">Upload</text><text class="s" x="61" y="75">single or bulk</text><text class="s" x="61" y="89">CLI · XML · JSON</text>
   <rect x="121" y="32" width="95" height="66" rx="8" fill="#4BACC6"/>
-  <text class="t" x="168" y="58">Redaction</text><text class="s" x="168" y="75">11 secret types</text><text class="s" x="168" y="89">never stored</text>
+  <text class="t" x="168" y="58">Redaction</text><text class="s" x="168" y="75">13 secret types</text><text class="s" x="168" y="89">never stored</text>
   <rect x="228" y="32" width="98" height="66" rx="8" fill="#C0504D"/>
   <text class="t" x="277" y="58">Sanity gate</text><text class="s" x="277" y="75">text that talks</text><text class="s" x="277" y="89">to the AI? block</text>
   <path class="e" d="M109,65 H119"/><path class="e" d="M216,65 H226"/>
