@@ -80,7 +80,9 @@ def _flatten_config_blocks(raw_text: str) -> list:
     `edit <id>` ... `next` scopes a table entry. Firewall-policy entries are
     additionally reassembled into ordered ACL lines (like pfSense filter
     rules), because a policy's meaning is spread over several `set` lines."""
-    units, stack, policy = [], [], None
+    units, stack, policy, policies = [], [], None, []
+    objects = {"address": {}, "addrgrp": {}}  # firewall address / addrgrp tables, for policy addresses
+    obj = None
     for line in raw_text.splitlines():
         t = line.strip()
         if not t or t.startswith("#"):
@@ -91,17 +93,25 @@ def _flatten_config_blocks(raw_text: str) -> list:
             stack.append("edit " + t[len("edit "):].strip().strip('"'))
             if stack[:-1] == ["firewall policy"]:
                 policy = {}
+            elif stack[:-1] in (["firewall address"], ["firewall addrgrp"]):
+                obj = objects[stack[0].split()[1]].setdefault(stack[-1][5:], {})
         elif t in ("next", "end"):
             if policy is not None and t == "next":
-                units.extend(_policy_acl_lines(policy))
+                policies.append(policy)
                 policy = None
+            if t == "next":
+                obj = None
             if stack:
                 stack.pop()
         else:
             units.append(" ".join(stack + [t]) if stack else t)
-            if policy is not None and t.startswith("set "):
+            target = policy if policy is not None else obj
+            if target is not None and t.startswith("set "):
                 key, _, val = t[4:].partition(" ")
-                policy[key] = [v.strip('"') for v in val.split()]
+                target[key] = [v.strip('"') for v in val.split()]
+    # Policies after all objects are known (policy order is kept).
+    for p in policies:
+        units.extend(_policy_acl_lines(p, objects))
     return units
 
 
@@ -112,17 +122,62 @@ _FORTI_SERVICES = {"ALL": ("ip", None), "ALL_TCP": ("tcp", None), "ALL_UDP": ("u
                    "SNMP": ("udp", 161), "NTP": ("udp", 123), "RDP": ("tcp", 3389), "SAMBA": ("tcp", 445)}
 
 
-def _policy_acl_lines(p: dict) -> list:
+def _forti_addr_kind(name: str, objects: dict, depth: int = 0) -> str:
+    """'any' | 'specific' | 'unknown' for one FortiOS address name."""
+    if name == "all":
+        return "any"
+    if depth > 8:
+        return "unknown"
+    grp = objects["addrgrp"].get(name)
+    if grp is not None:
+        kinds = [_forti_addr_kind(m, objects, depth + 1) for m in grp.get("member") or []]
+        if not kinds or "unknown" in kinds:
+            return "unknown"
+        return "any" if "any" in kinds else "specific"
+    a = objects["address"].get(name)
+    if a is None:
+        return "unknown"  # not defined in this export: can't tell what it covers
+    kind = (a.get("type") or ["ipmask"])[0]
+    if kind == "ipmask":
+        # FortiOS default subnet is 0.0.0.0/0, and `show` hides defaults.
+        sub = a.get("subnet") or ["0.0.0.0", "0.0.0.0"]
+        return "any" if sub[-1] in ("0.0.0.0", "0") or sub[0].endswith("/0") else "specific"
+    if kind == "iprange":
+        rng = (a.get("start-ip") or ["?"])[0], (a.get("end-ip") or ["?"])[0]
+        return "any" if rng == ("0.0.0.0", "255.255.255.255") else "specific"
+    if kind == "fqdn":
+        return "specific"
+    return "unknown"  # geography, dynamic, wildcard...: not modelled
+
+
+def _forti_addr(p: dict, key: str, objects: dict) -> str:
+    """ACL address token for a policy's srcaddr/dstaddr (several names = any
+    of them): 'any', 'host NAME', or an `object NAME` the engine can't read,
+    so an unresolvable address fails closed instead of reading as specific."""
+    names = p.get(key) or ["all"]
+    if (p.get(key + "-negate") or ["disable"])[0] == "enable":
+        return "object negated-" + names[0]
+    kinds = {n: _forti_addr_kind(n, objects) for n in names}
+    if "any" in kinds.values():
+        return "any"
+    unknown = [n for n, k in kinds.items() if k == "unknown"]
+    return f"object {unknown[0]}" if unknown else "host " + names[0]
+
+
+def _policy_acl_lines(p: dict, objects: dict = None) -> list:
     """One `access-list fortios-<srcintf> ...` line per service of a policy,
     in policy order. A disabled policy decides nothing; an unknown service
-    name becomes a line the rule engine cannot read (so it fails closed)."""
+    or address becomes a line the rule engine cannot read (so it fails
+    closed). Every srcaddr/dstaddr name counts, not just the first (second
+    review: `set srcaddr "LAN_NET" "all"` was read as LAN_NET only)."""
+    objects = objects or {"address": {}, "addrgrp": {}}
     if (p.get("status") or [""])[0] == "disable":
         return []
     action = {"accept": "permit", "deny": "deny"}.get((p.get("action") or ["deny"])[0])
     if action is None:
         return []
-    src = "any" if (p.get("srcaddr") or ["all"])[0] == "all" else "host " + p["srcaddr"][0]
-    dst = "any" if (p.get("dstaddr") or ["all"])[0] == "all" else "host " + p["dstaddr"][0]
+    src = _forti_addr(p, "srcaddr", objects)
+    dst = _forti_addr(p, "dstaddr", objects)
     iface = (p.get("srcintf") or ["any"])[0]
     lines = []
     for svc in p.get("service") or ["ALL"]:

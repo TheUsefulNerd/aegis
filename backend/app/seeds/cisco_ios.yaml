@@ -113,12 +113,15 @@ entries:
   # NAME`), deterministically, like numbered ACL lines above. Without this
   # the verdict of every ACL rule depended on which entries the AI happened
   # to classify as ACL rules.
-  - syntax_pattern: '^(permit|deny) (ip|tcp|udp|icmp|\d+) '
+  # Any protocol or object-group: an entry the engine can't parse must still
+  # reach it, so the verdict fails closed instead of the line being dropped
+  # (found by the second review: `permit object-group X any any` was lost).
+  - syntax_pattern: '^(permit|deny) \S'
     pattern_type: regex
     canonical_field: AC.acl_rules
 
   # Sequence-numbered named-ACL entries (`10 permit tcp ...`), same reason.
-  - syntax_pattern: '^\d+ (permit|deny) (ip|tcp|udp|icmp|\d+) '
+  - syntax_pattern: '^\d+ (permit|deny) \S'
     pattern_type: regex
     canonical_field: AC.acl_rules
 
@@ -142,14 +145,18 @@ entries:
   - {syntax_pattern: '^ip source-route$', pattern_type: regex, canonical_field: SC.ip_source_routing_enabled, value: true}
   - {syntax_pattern: '^no service pad$', pattern_type: regex, canonical_field: SC.pad_enabled, value: false}
   - {syntax_pattern: '^service pad$', pattern_type: regex, canonical_field: SC.pad_enabled, value: true}
-  - {syntax_pattern: '^exec-timeout (\d+)( \d+)?$', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}
+  - {syntax_pattern: '^exec-timeout (\d+)( 0)?$', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}
   - {syntax_pattern: '^logging host ([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
   - {syntax_pattern: '^logging (\d{1,3}(?:\.\d{1,3}){3})$', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
   - {syntax_pattern: '^ntp authenticate$', pattern_type: regex, canonical_field: AU.ntp_authentication_enabled, value: true}
   - {syntax_pattern: '^access-class \S+ in', pattern_type: regex, canonical_field: AC.vty_access_class, value: true}
   - {syntax_pattern: '^no ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: false}
   - {syntax_pattern: '^ip proxy-arp$', pattern_type: regex, canonical_field: SC.proxy_arp_enabled, value: true}
-  - {syntax_pattern: '^service-policy input \S+$', pattern_type: regex, canonical_field: SC.control_plane_protection, value: true}
+  # `service-policy input X` is QoS under an interface; control-plane
+  # protection is decided from the `control-plane` block only (see
+  # interface_defaults below). Found by the second review: an interface QoS
+  # policy was passing STIG V-216650.
+  - {syntax_pattern: '^service-policy (input|output) \S+$', pattern_type: regex, canonical_field: NOT_SECURITY}
 
   # For the imported DISA STIG catalog (rules/stig_catalog_map.yaml). Patterns
   # follow the STIG check/fix text and the IOS-XE command reference.
@@ -196,10 +203,14 @@ defaults:
 # (`exec-timeout 0 0` on the console is a different item), and a VTY block
 # with no exec-timeout runs at the 10-minute default. Found by the held-out
 # run: console/aux `exec-timeout 0 0` was failing the VTY rule.
+# IOS says which ACLs are in force (ip access-group / access-class /
+# ipv6 traffic-filter); an ACL nothing applies is not evaluated.
+acl_bindings: explicit
+
 line_scoped:
   - field: AC.session_idle_timeout_minutes
     block: '^line vty '
-    value_from: '^\s*exec-timeout (\d+)'
+    value_from: '^\s*exec-timeout (\d+)(?:\s+(\d+))?'   # minutes, optional seconds
     default: 10
     note: "only VTY lines count; a VTY block without exec-timeout runs at the 10-minute default"
 
@@ -220,3 +231,19 @@ interface_defaults:
     unless_text: transport input
     only_if: '^version 1[0-5]\.'
     note: "on IOS 15 and older, a VTY line without transport input accepts telnet"
+  # Every VTY block must restrict its sources; one block without access-class
+  # leaves those lines open (found by the second review).
+  - field: AC.vty_access_class
+    value: false
+    block: '^line vty '
+    unless: '^\s*access-class \S+ in\b'
+    unless_text: access-class ... in
+    note: "a VTY line without access-class accepts sessions from any source"
+  # Control-plane protection means a service-policy on the control-plane
+  # block itself, never an interface QoS policy.
+  - field: SC.control_plane_protection
+    value: false
+    block: '^control-plane\b'
+    unless: '^\s*service-policy input \S+'
+    unless_text: service-policy input
+    note: "a control-plane block without service-policy input polices nothing"

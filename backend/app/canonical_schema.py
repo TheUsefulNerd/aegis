@@ -73,6 +73,9 @@ FIELD_METADATA = {
     "AC.privileged_password_type": {
         "type": "scalar",
         "value_kind": "string",
+        # Least secure first: a type-7 `enable password` next to an `enable
+        # secret 9` still counts, whichever line comes first (second review).
+        "ranked": ["enable_password", "secret_type_5", "secret_type_8", "secret_type_9"],
         "label": "Privileged access password type",
         "description": "How the privileged (enable) password is protected - e.g. a strong hashed 'enable secret' vs a weaker/plaintext 'enable password'.",
     },
@@ -205,6 +208,13 @@ FIELD_METADATA = {
         "type": "list",
         "label": "NTP servers",
         "description": "The time servers the device synchronizes its clock with.",
+    },
+    "IA.password_policy_enabled": {
+        "type": "scalar",
+        "value_kind": "bool",
+        "insecure": False,
+        "label": "Local password policy enforced",
+        "description": "Whether the device's local password policy (length, complexity) is switched on at all.",
     },
     "IA.password_min_length": {
         "type": "scalar",

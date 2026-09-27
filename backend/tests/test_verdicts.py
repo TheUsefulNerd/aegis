@@ -6,12 +6,13 @@ import os
 
 import yaml
 
-LABELS = os.path.join(os.path.dirname(__file__), "..", "eval", "verdict_labels.yaml")
+EVAL = os.path.join(os.path.dirname(__file__), "..", "eval")
+LABELS = os.path.join(EVAL, "verdict_labels.yaml")
 
 
-def test_no_wrong_verdicts_on_labelled_configs(client):
-    labels = yaml.safe_load(open(LABELS, encoding="utf-8"))
-    samples = os.path.normpath(os.path.join(os.path.dirname(LABELS), labels["samples_dir"]))
+def _run(client, labels_file):
+    labels = yaml.safe_load(open(labels_file, encoding="utf-8"))
+    samples = os.path.normpath(os.path.join(os.path.dirname(labels_file), labels["samples_dir"]))
     wrong, decided, total = [], 0, 0
     for name, expected in labels["devices"].items():
         with open(os.path.join(samples, name), "rb") as f:
@@ -24,5 +25,18 @@ def test_no_wrong_verdicts_on_labelled_configs(client):
                 decided += 1
                 if out != want:
                     wrong.append((name, rule_id, want, out))
+    return wrong, decided, total
+
+
+def test_no_wrong_verdicts_on_heldout_real_configs(client):
+    """The held-out public configs (labels committed before the first run).
+    Undecided is allowed; a wrong verdict is not."""
+    wrong, decided, total = _run(client, os.path.join(EVAL, "heldout_labels.yaml"))
+    assert wrong == []
+    assert decided >= 41, f"held-out decided verdicts fell to {decided}/{total}"
+
+
+def test_no_wrong_verdicts_on_labelled_configs(client):
+    wrong, decided, total = _run(client, LABELS)
     assert wrong == []
     assert decided / total >= 0.95, f"deterministic coverage fell to {decided}/{total}"

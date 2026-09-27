@@ -44,9 +44,16 @@ def _load() -> dict:
         with open(path, "r", encoding="utf-8") as f:
             doc = yaml.safe_load(f) or {}
         keys = ("defaults", "interface_defaults", "line_scoped", "absent_facts")
-        if any(doc.get(k) for k in keys):
-            out[doc["vendor"]] = {k: doc.get(k) or [] for k in keys}
+        if any(doc.get(k) for k in keys) or doc.get("acl_bindings"):
+            out[doc["vendor"]] = {**{k: doc.get(k) or [] for k in keys}, "acl_bindings": doc.get("acl_bindings")}
     return out
+
+
+def acl_bindings_explicit(vendor: str) -> bool:
+    """True when the vendor's config states which ACLs are in force (Cisco
+    `ip access-group` / `access-class`): an ACL no line applies is then not
+    evaluated. Other vendors' rule tables are in force by construction."""
+    return (_load().get(vendor) or {}).get("acl_bindings") == "explicit"
 
 
 def reload() -> None:
@@ -80,7 +87,9 @@ def _worst_number(values: list):
 def apply(vendor: str, confidence: str, raw_text: str, fields: dict, provenance: dict, units: list = None) -> list:
     """Fill defaults in place; returns the fields that were filled."""
     spec = _load().get(vendor)
-    if not spec or confidence != "high":
+    # Block-scoped entries read only blocks present in the file, so they run
+    # for a fragment too; device-wide defaults need a full export.
+    if not spec or confidence not in ("high", "medium"):
         return []
     filled = []
     for d in spec["line_scoped"]:
@@ -95,7 +104,13 @@ def apply(vendor: str, confidence: str, raw_text: str, fields: dict, provenance:
         per_block = []
         for hdr, body in blocks:
             hit = next((m for m in map(rx.match, body) if m), None)
-            per_block.append((hdr, int(hit.group(1)) if hit else d["default"], hit.string.strip() if hit else None))
+            value = d["default"]
+            if hit:
+                # An optional second capture is seconds (`exec-timeout 10 3000`
+                # is 60 minutes, not 10).
+                secs = hit.group(2) if rx.groups >= 2 else None
+                value = int(hit.group(1)) + (int(secs) / 60 if secs else 0)
+            per_block.append((hdr, value, hit.string.strip() if hit else None))
         worst = _worst_number([v for _, v, _ in per_block])
         # If a block at the default ties for worst, the verdict rests on the
         # default (so it can FAIL but never PASS).
@@ -111,9 +126,9 @@ def apply(vendor: str, confidence: str, raw_text: str, fields: dict, provenance:
                 prior = {"confidence_tier": "tier1", "kb_entry_id": None, "kb_entry_version": None}
             provenance[d["field"]] = {**prior, "source_unit": f"{hdr}: {line}", "all_sources": sources}
         filled.append(d["field"])
-    for d in spec["absent_facts"]:
+    for d in spec["absent_facts"] if confidence == "high" else []:
         # Explicit evidence, not a default: every line of this kind is in the
-        # export and none of them enables the setting.
+        # (full) export and none of them enables the setting.
         rx = re.compile(d["lines"])
         lines = [u for u in units or [] if rx.match(u)]
         if not lines or d["field"] in fields or any(re.search(d["none_match"], u) for u in lines):
@@ -143,8 +158,15 @@ def apply(vendor: str, confidence: str, raw_text: str, fields: dict, provenance:
                                  "all_sources": [f"{h}: {vendor} default" for h in at_default],
                                  "note": d.get("note")}
             filled.append(field)
-        elif field not in fields:
-            fields[field] = not d["value"] if isinstance(d["value"], bool) else fields.get(field)
+        elif field not in fields and isinstance(d["value"], bool):
+            # Every block carries the line: that is explicit evidence.
+            lines = [f"{hdr}: {l.strip()}" for hdr, body in blocks for l in body if unless.match(l)]
+            fields[field] = not d["value"]
+            provenance[field] = {"confidence_tier": "tier1", "kb_entry_id": None, "kb_entry_version": None,
+                                 "source_unit": lines[0], "all_sources": lines, "note": d.get("note")}
+            filled.append(field)
+    if confidence != "high":
+        return filled  # device-wide defaults only for a full export
     for d in spec["defaults"]:
         field = d["field"]
         if field in fields:

@@ -6,10 +6,12 @@
 
 An AI-augmented, vendor-agnostic network device compliance engine, built for Smart India Hackathon 2026 under NTRO's problem statement on multi-vendor network configuration compliance.
 
-AEGIS reads a network device's configuration (any vendor, any format: CLI text, brace- or block-structured CLI, XML, JSON), identifies its security-relevant settings through a tiered deterministic → AI → human pipeline, and checks them against **39 rules across all four frameworks the brief names: CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001** (38 cite a benchmark section; one is an AEGIS supplementary ACL check, labelled as such). When it meets syntax it has never seen, it asks a human once in the review queue and recognizes it instantly on every device afterwards, with no code change and no redeploy. A new vendor is one YAML file.
+AEGIS reads a network device's configuration (any vendor, any format: CLI text, brace- or block-structured CLI, XML, JSON), identifies its security-relevant settings through a tiered deterministic → AI → human pipeline, and checks them against **39 hand-written rules across all four frameworks the brief names: CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001** (38 cite a benchmark section; one is an AEGIS supplementary ACL check, labelled as such), plus **51 rules taken from imported official DISA STIG releases**. Of the 267 rules in the four tracked STIG benchmarks, 56 are automated; the rest are reported as manual review, so coverage is always stated against the whole benchmark. When it meets syntax it has never seen, it asks a human once in the review queue and recognizes it instantly on every device afterwards, with no code change and no redeploy. A new vendor is one YAML file.
 
 **At a glance** (all reproducible, see [Measured results](#measured-results)):
 - 73 hand-labelled verdicts over 7 configs and 5 vendors: **73 of 73 correct, 0 wrong**, with the AI off or on
+- **Held-out real configs** (7 public configs from Batfish, NAPALM and netutils; 56 labels committed before AEGIS first ran on them): first run **0 false PASS**, 33 of 35 decided verdicts correct; after fixing the gaps it exposed, **42 of 42 correct** with the live AI (41 of 41 with the AI off), 14 left undecided rather than guessed
+- **DISA STIG catalogs** imported from the official releases, with update detection (`python -m app.stig_sync check`): a rule DISA changes upstream is set aside for re-review instead of silently checked against old text
 - **0 of 52** prompt-injection lines reach the AI; the gate alone catches 32/32 tuned and 12/20 held-out variants with 0 false positives on 416 real config lines
 - AI evidence can **fail** a control on its own but never **pass** a CAT I control without a human; a vendor default can fail a rule but never pass one
 - Runs **fully offline** (`AEGIS_LLM_MODE=local` with Ollama/vLLM, or `off`); every human decision is **hash-chained** and verifiable
@@ -67,10 +69,12 @@ backend/
     rule_engine.py      deterministic evaluation, 6 predicate types, fail-closed ACL parser
     audit_chain.py      hash chain over human decisions
     pdf_report.py       ReportLab report
-    rules/*.yaml        the 39 rules (each file's header states its source + verification)
+    rules/*.yaml        the 39 hand-written rules (each file's header states its source + verification)
+    rules/stig_catalog_map.yaml   reviewed mappings for 51 imported DISA STIG rules
+    catalog/            imported DISA STIG releases (stig_sync.py) + sources.yaml
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                245 offline tests (no API keys, LLM/embedder mocked)
+  tests/                277 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -148,6 +152,38 @@ Measured with free-tier Groq/Gemini: **8-17 s per fresh file** (it was 2-12 minu
 
 **Verdict accuracy** (`backend/eval/verdict_labels.yaml`, `python -m eval.verdict_eval [--live]`): 73 verdicts hand-labelled from the configuration text itself (and the vendor's documented default where the config is silent), over 7 configs (Cisco IOS ×3, pfSense, SONiC, Junos, FortiOS). With the AI off: **73 of 73 correct, 0 false PASS, 0 false FAIL, none left undecided**. With the live AI: identical. CI fails the build on any wrong verdict (`tests/test_verdicts.py`). A running flow also found one false PASS the unit tests had missed (a cipher check comparing `SHA1` to `sha1` case-sensitively); it is fixed and now labelled.
 
+**Held-out real configs** (`backend/eval/heldout_labels.yaml`, `python -m eval.verdict_eval --labels heldout_labels.yaml [--live]`): 7 published configs AEGIS had never seen (Cisco IOS ×2, Junos set and hierarchical, FortiGate ×2, Arista EOS; Apache-2.0, pinned sources in `samples/heldout/README.md`). The 56 labels were committed before the first run, and git history shows the order; they are never edited to match the output.
+
+| Run | Decided | Correct | False PASS | False FAIL | Undecided |
+|---|---|---|---|---|---|
+| First run, AI off | 35 | 33 | 0 | 2 | 21 |
+| First run, live AI | 37 | 34 | 0 | 3 | 19 |
+| After fixes, AI off | 41 | 41 | 0 | 0 | 15 |
+| After fixes, live AI | 42 | 42 | 0 | 0 | 14 |
+
+The first run's misses were real gaps, now fixed as vendor data: console `exec-timeout 0 0` was failing the VTY-only CIS 1.2.8; Cisco VTY lines without `transport input` (telnet on IOS 15), FortiGate `allowaccess` lists without telnet, and Junos/FortiOS remote-syslog defaults were not modelled; the AI read FortiOS's built-in `TELNET` service object as telnet enabled; two full exports were fingerprinted as fragments. The 14 still undecided are by design: passes that would rest on a vendor default (no SNMP configured, Junos SSH v2 by default), ACL checks where the AI declined, and the Arista file (no seeds for that vendor).
+
+**DISA STIG coverage** (`GET /frameworks/coverage`, Insights page): the full official catalogs are imported from DISA's published content (`backend/app/stig_sync.py`, `backend/app/catalog/`). Each automated rule is a reviewed mapping in `rules/stig_catalog_map.yaml` that quotes the DISA check text and is pinned to its hash.
+
+| Benchmark | Release | Automated / total |
+|---|---|---|
+| Cisco IOS XE Router NDM | V3R7 | 21 / 42 |
+| Cisco IOS XE Router RTR | V3R5 | 5 / 97 |
+| Juniper SRX Services Gateway NDM | V3R3 | 12 / 68 |
+| Fortinet FortiGate Firewall NDM | V1R5 | 18 / 60 |
+
+Several automated STIG rules share one check: 8 Cisco NDM rules rest on archive config-change logging and 10 FortiGate rules on event logging, because DISA asks the same device setting under different audit requirements. Most of the rest need organisational evidence (documented procedures, key management), runtime state, or knowing which interfaces are external, and stay manual. Mappings that could produce a false PASS were rejected and are recorded with the reason in `catalog/mapping_draft.yaml`. CIS and ISO content is licensed and cannot be imported this way, so those rules stay hand-written with their section cited.
+
+**Adversarial reviews.** Two independent adversarial reviews tried to make AEGIS report PASS on configs that don't support it. The first (Sept 25) found several false-PASS paths; the second (Sept 27, after the numbers above) found 7 more, 5 on CAT I controls:
+- an interface QoS `service-policy` read as control-plane protection;
+- one VTY block with `access-class` hiding another without it;
+- `exec-timeout 10 3000` read as 10 minutes;
+- an object-group or IPv6 `permit` before the deny dropped instead of failing closed;
+- an ACL that nothing applies, or an applied ACL that isn't defined, treated as protection;
+- a FortiGate policy with several source addresses read by the first one only.
+
+It also found a FortiGate password policy passing while switched off. All are fixed, each repro is a regression test (`tests/test_second_review.py`), and both label sets still score 0 wrong verdicts after the fixes.
+
 **Prompt injection** (`backend/eval/injection_corpus.yaml`, `python -m eval.injection_probe`): the gate catches 32/32 variants in its tuning set and **12/20 in a held-out set written afterwards and never tuned against**, with **0 false positives** on 416 real config lines. End to end, **0 of 52** attack lines reach the AI, because free-text fields are never sent to it. The held-out number is the honest one for the gate on its own; the structural rule is what makes it safe.
 
 **AI classifier** (golden set of 33 config lines (24 security settings + 9 negatives, Cisco IOS / pfSense / SONiC; `backend/eval/`), the production (batched) Tier-2 classifier reached **95.8% precision on the mappings it auto-accepted** and 95.8% recall, and declined all 9 non-settings. Its one wrong auto-accept (`snmp-server community public RO` read with the value "public RO", which would have hidden a default community) is now handled by a deterministic Tier-1 pattern, which is the point of the design: known shapes never depend on the AI, and every finding shows how it was decided. A small, honestly scoped set, not a broad benchmark. Re-run it with `cd backend && python -m eval.run_eval` (real API calls; results land in `backend/eval/results/`).
@@ -158,8 +194,8 @@ Stated up front; see `docs/architecture-document.md` §10 for the full list:
 
 - **Cloud AI by default.** In `cloud` mode, secrets are redacted first but config structure (hostnames, interfaces, ACL layout) goes to Groq/Gemini. `local` and `off` modes keep everything on your network; local mode is covered by tests against a stand-in endpoint, not yet benchmarked against a real local model.
 - **Redaction is regex-based.** It covers the common credential shapes of the supported vendors (see `tests/test_hardening.py`), not every format: a keyword-less vendor blob, a password containing spaces, and an all-numeric key in an indented `key` line are disclosed gaps.
-- **Rule coverage is a representative slice**: 39 rules, not full benchmarks; 6 check settings no sample config sets yet (ciphers, log access, segmentation). CAT levels on CIS/NIST/ISO rules are AEGIS-assigned on the STIG scale, and ISO/NIST results are device-level evidence supporting a control, not a certification of it.
-- **Some per-interface semantics are coarse.** Proxy ARP is evaluated per interface; CDP is still one device-wide value, because a config doesn't say which interfaces are external. Vendor defaults are modelled for Cisco IOS (a default can fail a rule, never pass one); other vendors report a silent setting as unknown. Cross-reference linking by name (e.g. AAA method lists) is not built; Cisco ACL bindings, named ACLs, SONiC ACL rows, pfSense filter rules and FortiGate firewall policies are.
+- **Rule coverage is partial and stated**: 39 hand-written rules plus 56 of 267 DISA STIG rules automated (the rest reported as manual); CIS and ISO are hand-written slices, since their content is licensed. CAT levels on CIS/NIST/ISO rules are AEGIS-assigned on the STIG scale, and ISO/NIST results are device-level evidence supporting a control, not a certification of it.
+- **Some per-interface semantics are coarse.** Proxy ARP is evaluated per interface; CDP is still one device-wide value, because a config doesn't say which interfaces are external. Vendor defaults are modelled for Cisco IOS, Junos and FortiOS where documented (a default can fail a rule, never pass one); other silent settings are reported as unknown. Cross-reference linking by name (e.g. AAA method lists) is not built; Cisco ACL bindings, named ACLs, SONiC ACL rows, pfSense filter rules and FortiGate firewall policies are.
 - **Learning is pattern-based**: a reviewer's decision is an exact line (or a validated regex through the API), not a model that generalizes.
 - **Single-tenant build.** Reviewer tokens give verified identity, but there is no login UI or role model; the database is SQLite (Postgres + pgvector is the production path).
 - **Ingestion is synchronous** (one request per file, batched AI calls inside it) with no job queue yet; free-tier API limits (for example Groq's 200,000 tokens per day) cap how many fresh devices can be classified per day.

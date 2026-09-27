@@ -40,7 +40,8 @@ entries:
   - {syntax_pattern: '^log eventfilter set (event|system) disable\b', pattern_type: regex, canonical_field: AU.admin_event_logging, value: false}
   - {syntax_pattern: '^log eventfilter set (event|system) enable\b', pattern_type: regex, canonical_field: AU.admin_event_logging, value: true}
   # A disabled password policy enforces no minimum: 0 (the lowest wins).
-  - {syntax_pattern: '^system password-policy set status disable\b', pattern_type: regex, canonical_field: IA.password_min_length, value: 0}
+  - {syntax_pattern: '^system password-policy set status enable\b', pattern_type: regex, canonical_field: IA.password_policy_enabled, value: true}
+  - {syntax_pattern: '^system password-policy set status disable\b', pattern_type: regex, canonical_field: IA.password_policy_enabled, value: false}
   - {syntax_pattern: '^system password-policy set minimum-length (\d+)', pattern_type: regex, canonical_field: IA.password_min_length, value: "$1"}
   - {syntax_pattern: '^system password-policy set min-upper-case-letter (\d+)', pattern_type: regex, canonical_field: IA.password_min_uppercase, value: "$1"}
   - {syntax_pattern: '^system password-policy set min-lower-case-letter (\d+)', pattern_type: regex, canonical_field: IA.password_min_lowercase, value: "$1"}
@@ -67,6 +68,7 @@ entries:
 # export, and only ever to FAIL a rule.
 defaults:
   - {field: AU.logging_host, value: [], note: "log syslogd setting is disabled, with no server, by default"}
+  - {field: IA.password_policy_enabled, value: false, note: "config system password-policy is disabled by default"}
 
 # Explicit evidence from the whole export: administrative telnet is reachable
 # only through an interface's allowaccess list, so when every allowaccess

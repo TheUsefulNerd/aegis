@@ -229,8 +229,8 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
             elif result.tier == "tier3_pending":
                 pending_review_ids.append(result.review_queue_id)
         bindings = _acl_bindings(unit_list)
-        if bindings:
-            fields["AC.acl_bindings"] = bindings
+        if bindings or (fields.get("AC.acl_rules") and vendor_defaults.acl_bindings_explicit(fp["vendor"])):
+            fields["AC.acl_bindings"] = bindings  # may be [] - nothing applied
         if fp["format"] == "cli":
             vendor_defaults.apply(fp["vendor"], fp["confidence"], redacted.text, fields, provenance, unit_list)
         ingest_span.update(output={"tier_counts": tier_counts})
@@ -320,6 +320,9 @@ def _less_secure(field: str, new, old) -> bool | None:
         return n < o
     if kind == "number" and meta.get("worse") == "higher_or_zero":
         return (n == 0 and o != 0) or (o != 0 and n > o)
+    ranked = meta.get("ranked")  # string values, least secure first
+    if kind == "string" and ranked and n in ranked and o in ranked:
+        return ranked.index(n) < ranked.index(o)
     return None
 
 
@@ -772,6 +775,7 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, request: Request, db
     return {"kb_entry_id": entry.id, "review_queue_id": item.id, "status": "confirmed"}
 
 
+_LITERAL_PREFIX = re.compile(r"^\^((?:\\[^\w\s]|[^\\.^$*+?{}\[\]()|])+)")
 _NESTED_QUANTIFIER = re.compile(r"\([^)]*[+*][^)]*\)\s*[+*{]")
 
 
@@ -823,6 +827,13 @@ def _validated_pattern(pattern_type: str, syntax_pattern: str | None, raw_unit: 
         raise HTTPException(422, f"invalid regex: {e}")
     if not compiled.search(raw_unit):
         raise HTTPException(422, "the regex must match the line being reviewed")
+    # Anchored, and starting with at least 6 literal characters of the
+    # reviewed line: `.` or `^\S` would otherwise remap every line of the
+    # vendor with one click (second review).
+    lit = _LITERAL_PREFIX.match(syntax_pattern)
+    prefix = re.sub(r"\\(.)", r"\1", lit.group(1)) if lit else ""
+    if len(prefix) < 6 or not raw_unit.strip().startswith(prefix):
+        raise HTTPException(422, "the regex must start with ^ and at least 6 literal characters of the reviewed line")
     return syntax_pattern
 
 

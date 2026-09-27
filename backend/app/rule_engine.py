@@ -307,6 +307,8 @@ def _parse_acl_line(line: str):
         if not toks:
             raise _Unparsed("empty rule")
         proto = _PROTO_NUM.get(toks[0].lower(), toks[0].lower())
+        if proto == "ipv6":
+            proto = "ip"  # an IPv6 list's `permit ipv6 any any` is all traffic, like `ip`
         if proto in _PROTOCOLS:
             i = 1
         elif _IPV4.match(proto) or proto in ("host",):
@@ -395,12 +397,19 @@ def _eval_ordered_first_match(predicate: dict, fields: dict) -> EvalResult:
             groups.setdefault(p["group"], []).append(p)
     if not groups:
         return EvalResult(NOT_EVALUATED, {"reason": "no ACL line could be parsed", "raw_rules": rules})
-    bindings = fields.get("AC.acl_bindings") or []
-    applied = [g for g in groups if g in bindings]
-    if bindings and not applied:
-        return EvalResult(NOT_EVALUATED, {"reason": "the ACLs this device applies are not defined in the config",
-                                          "applied": bindings})
-    considered = applied if bindings else list(groups)
+    # AC.acl_bindings present (even empty) means the vendor says which lists
+    # are in force (Cisco: ip access-group / access-class / traffic-filter).
+    bindings = fields.get("AC.acl_bindings")
+    if bindings is not None:
+        undefined = [b for b in bindings if b not in groups]
+        if undefined:
+            # IOS permits everything through an applied list that doesn't
+            # exist; the other lists' denies must not hide that.
+            return EvalResult(NOT_EVALUATED, {"reason": "an applied ACL is not defined in the config",
+                                              "undefined": undefined})
+        if not bindings:
+            return EvalResult(NOT_EVALUATED, {"reason": "no ACL is applied to any interface or line"})
+    considered = [g for g in groups if g in bindings] if bindings is not None else list(groups)
     unapplied = [g for g in groups if g not in considered]
 
     if predicate.get("scope") == "all_matches":

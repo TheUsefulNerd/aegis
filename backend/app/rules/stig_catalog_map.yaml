@@ -17,6 +17,9 @@
 #   V-234183  FortiGate NTP: ntpsync / type custom not checked -> false PASS
 #   V-223181..184, V-223192, V-223193  Juniper change-log to an external host:
 #             that line already sets AU.logging_host (one field per line)
+# FortiGate password rules require `set status enable` explicitly: the policy is
+# disabled by default, and sub-options can be present while it is off
+# (second review: a disabled policy with minimum-length 15 passed).
 # Severity comes from the catalog (high/medium/low -> CAT I/II/III). A failed
 # rule shows its remediation template, or else DISA's own fix text.
 
@@ -61,8 +64,8 @@ benchmarks:
         max: 3
         exclusive_min: 0
       check_sha: b2a7e30b709b6332
-      note: 'check text: ''login block-for 900 attempts 3 within 120''; the seed records the attempt count only when the block is at least 900
-        s (15 min), a shorter block records 0 (no compliant lockout)'
+      note: 'check text: ''login block-for 900 attempts 3 within 120''; the seed records the attempt count only when the block
+        is at least 900 s (15 min), a shorter block records 0 (no compliant lockout)'
     V-215819:
       check_type: boolean
       predicate:
@@ -174,7 +177,8 @@ benchmarks:
             equals: true
       check_sha: 7c17940673eb2e6f
       control_family: SC
-      note: 'check text: ''ip ssh version 2 / ip ssh server algorithm encryption aes256-ctr ...'' (any FIPS-approved AES mode accepted)'
+      note: 'check text: ''ip ssh version 2 / ip ssh server algorithm encryption aes256-ctr ...'' (any FIPS-approved AES mode
+        accepted)'
     V-215848:
       check_type: boolean
       predicate:
@@ -207,7 +211,8 @@ benchmarks:
         min: 3
         max: 3
       check_sha: a44f4a4097c18f94
-      note: 'check text: ''number of unsuccessful logon attempts is set to 3'' (fix: retry-options tries-before-disconnect 3)'
+      note: 'check text: ''number of unsuccessful logon attempts is set to 3'' (fix: retry-options tries-before-disconnect
+        3)'
     V-223205:
       check_type: range
       predicate:
@@ -228,8 +233,8 @@ benchmarks:
         field: AC.snmp_community_strings
         equals: false
       check_sha: a19783622c4b7d69
-      note: 'check text: ''If versions earlier than SNMPv3 are enabled, this is a finding'' - a community string means v1/v2c; FAIL-only, a device
-        without communities stays NOT_EVALUATED'
+      note: 'check text: ''If versions earlier than SNMPv3 are enabled, this is a finding'' - a community string means v1/v2c;
+        FAIL-only, a device without communities stays NOT_EVALUATED'
     V-223217:
       check_type: range
       predicate:
@@ -380,29 +385,37 @@ benchmarks:
       control_family: AU
       note: 'check text: ''log fortianalyzer / syslogd setting ... should indicate enabled and an IP address'''
     V-234203:
-      check_type: range
-      predicate:
-        field: IA.password_min_length
-        min: 15
-      check_sha: 94412c1053735651
-      note: 'check text: ''set minimum-length 15'' (a disabled policy counts as 0)'
-    V-234204:
       check_type: compound
       predicate:
         op: AND
         conditions:
         - &id002
-          check_type: range
+          check_type: boolean
+          predicate:
+            field: IA.password_policy_enabled
+            equals: true
+        - check_type: range
           predicate:
             field: IA.password_min_length
-            min: 1
+            min: 15
+      check_sha: 94412c1053735651
+      note: 'check text: ''set minimum-length 15'' AND `config system password-policy / set status enable` (FortiOS default:
+        disabled)'
+      control_family: IA
+    V-234204:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - *id002
         - check_type: range
           predicate:
             field: IA.password_min_uppercase
             min: 1
       check_sha: 402bd08ea23c5bd5
       control_family: IA
-      note: 'check text: ''min-upper-case-letter ... 1 or greater'' with the password policy enabled'
+      note: 'check text: ''min-upper-case-letter ... 1 or greater'' AND `config system password-policy / set status enable`
+        (FortiOS default: disabled)'
     V-234205:
       check_type: compound
       predicate:
@@ -415,7 +428,8 @@ benchmarks:
             min: 1
       check_sha: e4b01f0717d4344d
       control_family: IA
-      note: 'check text: ''min-lower-case-letter ... 1 or greater'' with the password policy enabled'
+      note: 'check text: ''min-lower-case-letter ... 1 or greater'' AND `config system password-policy / set status enable`
+        (FortiOS default: disabled)'
     V-234206:
       check_type: compound
       predicate:
@@ -428,7 +442,8 @@ benchmarks:
             min: 1
       check_sha: 08fcf9b86a97675e
       control_family: IA
-      note: 'check text: ''min-number ... 1 or greater'' with the password policy enabled'
+      note: 'check text: ''min-number ... 1 or greater'' AND `config system password-policy / set status enable` (FortiOS
+        default: disabled)'
     V-234207:
       check_type: compound
       predicate:
@@ -441,7 +456,8 @@ benchmarks:
             min: 1
       check_sha: 4c6f5697b06156b9
       control_family: IA
-      note: 'check text: ''min-non-alphanumeric ... 1 or greater'' with the password policy enabled'
+      note: 'check text: ''min-non-alphanumeric ... 1 or greater'' AND `config system password-policy / set status enable`
+        (FortiOS default: disabled)'
     V-234218:
       check_type: compound
       predicate:
@@ -470,4 +486,5 @@ benchmarks:
             min: 8
       check_sha: 9a4c9be617cb8e5a
       control_family: IA
-      note: 'check text: ''set change-8-characters enable'' with the password policy enabled'
+      note: 'check text: ''set change-8-characters enable'' AND `config system password-policy / set status enable` (FortiOS
+        default: disabled)'
