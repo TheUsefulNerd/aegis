@@ -12,6 +12,12 @@ class ConfirmMapping(BaseModel):
     reviewer_notes: Optional[str] = None
 
 
+class NameVendor(BaseModel):
+    vendor: str
+    signature: str
+    reviewer_id: Optional[str] = None
+
+
 class RejectMapping(BaseModel):
     reviewer_id: str
     reason: Optional[str] = None

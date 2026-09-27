@@ -42,7 +42,7 @@ AEGIS reads a network device's configuration (any vendor, any format: CLI text, 
 - **Blocked prompt-injection attempts** shown distinctly: red banner, sorted to the top of the queue, counted on the Overview
 - **Redaction showcase**: per type, what was caught and what the redacted line looks like in place
 - Multi-framework selection (any combination of CIS / NIST / STIG / ISO), per-device PDF, Overview and Insights dashboards, Langfuse tracing of every LLM call (cloud mode)
-- **Vendors as data**: Cisco IOS/IOS-XE, pfSense, SONiC, Juniper Junos and Fortinet FortiOS are each one YAML file (fingerprint + patterns); regex patterns can capture values (`idle-timeout (\d+)` → the number)
+- **New vendors, two ways**: learned in the GUI (an unknown vendor's lines go to the review queue; the reviewer can also *name* the vendor by picking a line from its config header, so its patterns get their own knowledge-base bucket and its next device is recognized), or pre-loaded in bulk as one seed YAML file (fingerprint + patterns + defaults), as done for Cisco IOS/IOS-XE, pfSense, SONiC, Juniper Junos and FortiOS; regex patterns can capture values (`idle-timeout (\d+)` → the number)
 - **Air-gapped mode**: `AEGIS_LLM_MODE=local` (self-hosted OpenAI-compatible model only) or `off` (no AI; every unknown line goes to a human)
 - **Tamper-evident decisions**: every reviewer decision is hash-chained; `GET /audit/verify` recomputes the chain and reports any after-the-fact edit
 - **Verified reviewers** (optional): with `AEGIS_REVIEWERS` set, every write needs a reviewer token and the audit trail records the token's owner
@@ -70,7 +70,7 @@ backend/
     rules/*.yaml        the 39 rules (each file's header states its source + verification)
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                242 offline tests (no API keys, LLM/embedder mocked)
+  tests/                245 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)

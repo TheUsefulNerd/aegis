@@ -6,7 +6,7 @@
 
 ## The problem, and the one design decision that answers it
 
-Network devices from dozens of vendors must be checked against CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001, but every vendor's syntax differs, and a hardcoded parser per vendor breaks on the next vendor, firmware or device class. **AEGIS has one resolution path for every vendor: a lookup against one knowledge base (KB).** Only format handling is code, and it is generic (CLI lines, brace- and block-structured CLI, XML, JSON). A vendor is *data*: one YAML file with its fingerprint and patterns. Juniper Junos and FortiGate were added exactly that way, with no code. Unknown syntax is taught by a reviewer and becomes a KB row, never new code or a redeploy.
+Network devices from dozens of vendors must be checked against CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001, but every vendor's syntax differs, and a hardcoded parser per vendor breaks on the next vendor, firmware or device class. **AEGIS has one resolution path for every vendor: a lookup against one knowledge base (KB).** Only format handling is code, and it is generic (CLI lines, brace- and block-structured CLI, XML, JSON). A new vendor is learned in the review queue: its lines are taught once, and the reviewer names the vendor from a line of its own config header, giving it its own KB bucket. A vendor's knowledge can also be pre-loaded in bulk as one YAML file (fingerprint, patterns, defaults), as done for Juniper Junos and FortiGate. Neither needs new code or a redeploy.
 
 ## Pipeline
 
@@ -26,7 +26,7 @@ Network devices from dozens of vendors must be checked against CIS, NIST SP 800-
 
 - **Fail-closed by construction.** `NOT_EVALUATED` is a first-class verdict: a setting that is absent, unreadable, awaiting review or only AI-read is never a pass.
 - **Every trust boundary is enforced in code.** Secrets redacted before inference; injection text never reaches the model; model output type-checked; verdicts deterministic; reviewer decisions validated, attributable (optional reviewer tokens) and tamper-evident.
-- **Measured, errors included.** 73 verdicts hand-labelled from the config text over 7 configs and 5 vendors: **73 of 73 correct, 0 false PASS or FAIL**, with the AI off or on; CI fails the build on any wrong verdict. Prompt injection: the gate catches 32/32 tuned and **12/20 held-out** variants with 0 false positives on 416 real lines, and **0 of 52** attacks reach the AI end to end. Classifier: 95.8% precision on auto-accepted mappings (33-line golden set). An independent adversarial review found false-PASS paths in an earlier build; every one is now a regression test (242 offline tests in CI).
+- **Measured, errors included.** 73 verdicts hand-labelled from the config text over 7 configs and 5 vendors: **73 of 73 correct, 0 false PASS or FAIL**, with the AI off or on; CI fails the build on any wrong verdict. Prompt injection: the gate catches 32/32 tuned and **12/20 held-out** variants with 0 false positives on 416 real lines, and **0 of 52** attacks reach the AI end to end. Classifier: 95.8% precision on auto-accepted mappings (33-line golden set). An independent adversarial review found false-PASS paths in an earlier build; every one is now a regression test (245 offline tests in CI).
 
 ## Tech stack
 

@@ -12,10 +12,10 @@ from . import audit_chain, vendor_defaults, redaction, fingerprint, units as uni
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
-from .models import CanonicalConfig, Device, Finding, KnowledgeBaseEntry, ReviewQueueItem, Rule
+from .models import CanonicalConfig, Device, Finding, KnowledgeBaseEntry, ReviewQueueItem, Rule, VendorSignature
 from .rules_loader import load_rule_files
 from .seed_loader import load_seed_kb
-from .schemas import ConfirmMapping, RejectMapping
+from .schemas import ConfirmMapping, NameVendor, RejectMapping
 
 def _iso_utc(d: dt.datetime | None) -> str | None:
     """Every stored timestamp is `datetime.utcnow()` - naive, but actually
@@ -105,7 +105,7 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
     input_sha256 = hashlib.sha256(raw_bytes).hexdigest()
 
     redacted = redaction.redact(raw_text)
-    fp = fingerprint.fingerprint(redacted.text)
+    fp = fingerprint.fingerprint(redacted.text, _learned_signatures(db))
     try:
         unit_list = units_mod.split_into_units(redacted.text, fp["format"])
     except units_mod.UnparseableConfig as e:
@@ -128,6 +128,7 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
         firmware_version=identity.firmware_version or fp["version_family"],
         redaction_hits=redacted.hits,
         input_sha256=input_sha256,
+        header_sample=[l.strip() for l in redacted.text.splitlines() if l.strip()][:40],
     )
     db.add(device)
     db.commit()
@@ -263,6 +264,7 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
         "serial_number": device.serial_number,
         "firmware_version": device.firmware_version,
         "input_sha256": input_sha256,
+        "header_sample": device.header_sample if fp["vendor"].startswith("unknown") else [],
         "total_units": len(unit_list),
         "tier_counts": tier_counts,
         "parse_coverage_pct": coverage_pct,
@@ -517,6 +519,52 @@ def _run_evaluation(config: CanonicalConfig, db: Session, framework: str | None 
     }
 
 
+_VENDOR_SLUG = re.compile(r"^[a-z][a-z0-9_]{2,40}$")
+
+
+def _learned_signatures(db: Session, tenant_id: str = "default") -> list:
+    return [{"vendor": s.vendor, "signal": s.signal, "format": s.fmt}
+            for s in db.query(VendorSignature).filter(VendorSignature.tenant_id == tenant_id).all()]
+
+
+@app.post("/devices/{device_id}/vendor")
+def name_vendor(device_id: str, body: NameVendor, request: Request, db: Session = Depends(get_db)):
+    """A reviewer names a vendor AEGIS didn't recognize, from the GUI: the
+    chosen header line becomes that vendor's signature, the device is
+    re-labelled, and every pattern already taught from this device moves out
+    of the shared `unknown` bucket into the new vendor's own - so it is
+    reused on that vendor's next device and never on an unrelated one."""
+    reviewer = _verified_reviewer(request, body.reviewer_id)
+    device = db.get(Device, device_id)
+    if device is None:
+        raise HTTPException(404, "device not found")
+    if not (device.vendor or "").startswith("unknown"):
+        raise HTTPException(409, f"this device is already recognized as {device.vendor}")
+    vendor = body.vendor.strip().lower()
+    if not _VENDOR_SLUG.match(vendor) or vendor.startswith("unknown"):
+        raise HTTPException(422, "vendor name: 3-41 characters, lowercase letters, digits and _ (e.g. arista_eos)")
+    signal = body.signature.strip()
+    if not 4 <= len(signal) <= 200:
+        raise HTTPException(422, "signature: 4-200 characters")
+    if not any(signal in line for line in device.header_sample or []):
+        raise HTTPException(422, "the signature must be text from this device's own config header")
+    fmt = {"unknown_json": "json", "unknown_xml": "xml"}.get(device.vendor, "cli")
+    old_vendor = device.vendor
+    db.add(VendorSignature(tenant_id=device.tenant_id, vendor=vendor, signal=signal, fmt=fmt, created_by=reviewer))
+    device.vendor = vendor
+    for cfg in db.query(CanonicalConfig).filter(CanonicalConfig.device_id == device.id).all():
+        cfg.vendor = vendor
+    entry_ids = [i.kb_entry_id for i in db.query(ReviewQueueItem).filter(
+        ReviewQueueItem.device_id == device.id, ReviewQueueItem.kb_entry_id.isnot(None)).all()]
+    moved = 0
+    for e in db.query(KnowledgeBaseEntry).filter(KnowledgeBaseEntry.id.in_(entry_ids)).all() if entry_ids else []:
+        if e.vendor == old_vendor:
+            e.vendor = vendor
+            moved += 1
+    db.commit()
+    return {"device_id": device.id, "vendor": vendor, "signature": signal, "patterns_moved": moved}
+
+
 @app.get("/audit/verify")
 def verify_audit_chain(db: Session = Depends(get_db)):
     """Recompute the hash chain over every human decision; any edit, deletion
@@ -665,6 +713,7 @@ def confirm_review_item(item_id: str, body: ConfirmMapping, request: Request, db
     db.add(entry)
     db.flush()
     audit_chain.append(db, entry)
+    item.kb_entry_id = entry.id
 
     item.status = "confirmed"
     item.reviewer_id = reviewer
@@ -785,6 +834,7 @@ def _remember_not_security(db: Session, item: ReviewQueueItem, reviewer_id: str,
     db.add(entry)
     db.flush()
     audit_chain.append(db, entry)
+    item.kb_entry_id = entry.id
 
 
 @app.post("/review-queue/dismiss-not-security")

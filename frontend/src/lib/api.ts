@@ -28,6 +28,7 @@ export type IngestResult = {
     not_security?: number;
   };
   input_sha256?: string;
+  header_sample?: string[];
   parse_coverage_pct: number;
   redaction_hits: { type: string; count: number }[];
   redaction_examples: { type: string; unit: string }[];
@@ -115,6 +116,15 @@ export async function rejectReviewItem(id: string, body: { reviewer_id: string; 
     body: JSON.stringify(body),
   });
   return handle<{ review_queue_id: string; status: string }>(res);
+}
+
+export async function nameVendor(deviceId: string, body: { vendor: string; signature: string; reviewer_id?: string }) {
+  const res = await fetch(`${API_BASE}/devices/${deviceId}/vendor`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  return handle<{ device_id: string; vendor: string; signature: string; patterns_moved: number }>(res);
 }
 
 export async function dismissNotSecurity(body: { reviewer_id: string; reviewer_notes?: string | null }) {

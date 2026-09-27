@@ -68,6 +68,9 @@ class Device(Base):
     # Per-type COUNTS only ([{type, count}]) - never the secret values
     # themselves, which exist only in memory for the duration of /ingest.
     redaction_hits = Column(JSON, nullable=True)
+    # First lines of the (already redacted) file, so a reviewer can pick a
+    # signature line when naming an unknown vendor. Never contains secrets.
+    header_sample = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 
@@ -167,5 +170,21 @@ class ReviewQueueItem(Base):
     flag_reason = Column(Text, nullable=True)
     is_security_relevant = Column(Boolean, nullable=True)
     reviewer_notes = Column(Text, nullable=True)
+    kb_entry_id = Column(String, nullable=True)  # the pattern this decision created
     created_at = Column(DateTime, default=dt.datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
+
+
+class VendorSignature(Base):
+    """A vendor a reviewer named in the GUI: a literal line from its config
+    header. Files containing it are fingerprinted as that vendor, and its
+    learned patterns live in that vendor's own knowledge-base bucket."""
+    __tablename__ = "vendor_signatures"
+
+    id = Column(String, primary_key=True, default=_id)
+    tenant_id = Column(String, nullable=False, default="default")
+    vendor = Column(String, nullable=False)
+    signal = Column(Text, nullable=False)
+    fmt = Column(String, nullable=False, default="cli")
+    created_by = Column(String, nullable=True)
+    created_at = Column(DateTime, default=dt.datetime.utcnow)

@@ -64,7 +64,7 @@ def _detect_format(stripped: str):
     return "cli", None
 
 
-def fingerprint(raw_text: str) -> dict:
+def fingerprint(raw_text: str, learned: list = None) -> dict:
     """Returns {vendor, version_family, format, confidence}.
     format is one of "json" | "xml" | "cli" - tells the caller how to split
     the file into units for resolve_unit (§3, step 4)."""
@@ -82,6 +82,12 @@ def fingerprint(raw_text: str) -> dict:
         if hits >= sig["min"]:
             return {"vendor": sig["vendor"], "version_family": sig["version_family"], "format": fmt,
                     "confidence": "high" if hits >= sig["high_at"] else "medium"}
+    # Vendors a reviewer named in the GUI (a literal header line each) - only
+    # for files no built-in signature claims, so a reviewer's line can never
+    # re-label a known vendor's configs.
+    for sig in learned or []:
+        if sig["format"] == fmt and sig["signal"] in head:
+            return {"vendor": sig["vendor"], "version_family": None, "format": fmt, "confidence": "learned"}
     # No signature matched. Per architecture-document.md §3 step 3a this
     # degrades gracefully: every unit routes through Tier 2/3 more often, it
     # doesn't fail outright.

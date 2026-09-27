@@ -22,6 +22,7 @@ import {
   evaluateConfig,
   reportUrl,
   downloadPdf,
+  nameVendor,
   IngestResult,
   EvaluateResult,
   FieldMeta,
@@ -82,6 +83,8 @@ export default function AnalyzePage() {
   const [batchEvaluating, setBatchEvaluating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<IngestResult | null>(null);
+  // Kept with its device id, so it only shows for the device it belongs to.
+  const [vendorNamed, setVendorNamed] = useState<{ deviceId: string; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldMeta, setFieldMeta] = useState<Record<string, FieldMeta>>({});
   const [frameworks, setFrameworks] = useState<string[]>([]);
@@ -344,6 +347,20 @@ export default function AnalyzePage() {
               </a>
             )}
           </Panel>
+
+          {result.vendor.startsWith("unknown") && (result.header_sample?.length ?? 0) > 0 && (
+            <NameVendorPanel
+              deviceId={result.device_id}
+              header={result.header_sample ?? []}
+              onNamed={(vendor, message) => {
+                setVendorNamed({ deviceId: result.device_id, text: message });
+                setResult({ ...result, vendor });
+              }}
+            />
+          )}
+          {vendorNamed?.deviceId === result.device_id && (
+            <Panel className="p-4 border-emerald-300 bg-emerald-50 text-sm text-emerald-800">{vendorNamed.text}</Panel>
+          )}
 
           {(result.sanity_gate_hits?.length ?? 0) > 0 && <SanityGatePanel hits={result.sanity_gate_hits} />}
 
@@ -862,5 +879,80 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-slate-500">{label}</div>
       <div className="text-sm font-medium mt-0.5">{value}</div>
     </div>
+  );
+}
+
+
+/** An unknown vendor, named by the reviewer: pick a line from the file's own
+ * header as its signature. Future files containing it are recognized as that
+ * vendor, and patterns taught from this device move into its own bucket. */
+function NameVendorPanel({ deviceId, header, onNamed }: {
+  deviceId: string;
+  header: string[];
+  onNamed: (vendor: string, message: string) => void;
+}) {
+  const [vendor, setVendor] = useState("");
+  const [signature, setSignature] = useState(header.find((l) => /^[!#]/.test(l)) ?? header[0] ?? "");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await nameVendor(deviceId, { vendor, signature, reviewer_id: "lead" });
+      const text = `Saved. Files containing "${r.signature}" are now recognized as ${r.vendor}; ${r.patterns_moved} taught pattern(s) moved to it.`;
+      setMsg(text);
+      onNamed(r.vendor, text);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel className="p-4 space-y-3 border-indigo-300 bg-indigo-50">
+      <div className="text-sm font-medium text-slate-800">AEGIS doesn&apos;t recognize this vendor yet. Name it once.</div>
+      <p className="text-xs text-slate-600">
+        Pick a line from the file&apos;s own header that identifies the vendor (trim it to the part that doesn&apos;t change
+        between devices). Future configs containing it are recognized as this vendor, and everything a reviewer teaches
+        for it is kept in its own knowledge base, never applied to other unknown vendors.
+      </p>
+      {msg ? (
+        <div className="text-sm text-emerald-700">{msg}</div>
+      ) : (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs text-slate-600">
+            Vendor name
+            <input
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))}
+              placeholder="e.g. arista_eos"
+              className="mt-1 block w-48 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+            />
+          </label>
+          <label className="text-xs text-slate-600 grow">
+            Signature (text from the header)
+            <input
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              list="aegis-header-lines"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-mono"
+            />
+            <datalist id="aegis-header-lines">
+              {header.slice(0, 15).map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
+          </label>
+          <Button variant="primary" disabled={busy || vendor.length < 3 || signature.trim().length < 4} onClick={save}>
+            {busy ? <Spinner className="size-4" /> : null} Save vendor
+          </Button>
+        </div>
+      )}
+      {err && <div className="text-xs text-rose-700">{err}</div>}
+    </Panel>
   );
 }
