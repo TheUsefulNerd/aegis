@@ -14,7 +14,8 @@ AEGIS reads a network device's configuration (any vendor, any format: CLI text, 
 - **DISA STIG catalogs** imported from the official releases, with update detection (`python -m app.stig_sync check`): a rule DISA changes upstream is set aside for re-review instead of silently checked against old text
 - **0 of 52** prompt-injection lines reach the AI; the gate alone catches 32/32 tuned and 12/20 held-out variants with 0 false positives on 416 real config lines
 - AI evidence can **fail** a control on its own but never **pass** one without a human; a vendor default can fail a rule but never pass one
-- Runs **fully offline** (`AEGIS_LLM_MODE=local` with Ollama/vLLM, or `off`); every human decision is **hash-chained** and verifiable
+- Runs **fully offline** (`AEGIS_LLM_MODE=local` with Ollama/vLLM, or `off`); every human decision is **hash-chained** and every report is **signed (Ed25519)** over its input, rules, findings and decision history
+- **In CI/CD:** `python -m app.cli audit *.cfg --sarif out.sarif` fails the build on a CAT I finding and puts each finding on its config line (SARIF 2.1.0); this repo's own CI runs it on every push
 
 ## Submission deliverables (SIH 2026, PS 26155, Team SIX ORIGINS)
 
@@ -145,6 +146,16 @@ The suite is fully offline (it never reads your `.env` keys or calls an LLM) and
 5. **03 / 05**: SONiC JSON, and a vendor AEGIS has never seen, degrading gracefully.
 6. **07 / 08**: Juniper and FortiGate, added as YAML only: telnet enabled FAILs deterministically.
 7. Download the PDF for any device.
+
+**Command line / CI** (same pipeline, AI off unless `--live`):
+
+```bash
+cd backend
+python -m app.cli audit ../samples/heldout/*.cfg --sarif aegis.sarif --attest attestations.json
+python -m app.cli verify attestations.json --fingerprint <key fingerprint from GET /signing/public-key>
+```
+
+`audit` exits 1 on any CAT I failure (`--fail-on CAT_II|CAT_III|none` to change that). The SARIF opens in GitHub code scanning or any SARIF viewer with each finding on its config line. Every PDF report and attestation is signed with the deployment's Ed25519 key (`AEGIS_SIGNING_KEY`, else a key generated on first use). The signed statement covers the input file's SHA-256, the rule-set hash, the findings digest and the head of the human-decision hash chain, so editing a verdict, a rule or a past review decision after the fact is detectable offline. `verify` trusts only the key you pin, not the key embedded in the file.
 
 Measured with free-tier Groq/Gemini: **8-17 s per fresh file** (it was 2-12 minutes before batching), and **about 3 s for a device whose lines AEGIS has already seen**.
 

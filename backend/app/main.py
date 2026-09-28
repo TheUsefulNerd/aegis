@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFi
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from . import audit_chain, catalog_rules, vendor_defaults, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate
+from . import audit_chain, catalog_rules, vendor_defaults, redaction, fingerprint, units as units_mod, resolve, rule_engine, remediation, device_identity, pdf_report, sanity_gate, signing
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
@@ -638,6 +638,42 @@ def evaluate_config(config_id: str, framework: str | None = None, db: Session = 
     return _run_evaluation(config, db, framework=framework)
 
 
+def _attestation(config: CanonicalConfig, evaluation: dict, db: Session) -> dict:
+    """Ed25519-signed statement of what this report was computed from: the
+    input file, the rule set, the findings, and the state of the human
+    decision chain at that moment (app/signing.py)."""
+    device = db.get(Device, config.device_id)
+    chain = audit_chain.verify(db)
+    return signing.attest(
+        report_id=config.id, input_sha256=device.input_sha256 if device else None,
+        ruleset_sha256=evaluation["integrity"]["ruleset_sha256"],
+        findings_sha256=evaluation["integrity"]["findings_sha256"],
+        audit_head=chain.get("head") if chain.get("ok") else f"BROKEN at {chain.get('broken_at')}",
+        counts=evaluation["counts"])
+
+
+@app.get("/configs/{config_id}/attestation")
+def get_attestation(config_id: str, framework: str | None = None, db: Session = Depends(get_db)):
+    config = db.get(CanonicalConfig, config_id)
+    if config is None:
+        raise HTTPException(404, "config not found")
+    return _attestation(config, _run_evaluation(config, db, framework=framework), db)
+
+
+@app.get("/signing/public-key")
+def signing_public_key():
+    """The key reports are signed with - publish it, and pin its fingerprint."""
+    return {"algorithm": "Ed25519", "public_key": signing.public_pem(), "fingerprint": signing.fingerprint()}
+
+
+@app.post("/attestations/verify")
+def verify_attestation(attestation: dict):
+    """Checks the signature against THIS deployment's key (a statement signed
+    with any other key is reported as untrusted, not valid)."""
+    result = signing.verify(attestation, signing.public_pem())
+    return {**result, "statement": attestation.get("statement")}
+
+
 @app.get("/configs/{config_id}/report.pdf")
 def download_report(
     config_id: str, framework: str | None = None, tz: str | None = None, db: Session = Depends(get_db)
@@ -648,6 +684,7 @@ def download_report(
     device = db.get(Device, config.device_id)
 
     evaluation = _run_evaluation(config, db, framework=framework)
+    evaluation["attestation"] = _attestation(config, evaluation, db)
     pdf_bytes = pdf_report.generate(
         device={
             "hostname": device.hostname if device else None,

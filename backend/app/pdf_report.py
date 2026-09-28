@@ -104,13 +104,29 @@ def generate(
     # API and compared, so any edit to a verdict is detectable.
     seal_style = ParagraphStyle("seal", parent=styles["Normal"], fontSize=7.5, textColor=_SEAL_GREEN, leading=10.5)
     integ = evaluation.get("integrity") or {}
+    att = evaluation.get("attestation")
+    # Ed25519 signature over the statement above plus the decision-chain
+    # head (app/signing.py): shows who produced the report and that none of
+    # it changed since.
+    signed = ""
+    if att:
+        st = att["statement"]
+        head = str(st["audit_chain_head"])
+        head_txt = (f"<font face='Courier'>{_escape(head[:16])}</font>" if head.strip("0")
+                    else "(no human decisions yet)")
+        signed = (f"<br/>Signed (Ed25519), key <font face='Courier'>{_escape(att['key_fingerprint'])}</font> at "
+                  f"{_escape(st['signed_at'])}; decision chain head {head_txt}. "
+                  f"Signature: <font face='Courier' size='6'>{_escape(att['signature'])}</font><br/>"
+                  f"Verify: GET /configs/{_escape(st['report_id'])}/attestation, then "
+                  f"<font face='Courier'>python -m app.cli verify</font>")
     seal_table = Table(
         [[Paragraph(
             f"<b>Report integrity</b> &nbsp;·&nbsp; Report ID {rid} &nbsp;·&nbsp; "
             f"Generated {_current_report_meta['generated_at']}<br/>"
             f"Input file SHA-256: <font face='Courier'>{_escape(device.get('input_sha256') or 'not recorded')}</font><br/>"
             f"Rule set: <font face='Courier'>{_escape(integ.get('ruleset_sha256', '')[:16] or 'n/a')}</font> "
-            f"&nbsp;·&nbsp; Findings digest: <font face='Courier'>{_escape(integ.get('findings_sha256', '')[:32] or 'n/a')}</font>",
+            f"&nbsp;·&nbsp; Findings digest: <font face='Courier'>{_escape(integ.get('findings_sha256', '')[:32] or 'n/a')}</font>"
+            + signed,
             seal_style,
         )]],
         colWidths=[6.6 * inch],

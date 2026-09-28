@@ -32,3 +32,7 @@ documents/
 
 # generated intermediate of docs/build_2page_pdf.py
 docs/AEGIS-Architecture-2page.html
+
+# report signing key (app/signing.py) - never commit
+backend/aegis_signing_key.pem
+*.pem

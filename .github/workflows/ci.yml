@@ -26,6 +26,25 @@ jobs:
       # Fully offline: conftest.py blanks every API key and mocks the LLM and
       # embedding model, so no secrets are needed here.
       - run: python -m pytest -q tests
+      # AEGIS as a pipeline step: audit the sample and held-out configs (AI
+      # off), write SARIF, and sign the results. --fail-on none because the
+      # samples are misconfigured on purpose; a real pipeline would use the
+      # default (fail the build on any CAT I finding).
+      - name: AEGIS audit (SARIF + signed attestations)
+        run: >
+          python -m app.cli audit ../samples/sample_input_config_files/0*.* ../samples/heldout/heldout_*
+          --sarif aegis.sarif --attest aegis-attestations.json --fail-on none
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aegis-audit
+          path: |
+            backend/aegis.sarif
+            backend/aegis-attestations.json
+      - uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true  # code scanning may be off for the repo; the artifact above always exists
+        with:
+          sarif_file: backend/aegis.sarif
+          category: aegis
 
   frontend:
     name: Frontend lint + build
