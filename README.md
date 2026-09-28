@@ -6,7 +6,7 @@
 
 An AI-augmented, vendor-agnostic network device compliance engine, built for Smart India Hackathon 2026 under NTRO's problem statement on multi-vendor network configuration compliance.
 
-AEGIS reads a network device's configuration (any vendor, any format: CLI text, brace- or block-structured CLI, XML, JSON), identifies its security-relevant settings through a tiered deterministic → AI → human pipeline, and checks them against **39 hand-written rules across all four frameworks the brief names: CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001** (38 cite a benchmark section; one is an AEGIS supplementary ACL check, labelled as such), plus **51 rules taken from imported official DISA STIG releases**. Of the 267 rules in the four tracked STIG benchmarks, 56 are automated; the rest are reported as manual review, so coverage is always stated against the whole benchmark. When it meets syntax it has never seen, it asks a human once in the review queue and recognizes it instantly on every device afterwards, with no code change and no redeploy. A new vendor is one YAML file.
+AEGIS reads a network device's configuration (any vendor, any format: CLI text, brace- or block-structured CLI, XML, JSON), identifies its security-relevant settings through a tiered deterministic → AI → human pipeline, and checks them against **39 hand-written rules across all four frameworks the brief names: CIS, NIST SP 800-53, DISA STIG and ISO/IEC 27001** (38 cite a benchmark section; one is an AEGIS supplementary ACL check, labelled as such), plus **96 rules taken from imported official DISA STIG releases**. Of the 267 rules in the four tracked STIG benchmarks, 101 are automated; the rest are reported as manual review, so coverage is always stated against the whole benchmark. When it meets syntax it has never seen, it asks a human once in the review queue and recognizes it instantly on every device afterwards, with no code change and no redeploy. A new vendor is one YAML file.
 
 **At a glance** (all reproducible, see [Measured results](#measured-results)):
 - 73 hand-labelled verdicts over 7 configs and 5 vendors: **73 of 73 correct, 0 wrong**, with the AI off or on
@@ -71,11 +71,11 @@ backend/
     audit_chain.py      hash chain over human decisions
     pdf_report.py       ReportLab report
     rules/*.yaml        the 39 hand-written rules (each file's header states its source + verification)
-    rules/stig_catalog_map.yaml   reviewed mappings for 51 imported DISA STIG rules
+    rules/stig_catalog_map.yaml   reviewed mappings for 96 imported DISA STIG rules
     catalog/            imported DISA STIG releases (stig_sync.py) + sources.yaml
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                278 offline tests (no API keys, LLM/embedder mocked)
+  tests/                295 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -181,10 +181,10 @@ The first run's misses were real gaps, now fixed as vendor data: console `exec-t
 
 | Benchmark | Release | Automated / total |
 |---|---|---|
-| Cisco IOS XE Router NDM | V3R7 | 21 / 42 |
-| Cisco IOS XE Router RTR | V3R5 | 5 / 97 |
-| Juniper SRX Services Gateway NDM | V3R3 | 12 / 68 |
-| Fortinet FortiGate Firewall NDM | V1R5 | 18 / 60 |
+| Cisco IOS XE Router NDM | V3R7 | 26 / 42 |
+| Cisco IOS XE Router RTR | V3R5 | 15 / 97 |
+| Juniper SRX Services Gateway NDM | V3R3 | 34 / 68 |
+| Fortinet FortiGate Firewall NDM | V1R5 | 26 / 60 |
 
 Several automated STIG rules share one check: 8 Cisco NDM rules rest on archive config-change logging and 10 FortiGate rules on event logging, because DISA asks the same device setting under different audit requirements. Most of the rest need organisational evidence (documented procedures, key management), runtime state, or knowing which interfaces are external, and stay manual. Mappings that could produce a false PASS were rejected and are recorded with the reason in `catalog/mapping_draft.yaml`. CIS and ISO content is licensed and cannot be imported this way, so those rules stay hand-written with their section cited.
 
@@ -208,7 +208,7 @@ Stated up front; see `docs/architecture-document.md` §10 for the full list:
 
 - **Cloud AI by default.** In `cloud` mode, secrets are redacted first but config structure (hostnames, interfaces, ACL layout) goes to Groq/Gemini. `local` and `off` modes keep everything on your network; local mode is covered by tests against a stand-in endpoint, not yet benchmarked against a real local model.
 - **Redaction is regex-based.** It covers the common credential shapes of the supported vendors (see `tests/test_hardening.py`), not every format: a keyword-less vendor blob, a password containing spaces, and an all-numeric key in an indented `key` line are disclosed gaps.
-- **Rule coverage is partial and stated**: 39 hand-written rules plus 56 of 267 DISA STIG rules automated (the rest reported as manual); CIS and ISO are hand-written slices, since their content is licensed. CAT levels on CIS/NIST/ISO rules are AEGIS-assigned on the STIG scale, and ISO/NIST results are device-level evidence supporting a control, not a certification of it.
+- **Rule coverage is partial and stated**: 39 hand-written rules plus 101 of 267 DISA STIG rules automated (the rest reported as manual); CIS and ISO are hand-written slices, since their content is licensed. CAT levels on CIS/NIST/ISO rules are AEGIS-assigned on the STIG scale, and ISO/NIST results are device-level evidence supporting a control, not a certification of it.
 - **Some per-interface semantics are coarse.** Proxy ARP is evaluated per interface; CDP is still one device-wide value, because a config doesn't say which interfaces are external. Vendor defaults are modelled for Cisco IOS, Junos and FortiOS where documented (a default can fail a rule, never pass one); other silent settings are reported as unknown. Cross-reference linking by name (e.g. AAA method lists) is not built; Cisco ACL bindings, named ACLs, SONiC ACL rows, pfSense filter rules and FortiGate firewall policies are.
 - **Learning is pattern-based**: a reviewer's decision is an exact line (or a validated regex through the API), not a model that generalizes.
 - **Single-tenant build.** Reviewer tokens give verified identity, but there is no login UI or role model; the database is SQLite (Postgres + pgvector is the production path).
