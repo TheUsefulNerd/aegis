@@ -1,41 +1,41 @@
 1
-00:00:00,500 --> 00:00:05,399
+00:00:00,500 --> 00:00:05,423
 Meet AEGIS. A compliance auditor for network devices, from any vendor.
 
 2
-00:00:05,699 --> 00:00:09,975
+00:00:05,723 --> 00:00:09,999
 The AI suggests, humans decide, and rules judge.
 
 3
-00:00:10,949 --> 00:00:15,698
+00:00:10,967 --> 00:00:15,716
 Three devices are already here: a pfSense firewall, a SONiC switch,
 
 4
-00:00:15,698 --> 00:00:18,573
+00:00:15,716 --> 00:00:18,591
 and an Arista router AEGIS has never seen before.
 
 5
-00:00:18,923 --> 00:00:20,840
+00:00:18,941 --> 00:00:20,858
 Now, let's bring in a Cisco router.
 
 6
-00:00:21,040 --> 00:00:24,724
+00:00:21,058 --> 00:00:24,742
 One unified parser handles any vendor, and any format.
 
 7
-00:00:25,074 --> 00:00:28,278
+00:00:25,092 --> 00:00:28,296
 Before anything else runs, secrets are redacted,
 
 8
-00:00:28,328 --> 00:00:31,889
+00:00:28,346 --> 00:00:31,908
 and any text that tries to talk to the AI is quarantined.
 
 9
-00:00:32,189 --> 00:00:36,768
+00:00:32,208 --> 00:00:36,786
 Known lines match instantly; the rest go to the AI, in parallel batches.
 
 10
-00:00:36,968 --> 00:00:38,679
+00:00:36,986 --> 00:00:38,679
 Seconds, not minutes.
 
 11
@@ -47,66 +47,74 @@ Six secrets, hidden before any AI saw the file. And never stored.
 Everything maps onto one vendor-neutral model.
 
 13
-00:00:47,008 --> 00:00:52,335
+00:00:47,008 --> 00:00:52,326
 Now, the verdict. Pass or fail comes only from cited benchmark rules.
 
 14
-00:00:52,485 --> 00:00:54,385
+00:00:52,476 --> 00:00:54,375
 The AI plays no part here.
 
 15
-00:00:54,735 --> 00:00:59,416
+00:00:54,725 --> 00:00:59,406
 Every finding shows how it was decided. And if the config never mentions a setting,
 
 16
-00:00:59,416 --> 00:01:02,583
+00:00:59,406 --> 00:01:02,572
 it's reported as unknown. Never a silent pass.
 
 17
-00:01:02,933 --> 00:01:08,383
+00:01:02,922 --> 00:01:08,372
 Anything the AI is unsure of goes to a human. Like this undocumented policy tag.
 
 18
-00:01:08,733 --> 00:01:13,014
+00:01:08,722 --> 00:01:12,996
 The reviewer maps it once: logging enabled, with a note for the auditor.
 
 19
-00:01:13,708 --> 00:01:19,535
+00:01:13,346 --> 00:01:19,173
 One explicit check, and it becomes a permanent pattern. No retraining. No redeploy.
 
 20
-00:01:19,885 --> 00:01:23,277
+00:01:19,523 --> 00:01:22,916
 Next, a misconfigured router, with the same line.
 
 21
-00:01:24,327 --> 00:01:28,697
+00:01:23,689 --> 00:01:28,059
 But this one hides an attack: a description telling the AI to answer pass.
 
 22
-00:01:29,047 --> 00:01:32,139
+00:01:28,409 --> 00:01:31,501
 The sanity gate blocks it, before any AI call.
 
 23
-00:01:33,669 --> 00:01:37,868
+00:01:34,798 --> 00:01:38,997
 The line we taught is now recognized instantly, so logging passes.
 
 24
-00:01:38,268 --> 00:01:42,690
+00:01:39,397 --> 00:01:43,820
 And look at this access list: it permits everything before denying telnet.
 
 25
-00:01:42,890 --> 00:01:46,358
+00:01:44,020 --> 00:01:47,495
 AEGIS catches that dead rule, and gives the exact fix.
 
 26
-00:01:47,349 --> 00:01:49,696
-Every device gets a clear PDF report.
+00:01:48,129 --> 00:01:50,469
+Every device gets a clear PDF report,
 
 27
-00:01:50,046 --> 00:01:52,690
-And Insights show how every finding was decided.
+00:01:50,519 --> 00:01:53,968
+signed, so any later edit to a verdict is detectable.
 
 28
-00:01:53,390 --> 00:01:57,120
+00:01:55,090 --> 00:01:57,654
+Insights show how every finding was decided,
+
+29
+00:01:57,754 --> 00:02:00,853
+and how much of each official STIG benchmark is automated.
+
+30
+00:02:01,553 --> 00:02:05,282
 AEGIS supports the auditor. It never takes the decision.
 
