@@ -75,7 +75,7 @@
   <rect x="14" y="364" width="170" height="64" rx="8" fill="#4F81BD"/>
   <text class="t" x="99" y="388">Canonical model</text><text class="s" x="99" y="404">NIST 800-53 families</text><text class="s" x="99" y="418">+ provenance per field</text>
   <rect x="200" y="364" width="190" height="64" rx="8" fill="#1F497D"/>
-  <text class="t" x="295" y="388">Rule engine</text><text class="s" x="295" y="404">39 cited rules · CIS NIST</text><text class="s" x="295" y="418">STIG ISO · 6 predicates</text>
+  <text class="t" x="295" y="388">Rule engine</text><text class="s" x="295" y="404">135 cited rules · CIS NIST</text><text class="s" x="295" y="418">STIG ISO · 6 predicates</text>
   <rect x="406" y="364" width="228" height="64" rx="8" fill="#1F497D"/>
   <text class="t" x="520" y="388">PASS · FAIL · NOT_EVALUATED</text><text class="s" x="520" y="404">a setting never seen is</text><text class="s" x="520" y="418">never a silent PASS</text>
   <path class="e" d="M184,396 H198"/><path class="e" d="M390,396 H404"/>

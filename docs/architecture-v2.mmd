@@ -31,7 +31,7 @@ flowchart TD
     NORM["5. Canonical Security Baseline Model<br/>NIST 800-53 families AC / AU / IA / SC / CM<br/>per-field provenance (KB entry, tier, source line)"]
     S2B --> RPT
 
-    NORM --> RULE["6. Deterministic rule engine (no LLM)<br/>39 cited rules: CIS / NIST / STIG / ISO<br/>6 predicate types incl. ordered first-match ACL<br/>vendor-specific benchmarks scoped to their vendor"]
+    NORM --> RULE["6. Deterministic rule engine (no LLM)<br/>135 cited rules: CIS / NIST / STIG / ISO<br/>6 predicate types incl. ordered first-match ACL<br/>vendor-specific benchmarks scoped to their vendor"]
 
     RULE --> VERDICT{"Finding"}
     VERDICT -->|"setting found"| PF["PASS / FAIL + severity"]
