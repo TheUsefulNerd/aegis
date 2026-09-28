@@ -207,6 +207,31 @@ export async function evaluateConfig(configId: string, framework?: string): Prom
   return handle<EvaluateResult>(res);
 }
 
+export type Attestation = {
+  statement: Record<string, unknown> & { report_id: string; findings_sha256: string; signed_at: string };
+  signature: string;
+  algorithm: string;
+  key_fingerprint: string;
+  public_key: string;
+};
+
+/** The Ed25519-signed statement behind a report (input, rules, findings, decision chain). */
+export async function getAttestation(configId: string, framework?: string): Promise<Attestation> {
+  const qs = framework ? `?framework=${encodeURIComponent(framework)}` : "";
+  const res = await fetch(`${API_BASE}/configs/${configId}/attestation${qs}`);
+  return handle<Attestation>(res);
+}
+
+/** Checks the signature against this deployment's key. */
+export async function verifyAttestation(a: Attestation): Promise<{ valid: boolean; key_fingerprint?: string; reason?: string }> {
+  const res = await fetch(`${API_BASE}/attestations/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(a),
+  });
+  return handle<{ valid: boolean; key_fingerprint?: string; reason?: string }>(res);
+}
+
 export function reportUrl(configId: string, framework?: string): string {
   const params = new URLSearchParams();
   if (framework) params.set("framework", framework);

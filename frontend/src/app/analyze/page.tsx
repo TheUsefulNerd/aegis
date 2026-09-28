@@ -13,6 +13,7 @@ import {
   Eye,
   Check,
   ShieldAlert,
+  ShieldCheck,
   Files,
 } from "lucide-react";
 import {
@@ -22,6 +23,8 @@ import {
   evaluateConfig,
   reportUrl,
   downloadPdf,
+  getAttestation,
+  verifyAttestation,
   nameVendor,
   IngestResult,
   EvaluateResult,
@@ -827,6 +830,7 @@ function FindingsPanel({
 
 function ReportTab({ evaluation, frameworkParam }: { evaluation: EvaluateResult | null; frameworkParam: string | undefined }) {
   const [downloading, setDownloading] = useState(false);
+  const [sig, setSig] = useState<{ state: "idle" | "checking" | "ok" | "bad"; text?: string }>({ state: "idle" });
 
   if (!evaluation) {
     return (
@@ -838,6 +842,20 @@ function ReportTab({ evaluation, frameworkParam }: { evaluation: EvaluateResult 
 
   const deviceId = evaluation.device_id;
   const url = reportUrl(evaluation.config_id, frameworkParam);
+
+  async function handleVerify() {
+    if (!evaluation) return;
+    setSig({ state: "checking" });
+    try {
+      const a = await getAttestation(evaluation.config_id, frameworkParam);
+      const v = await verifyAttestation(a);
+      setSig(v.valid
+        ? { state: "ok", text: `Signature valid: Ed25519, key ${a.key_fingerprint}, findings ${a.statement.findings_sha256.slice(0, 12)}…` }
+        : { state: "bad", text: v.reason || "Signature does not verify" });
+    } catch (e) {
+      setSig({ state: "bad", text: e instanceof Error ? e.message : "Could not verify" });
+    }
+  }
 
   async function handleDownload() {
     setDownloading(true);
@@ -855,11 +873,28 @@ function ReportTab({ evaluation, frameworkParam }: { evaluation: EvaluateResult 
           <CheckCircle2 className="size-4 text-emerald-600" /> This is the exact PDF AEGIS will hand
           you, rendered on screen before you save it.
         </div>
-        <Button variant="primary" onClick={handleDownload} disabled={downloading}>
-          {downloading ? <Spinner className="size-4" /> : <Download className="size-4" />}
-          {downloading ? "Preparing…" : "Download PDF"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleVerify} disabled={sig.state === "checking"}>
+            {sig.state === "checking" ? <Spinner className="size-4" /> : <ShieldCheck className="size-4" />}
+            Verify signature
+          </Button>
+          <Button variant="primary" onClick={handleDownload} disabled={downloading}>
+            {downloading ? <Spinner className="size-4" /> : <Download className="size-4" />}
+            {downloading ? "Preparing…" : "Download PDF"}
+          </Button>
+        </div>
       </Panel>
+      {(sig.state === "ok" || sig.state === "bad") && (
+        <Panel className={`p-3 text-sm flex items-center gap-2 ${sig.state === "ok" ? "text-emerald-800" : "text-rose-700"}`}>
+          {sig.state === "ok" ? <ShieldCheck className="size-4" /> : <XCircle className="size-4" />}
+          <span>{sig.text}</span>
+          {sig.state === "ok" && (
+            <span className="text-xs text-slate-500">
+              Covers the input file, the rule set, every finding and the human-decision chain. Any later edit breaks it.
+            </span>
+          )}
+        </Panel>
+      )}
       <Panel className="p-2 overflow-hidden">
         <iframe src={url} title="AEGIS compliance report preview" className="w-full h-[85vh] rounded-md" />
       </Panel>
