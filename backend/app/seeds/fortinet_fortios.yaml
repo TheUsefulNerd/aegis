@@ -109,3 +109,10 @@ absent_facts:
     lines: '^system interface edit \S+ (ipv6 )?set (ip6-)?allowaccess '
     none_match: '\btelnet\b'
     note: "no interface allowaccess list includes telnet"
+
+# A password policy only protects administrators when its scope includes
+# them: `set apply-to` without admin-password leaves admin passwords
+# unconstrained (DISA step: "Verify Password scope is enabled for Admin";
+# final review). The FortiOS default scope is admin-password.
+unit_facts:
+  - {field: IA.password_policy_enabled, value: false, any: '^system password-policy set apply-to (?!.*\badmin-password\b)', note: "policy scope excludes admin passwords"}

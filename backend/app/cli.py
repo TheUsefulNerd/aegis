@@ -151,6 +151,9 @@ def verify(args) -> int:
     data = json.load(open(args.attestation, encoding="utf-8"))
     items = data if isinstance(data, list) else [data]
     key = open(args.key, encoding="utf-8").read() if args.key else None
+    if not items:
+        print("no attestations in file")
+        return 1  # an empty file verifies nothing (final review)
     ok = True
     for a in items:
         r = signing.verify(a, key)

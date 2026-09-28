@@ -37,10 +37,22 @@ def split_into_units(raw_text: str, fmt: str) -> list:
     if fmt == "xml":
         return _flatten_xml(raw_text)
     if _BRACE_BLOCK_RE.search(raw_text):
-        return _flatten_braces(raw_text)
+        return _drop_deactivated(_flatten_braces(raw_text))
     if _CONFIG_BLOCK_RE.search(raw_text):
         return _flatten_config_blocks(raw_text)
-    return _split_cli(raw_text)
+    return _drop_deactivated(_split_cli(raw_text))
+
+
+def _drop_deactivated(units: list) -> list:
+    """Junos set-style `deactivate <path>`: the statements under that path
+    stay in the config but are NOT applied, so they must not count as
+    evidence (final review: `deactivate system services ssh root-login`
+    left root-login deny passing a STIG check)."""
+    paths = [u[len("deactivate "):].strip() for u in units if u.startswith("deactivate ")]
+    if not paths:
+        return units
+    return [u for u in units
+            if not any(u == "set " + q or u.startswith("set " + q + " ") for q in paths)]
 
 
 # Block-structured CLI dialects, flattened generically (no vendor names in
@@ -54,18 +66,26 @@ _CONFIG_BLOCK_RE = re.compile(r"^\s*config\s+\S+.*$\n(?:.*\n)*?^\s*end\s*$", re.
 def _flatten_braces(raw_text: str) -> list:
     """`a { b { c d; } }` -> ["set a b c d"], the same form as set-style
     exports, so one set of patterns covers both."""
-    units, stack = [], []
+    # `inactive:` marks a statement or a whole block the device does not
+    # apply; nothing under it counts as evidence (final review found
+    # inactive root-login / syslog statements passing STIG checks).
+    units, stack, inactive = [], [], []
     for line in raw_text.splitlines():
         t = line.strip()
         if not t or t.startswith(("#", "/*", "*", "//")):
             continue
+        off = t.startswith("inactive:")
         t = re.sub(r"^(inactive|protect):\s*", "", t)
         t = re.sub(r"\s*##.*$", "", t)  # Junos trailing annotations (`## SECRET-DATA`)
         if t.endswith("{"):
             stack.append(t[:-1].strip())
+            inactive.append(off or (bool(inactive) and inactive[-1]))
         elif t.startswith("}"):
             if stack:
                 stack.pop()
+                inactive.pop()
+        elif off or (inactive and inactive[-1]):
+            continue
         else:
             leaf = t[:-1].strip() if t.endswith(";") else t
             if leaf.startswith("set ") and not stack:

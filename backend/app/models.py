@@ -74,6 +74,25 @@ class Device(Base):
     created_at = Column(DateTime, default=dt.datetime.utcnow)
 
 
+class EvaluationRun(Base):
+    """One compliance check exactly as it was run - findings, counts, rule-set
+    hash and the signed attestation - written once and never updated. A
+    device's live findings are replaced on every re-check; this table is
+    what lets an auditor reopen the report they signed off on weeks ago."""
+    __tablename__ = "evaluation_runs"
+
+    id = Column(String, primary_key=True, default=_id)
+    device_id = Column(String, ForeignKey("devices.id"), nullable=False)
+    config_id = Column(String, nullable=False)
+    framework = Column(String, nullable=True)
+    trigger = Column(String, nullable=False)  # "evaluate" | "report"
+    created_at = Column(DateTime, default=dt.datetime.utcnow)
+    counts = Column(JSON, nullable=False)
+    integrity = Column(JSON, nullable=False)
+    findings = Column(JSON, nullable=False)
+    attestation = Column(JSON, nullable=True)
+
+
 class CanonicalConfig(Base):
     __tablename__ = "canonical_configs"
 

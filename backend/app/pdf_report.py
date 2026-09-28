@@ -72,13 +72,15 @@ def generate(
     framework_label: str | None = None,
     report_id: str | None = None,
     tz_name: str | None = None,
+    generated_at: dt.datetime | None = None,
 ) -> bytes:
     # Stamped in the viewer's own clock, not the server's - the frontend
     # passes its browser-detected IANA zone (Intl.DateTimeFormat().resolvedOptions().timeZone),
     # so no IP/location lookup is ever involved. Falls back to IST since
     # that's this team's own timezone and the most likely default deployment.
     zone = _resolve_zone(tz_name)
-    generated_at = dt.datetime.now(zone)
+    # A past run is re-issued with its own timestamp, not today's.
+    generated_at = generated_at.astimezone(zone) if generated_at else dt.datetime.now(zone)
     tz_label = generated_at.tzname() or getattr(zone, "key", "IST")
     rid = f"AEGIS-{(report_id or evaluation.get('config_id') or '00000000')[:8].upper()}"
     _current_report_meta["report_id"] = rid

@@ -252,6 +252,12 @@ line_scoped:
 
 # Line presence decides these (vendor_defaults unit_facts).
 unit_facts:
+  # `no logging on` stops every syslog destination, whatever hosts are
+  # listed (final review: two `logging host` lines still passed V-220139).
+  - {field: AU.logging_host, value: [], any: '^no logging on$', note: "no logging on disables all syslog output"}
+  # NTP authentication means keys, not the switch alone: a key, a trusted
+  # key and a server that uses one (DISA V-215843; final review).
+  - {field: AU.ntp_keys_configured, value: true, all: ['^ntp authentication-key \d+ ', '^ntp trusted-key \d+', '^ntp server .*\bkey \d+'], note: "authentication key, trusted key and a keyed server"}
   - {field: SC.http_mgmt_enabled, value: true, any: '^ip http (secure-)?server$'}
   - {field: SC.http_mgmt_enabled, value: false, all: ['^no ip http server$', '^no ip http secure-server$']}
   - {field: SC.ipv6_site_local_used, value: true, any: '^ipv6 address [fF][eE][c-fC-F][0-9a-fA-F]?:'}

@@ -12,7 +12,7 @@ from . import audit_chain, catalog_rules, vendor_defaults, redaction, fingerprin
 from .canonical_schema import CANONICAL_FIELDS, FIELD_METADATA, NOT_SECURITY
 from .db import get_db, init_db
 from .llm_client import langfuse
-from .models import CanonicalConfig, Device, Finding, KnowledgeBaseEntry, ReviewQueueItem, Rule, VendorSignature
+from .models import CanonicalConfig, Device, EvaluationRun, Finding, KnowledgeBaseEntry, ReviewQueueItem, Rule, VendorSignature
 from .rules_loader import load_rule_files
 from .seed_loader import load_seed_kb
 from .schemas import ConfirmMapping, NameVendor, RejectMapping
@@ -630,12 +630,81 @@ def list_frameworks(db: Session = Depends(get_db)):
     return sorted(r[0] for r in rows)
 
 
+def _record_run(config: CanonicalConfig, evaluation: dict, framework: str | None, trigger: str,
+                db: Session) -> EvaluationRun:
+    """Freeze this evaluation as an immutable run with its signed attestation."""
+    att = evaluation.get("attestation") or _attestation(config, evaluation, db)
+    run = EvaluationRun(device_id=config.device_id, config_id=config.id, framework=framework, trigger=trigger,
+                        counts=evaluation["counts"], integrity=evaluation["integrity"],
+                        findings=evaluation["findings"], attestation=att)
+    db.add(run)
+    db.commit()
+    return run
+
+
 @app.post("/configs/{config_id}/evaluate")
 def evaluate_config(config_id: str, framework: str | None = None, db: Session = Depends(get_db)):
     config = db.get(CanonicalConfig, config_id)
     if config is None:
         raise HTTPException(404, "config not found")
-    return _run_evaluation(config, db, framework=framework)
+    evaluation = _run_evaluation(config, db, framework=framework)
+    run = _record_run(config, evaluation, framework, "evaluate", db)
+    return {**evaluation, "run_id": run.id}
+
+
+@app.get("/devices/{device_id}/runs")
+def list_runs(device_id: str, db: Session = Depends(get_db)):
+    """Every past compliance check of a device, newest first."""
+    runs = (db.query(EvaluationRun).filter(EvaluationRun.device_id == device_id)
+            .order_by(EvaluationRun.created_at.desc()).all())
+    return [{"run_id": r.id, "created_at": r.created_at.isoformat() + "Z", "framework": r.framework,
+             "trigger": r.trigger, "counts": r.counts, "findings_sha256": r.integrity.get("findings_sha256"),
+             "signed": bool(r.attestation)} for r in runs]
+
+
+@app.get("/runs/{run_id}")
+def get_run(run_id: str, db: Session = Depends(get_db)):
+    """A past run exactly as it was: findings, counts, rule-set hash, signed attestation."""
+    run = db.get(EvaluationRun, run_id)
+    if run is None:
+        raise HTTPException(404, "run not found")
+    return {"run_id": run.id, "device_id": run.device_id, "config_id": run.config_id,
+            "created_at": run.created_at.isoformat() + "Z", "framework": run.framework, "trigger": run.trigger,
+            "counts": run.counts, "integrity": run.integrity, "findings": run.findings,
+            "attestation": run.attestation}
+
+
+@app.get("/runs/{run_id}/report.pdf")
+def past_report(run_id: str, tz: str | None = None, db: Session = Depends(get_db)):
+    """Re-issue a past report from its stored findings - never re-evaluated
+    with today's rules or today's knowledge base."""
+    run = db.get(EvaluationRun, run_id)
+    if run is None:
+        raise HTTPException(404, "run not found")
+    device = db.get(Device, run.device_id)
+    config = db.get(CanonicalConfig, run.config_id)
+    evaluation = {"config_id": run.config_id, "device_id": run.device_id, "vendor": config.vendor if config else None,
+                  "counts": run.counts, "integrity": run.integrity, "findings": run.findings,
+                  "attestation": run.attestation,
+                  "counts_by_severity": _counts_by_severity(run.findings)}
+    pdf_bytes = pdf_report.generate(
+        device={"hostname": device.hostname if device else None, "vendor": evaluation["vendor"],
+                "model": device.model if device else None,
+                "firmware_version": device.firmware_version if device else None,
+                "serial_number": device.serial_number if device else None,
+                "input_sha256": device.input_sha256 if device else None},
+        evaluation=evaluation, framework_label=run.framework or "All loaded frameworks",
+        report_id=run.config_id, tz_name=tz, generated_at=run.created_at.replace(tzinfo=dt.timezone.utc))
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="aegis-report-{run.id[:8]}.pdf"',
+                             "X-AEGIS-Run": run.id})
+
+
+def _counts_by_severity(findings: list) -> dict:
+    out: dict = {}
+    for f in findings:
+        out.setdefault(f["severity"], {"PASS": 0, "FAIL": 0, "NOT_EVALUATED": 0})[f["result"]] += 1
+    return out
 
 
 def _attestation(config: CanonicalConfig, evaluation: dict, db: Session) -> dict:
@@ -685,6 +754,7 @@ def download_report(
 
     evaluation = _run_evaluation(config, db, framework=framework)
     evaluation["attestation"] = _attestation(config, evaluation, db)
+    run = _record_run(config, evaluation, framework, "report", db)
     pdf_bytes = pdf_report.generate(
         device={
             "hostname": device.hostname if device else None,
@@ -707,7 +777,7 @@ def download_report(
         # URL directly in an <iframe> as an on-screen preview; the frontend's
         # explicit "Download" button still forces a real save via a
         # fetch-as-blob helper, independent of this header.
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={"Content-Disposition": f'inline; filename="{filename}"', "X-AEGIS-Run": run.id},
     )
 
 

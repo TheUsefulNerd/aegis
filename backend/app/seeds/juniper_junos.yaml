@@ -65,6 +65,9 @@ entries:
   - {syntax_pattern: '^set version (\d|1[01])\.\d', pattern_type: regex, canonical_field: CM.os_min_version_met, value: false}
   # Known non-security structure: instant, no AI call, no review item.
   - {syntax_pattern: '^set version ', pattern_type: regex, canonical_field: NOT_SECURITY}
+  # `deactivate <path>` is applied by units.py (the statements under it are
+  # dropped as evidence); the line itself is not a setting.
+  - {syntax_pattern: '^deactivate ', pattern_type: regex, canonical_field: NOT_SECURITY}
   # Found by the live held-out run, where the AI misread both:
   # an SNMP trap target is not a syslog destination, and a zone's
   # host-inbound-traffic only admits traffic to services that `system

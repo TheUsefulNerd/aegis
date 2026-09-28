@@ -8,15 +8,16 @@
 # Everything not listed is reported as manual review.
 #
 # Each mapping was checked against the rule's DISA check text (2026-09-27),
-# quoted in `note`. Rules left out on purpose, although a draft proposed them:
-#   V-215833  Cisco 5-min timeout on ALL management lines incl. console; only
-#             VTY blocks are scoped, so a console at 0 could hide -> false PASS
+# quoted in `note`. Still left out on purpose:
 #   V-223231  Juniper per-class idle-timeout: a class with no timeout line
 #             can hide behind a compliant one -> false PASS
-#   V-234213, V-234214  FortiGate admintimeout: check says exactly 10
-#   V-234183  FortiGate NTP: ntpsync / type custom not checked -> false PASS
-#   V-223181..184, V-223192, V-223193  Juniper change-log to an external host:
-#             that line already sets AU.logging_host (one field per line)
+# Rejected in the first round (2026-09-27) and mapped in the second (09-28)
+# once the missing mechanism existed - each is now checked as DISA writes it:
+#   V-215833  console AND every VTY line scoped (a missing line = 10-min default)
+#   V-234213, V-234214  FortiGate admintimeout exactly 10 (FAIL-only default 5)
+#   V-234183  FortiGate NTP: >= 2 servers AND type custom AND ntpsync enable
+#   V-223181..184, V-223192, V-223193  Juniper change-log to an external host
+#             (read with unit_facts, so the line's AU.logging_host is kept)
 # FortiGate password rules require `set status enable` explicitly: the policy is
 # disabled by default, and sub-options can be present while it is off
 # (second review: a disabled policy with minimum-length 15 passed).
@@ -161,13 +162,21 @@ benchmarks:
       check_sha: 8551e44b3c414696
       note: 'check text: ''ntp server x.x.x.x / ntp server y.y.y.y'' (redundant sources: at least two distinct servers)'
     V-215843:
-      check_type: boolean
+      check_type: compound
       predicate:
-        field: AU.ntp_authentication_enabled
-        equals: true
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.ntp_authentication_enabled
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.ntp_keys_configured
+            equals: true
       check_sha: 1df3a8ac3f66d709
       remediation_template_ref: CIS-2.3.1.1
-      note: 'check text: ''ntp authenticate'' with keyed servers; the key algorithm is not checked'
+      note: 'check text: ''ntp authenticate'' with authentication-key, trusted-key and keyed servers; the key algorithm is not checked'
     V-215844:
       check_type: compound
       predicate:

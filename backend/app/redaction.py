@@ -78,7 +78,10 @@ _RULES = [
     ("CLI_PASSWORD",
      re.compile(r"(?m)^[ \t]*(?:(?:enable|username|ip|neighbor|ppp|l2tp)\b[^\n]*?" + _WS + r")?password"
                 + _WS + _TYPE + r"(" + _CLIVAL + r")"),
-     {"encryption"}, 1),
+     # `{` is the Junos `system login password {` block (the password
+     # policy the STIG requires), not a secret - redacting it broke the
+     # brace nesting of everything after it (final review).
+     {"encryption", "{"}, 1),
     # "public"/"private" are the well-known CIS-flagged DEFAULT community
     # strings (CIS-1.5.2/1.5.3) - not real secrets, so there's nothing to
     # protect by hiding them, and doing so was actively breaking those two

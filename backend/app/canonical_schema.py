@@ -112,6 +112,13 @@ FIELD_METADATA = {
         "label": "Log access restricted",
         "description": "Whether access to stored audit logs and logging configuration is itself restricted to authorized administrators.",
     },
+    "AU.ntp_keys_configured": {
+        "type": "scalar",
+        "value_kind": "bool",
+        "insecure": False,
+        "label": "NTP keys configured",
+        "description": "Whether NTP authentication has a key, a trusted key and at least one server that uses a key.",
+    },
     "AU.ntp_authentication_enabled": {
         "type": "scalar",
         "value_kind": "bool",

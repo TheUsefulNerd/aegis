@@ -75,7 +75,7 @@ backend/
     catalog/            imported DISA STIG releases (stig_sync.py) + sources.yaml
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                295 offline tests (no API keys, LLM/embedder mocked)
+  tests/                304 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -155,7 +155,9 @@ python -m app.cli audit ../samples/heldout/*.cfg --sarif aegis.sarif --attest at
 python -m app.cli verify attestations.json --fingerprint <key fingerprint from GET /signing/public-key>
 ```
 
-`audit` exits 1 on any CAT I failure (`--fail-on CAT_II|CAT_III|none` to change that). The SARIF opens in GitHub code scanning or any SARIF viewer with each finding on its config line. Every PDF report and attestation is signed with the deployment's Ed25519 key (`AEGIS_SIGNING_KEY`, else a key generated on first use). The signed statement covers the input file's SHA-256, the rule-set hash, the findings digest and the head of the human-decision hash chain, so editing a verdict, a rule or a past review decision after the fact is detectable offline. `verify` trusts only the key you pin, not the key embedded in the file.
+`audit` exits 1 on any CAT I failure (`--fail-on CAT_II|CAT_III|none` to change that). The SARIF opens in GitHub code scanning or any SARIF viewer with each finding on its config line. Every PDF report and attestation is signed with the deployment's Ed25519 key (`AEGIS_SIGNING_KEY`, else a key generated on first use). The signed statement covers the input file's SHA-256, the rule-set hash, the findings digest and the head of the human-decision hash chain, so an edit to a verdict, a rule or a past review decision after the fact breaks the signature of the attestation JSON, checkable offline. The PDF prints shortened hashes for readability; the full statement is the attestation (`GET /configs/{id}/attestation`, or the stored run below), not the PDF text alone.
+
+**Past audits are kept, not overwritten.** Every compliance check and every report download is frozen as an immutable run (findings, counts, rule-set hash and the signed attestation). `GET /devices/{id}/runs` lists them, and `GET /runs/{run_id}/report.pdf` re-issues a past report exactly as it was, from the stored findings, never re-evaluated with today's rules or knowledge base. The UI's *Verify signature* checks the signature of the attestation the server issues for the current evaluation. `verify` trusts only the key you pin, not the key embedded in the file.
 
 Measured with free-tier Groq/Gemini: **8-17 s per fresh file** (it was 2-12 minutes before batching), and **about 3 s for a device whose lines AEGIS has already seen**.
 
