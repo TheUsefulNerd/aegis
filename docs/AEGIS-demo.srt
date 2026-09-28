@@ -1,120 +1,96 @@
 1
-00:00:00,500 --> 00:00:05,423
-Meet AEGIS. A compliance auditor for network devices, from any vendor.
+00:00:00,500 --> 00:00:06,970
+Meet AEGIS: compliance audits for network devices, from any vendor. The AI suggests.
 
 2
-00:00:05,723 --> 00:00:09,999
-The AI suggests, humans decide, and rules judge.
+00:00:07,100 --> 00:00:09,829
+Humans decide. Rules judge.
 
 3
-00:00:10,967 --> 00:00:15,716
-Three devices are already here: a pfSense firewall, a SONiC switch,
+00:00:10,429 --> 00:00:13,157
+Let's upload a Cisco router's configuration.
 
 4
-00:00:15,716 --> 00:00:18,591
-and an Arista router AEGIS has never seen before.
+00:00:13,507 --> 00:00:16,672
+Before any AI sees it, secrets are removed,
 
 5
-00:00:18,941 --> 00:00:20,858
-Now, let's bring in a Cisco router.
+00:00:16,722 --> 00:00:19,789
+and any text aimed at the AI is quarantined.
 
 6
-00:00:21,058 --> 00:00:24,742
-One unified parser handles any vendor, and any format.
+00:00:20,139 --> 00:00:23,161
+Six secrets were hidden. They are never stored.
 
 7
-00:00:25,092 --> 00:00:28,296
-Before anything else runs, secrets are redacted,
+00:00:23,511 --> 00:00:28,860
+Now, the verdict. It comes only from cited rules, never from the AI.
 
 8
-00:00:28,346 --> 00:00:31,908
-and any text that tries to talk to the AI is quarantined.
+00:00:29,709 --> 00:00:32,815
+Every finding shows its evidence, and how it was decided.
 
 9
-00:00:32,208 --> 00:00:36,786
-Known lines match instantly; the rest go to the AI, in parallel batches.
+00:00:33,165 --> 00:00:38,443
+A setting the config never mentions is reported as unknown. Never a silent pass.
 
 10
-00:00:36,986 --> 00:00:38,679
-Seconds, not minutes.
+00:00:38,793 --> 00:00:41,691
+Lines AEGIS can't read go to a human reviewer.
 
 11
-00:00:39,029 --> 00:00:43,751
-Six secrets, hidden before any AI saw the file. And never stored.
+00:00:43,585 --> 00:00:48,040
+The reviewer maps this policy tag to logging enabled, and adds a note.
 
 12
-00:00:44,101 --> 00:00:46,658
-Everything maps onto one vendor-neutral model.
+00:00:51,846 --> 00:00:53,125
+One confirmation,
 
 13
-00:00:47,008 --> 00:00:52,326
-Now, the verdict. Pass or fail comes only from cited benchmark rules.
+00:00:54,566 --> 00:00:57,540
+and it becomes a permanent, hash-chained decision.
 
 14
-00:00:52,476 --> 00:00:54,375
-The AI plays no part here.
+00:00:57,890 --> 00:01:03,444
+Next, a misconfigured router. It carries the same line, and a hidden attack.
 
 15
-00:00:54,725 --> 00:00:59,406
-Every finding shows how it was decided. And if the config never mentions a setting,
+00:01:03,794 --> 00:01:06,641
+The injection is blocked before any AI call.
 
 16
-00:00:59,406 --> 00:01:02,572
-it's reported as unknown. Never a silent pass.
+00:01:12,562 --> 00:01:15,221
+The taught line is now recognized instantly.
 
 17
-00:01:02,922 --> 00:01:08,372
-Anything the AI is unsure of goes to a human. Like this undocumented policy tag.
+00:01:15,671 --> 00:01:19,543
+And this access list allows everything before it denies telnet.
 
 18
-00:01:08,722 --> 00:01:12,996
-The reviewer maps it once: logging enabled, with a note for the auditor.
+00:01:19,693 --> 00:01:23,187
+AEGIS catches the dead rule, and shows the exact fix.
 
 19
-00:01:13,346 --> 00:01:19,173
-One explicit check, and it becomes a permanent pattern. No retraining. No redeploy.
+00:01:23,537 --> 00:01:25,104
+Every report is signed.
 
 20
-00:01:19,523 --> 00:01:22,916
-Next, a misconfigured router, with the same line.
+00:01:29,242 --> 00:01:32,001
+One click verifies that nothing was changed.
 
 21
-00:01:23,689 --> 00:01:28,059
-But this one hides an attack: a description telling the AI to answer pass.
-
-22
-00:01:28,409 --> 00:01:31,501
-The sanity gate blocks it, before any AI call.
-
-23
-00:01:34,798 --> 00:01:38,997
-The line we taught is now recognized instantly, so logging passes.
-
-24
-00:01:39,397 --> 00:01:43,820
-And look at this access list: it permits everything before denying telnet.
-
-25
-00:01:44,020 --> 00:01:47,495
-AEGIS catches that dead rule, and gives the exact fix.
-
-26
-00:01:48,129 --> 00:01:50,469
-Every device gets a clear PDF report,
-
-27
-00:01:50,519 --> 00:01:53,968
-signed, so any later edit to a verdict is detectable.
-
-28
-00:01:55,090 --> 00:01:57,654
+00:01:32,351 --> 00:01:35,061
 Insights show how every finding was decided,
 
-29
-00:01:57,754 --> 00:02:00,853
+22
+00:01:36,879 --> 00:01:40,146
 and how much of each official STIG benchmark is automated.
 
-30
-00:02:01,553 --> 00:02:05,282
-AEGIS supports the auditor. It never takes the decision.
+23
+00:01:40,846 --> 00:01:43,198
+We locked our answer key before the test.
+
+24
+00:01:43,398 --> 00:01:48,317
+On real configs it had never seen, AEGIS gave zero false passes.
 
