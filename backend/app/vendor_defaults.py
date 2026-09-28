@@ -20,6 +20,19 @@ setting. Data, not code - each seeds/<vendor>.yaml may carry:
         value: false
         lines: '^system interface edit \\S+ (ipv6 )?set (ip6-)?allowaccess '
         none_match: '\\btelnet\\b'
+    unit_facts:                      # a line present anywhere decides a field
+      - {field: SC.web_management_enabled, value: true, any: '^set system services web-management\\b'}
+      - {field: SC.http_mgmt_enabled, value: false, all: ['^no ip http server$', '^no ip http secure-server$']}
+    entry_scoped:                    # every table entry must carry the lines (full export only)
+      - field: IA.ldap_uses_ldaps
+        entry: '^user ldap edit (\\S+) '
+        require: ['^set secure ldaps\\b']
+
+interface_defaults entries may also carry `when_missing: unknown` (for checks
+on "all EXTERNAL interfaces": AEGIS can't tell which interfaces are external,
+so every interface compliant is a PASS, and any interface at the default is
+unknown rather than a FAIL), `skip_if` (a line that makes the entry moot,
+e.g. `no cdp run`) and `require_block` (a block that must exist, e.g. Null0).
 
 A default fills a field only when no line in the config set it, only for a
 high-confidence fingerprint (a full export, not a fragment), and it is
@@ -43,7 +56,7 @@ def _load() -> dict:
     for path in sorted(glob.glob(os.path.join(_SEEDS_DIR, "*.yaml"))):
         with open(path, "r", encoding="utf-8") as f:
             doc = yaml.safe_load(f) or {}
-        keys = ("defaults", "interface_defaults", "line_scoped", "absent_facts")
+        keys = ("defaults", "interface_defaults", "line_scoped", "absent_facts", "unit_facts", "entry_scoped")
         if any(doc.get(k) for k in keys) or doc.get("acl_bindings"):
             out[doc["vendor"]] = {**{k: doc.get(k) or [] for k in keys}, "acl_bindings": doc.get("acl_bindings")}
     return out
@@ -138,16 +151,77 @@ def apply(vendor: str, confidence: str, raw_text: str, fields: dict, provenance:
                                   "source_unit": f"all {len(lines)} such lines omit it, e.g. {lines[0]}",
                                   "all_sources": lines, "note": d.get("note")}
         filled.append(d["field"])
+    for d in spec["unit_facts"]:
+        # Positive evidence from a line anywhere in the file (or from every
+        # line of a set being present). The first fact that holds for a field
+        # decides it; list them insecure-first.
+        field = d["field"]
+        if field in filled:
+            continue
+        us = units or []
+        if "any" in d:
+            hits = [u for u in us if re.match(d["any"], u)]
+        else:
+            per = [[u for u in us if re.match(rx, u)] for rx in d["all"]]
+            hits = [h[0] for h in per] if all(per) else []
+        if not hits:
+            continue
+        fields[field] = d["value"]
+        provenance[field] = {"confidence_tier": "tier1", "kb_entry_id": None, "kb_entry_version": None,
+                             "source_unit": hits[0], "all_sources": hits, "note": d.get("note")}
+        filled.append(field)
+    for d in spec["entry_scoped"] if confidence == "high" else []:
+        # Every entry of a table (each LDAP server, each SNMPv3 user) must
+        # carry the required lines; one entry without them decides the field.
+        rx = re.compile(d["entry"])
+        entries: dict = {}
+        for u in units or []:
+            m = rx.match(u)
+            if m:
+                entries.setdefault(m.group(1), []).append(u[m.end():])
+        if not entries:
+            continue
+        bad = [e for e, lines in entries.items()
+               if not all(any(re.match(req, l) for l in lines) for req in d["require"])]
+        field = d["field"]
+        fields[field] = not bad
+        if bad:
+            provenance[field] = _default_prov(f"{d.get('label', 'entry')} {bad[0]}: required setting not set",
+                                              [f"{e}: required setting not set" for e in bad], d.get("note"))
+        else:
+            src = [u for u in units if rx.match(u) and any(re.match(req, u[rx.match(u).end():]) for req in d["require"])]
+            provenance[field] = {"confidence_tier": "tier1", "kb_entry_id": None, "kb_entry_version": None,
+                                 "source_unit": src[0], "all_sources": src, "note": d.get("note")}
+        filled.append(field)
     for d in spec["interface_defaults"]:
         if d.get("only_if") and not re.search(d["only_if"], raw_text, re.M):
+            continue
+        if d.get("skip_if") and re.search(d["skip_if"], raw_text, re.M):
+            continue
+        field = d["field"]
+        unknown_if_missing = d.get("when_missing") == "unknown"
+        if d.get("require_block") and not re.search(d["require_block"], raw_text, re.M):
+            if unknown_if_missing:
+                fields.pop(field, None)
+                provenance.pop(field, None)
             continue
         blocks = [b for b in _interface_blocks(raw_text, d.get("block") or r"^interface\s+\S+")
                   if not (d.get("skip") and re.match(d["skip"], b[0]))]
         if not blocks:
+            if unknown_if_missing:  # a stray line without its blocks proves nothing
+                fields.pop(field, None)
+                provenance.pop(field, None)
             continue
         unless = re.compile(d["unless"])
         at_default = [hdr for hdr, body in blocks if not any(unless.match(l) for l in body)]
-        field = d["field"]
+        if at_default and unknown_if_missing:
+            # Some interface lacks the line and AEGIS can't tell whether it is
+            # external: unknown, and partial per-line evidence must not stand.
+            fields.pop(field, None)
+            provenance.pop(field, None)
+            continue
+        if not at_default and unknown_if_missing:
+            fields.pop(field, None)  # every block complies: this entry owns the field
         if at_default:
             # At least one interface is left at the default: that is the
             # device's real posture, whatever other interfaces say.

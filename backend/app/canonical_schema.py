@@ -277,6 +277,192 @@ FIELD_METADATA = {
         "label": "SSH ciphers restricted to FIPS AES",
         "description": "Whether the SSH server is explicitly restricted to FIPS-approved AES ciphers (no 3DES, ChaCha20 or other non-approved cipher).",
     },
+    # Added 2026-09-28 for more imported DISA STIG rules (rules/stig_catalog_map.yaml).
+    "SC.icmp_redirects_all_disabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "ICMP redirects off on every interface",
+        "description": "Whether every interface explicitly disables ICMP redirects (no ip redirects).",
+    },
+    "SC.icmp_unreachables_all_disabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "ICMP unreachables off on every interface",
+        "description": "Whether every interface, including Null0, explicitly disables ICMP unreachable messages.",
+    },
+    "SC.proxy_arp_all_disabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Proxy ARP off on every interface",
+        "description": "Whether every (non-loopback) interface explicitly disables proxy ARP, so every external one does too.",
+    },
+    "SC.external_interface_lldp": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "LLDP on external interfaces",
+        "description": "Whether LLDP may transmit on interfaces facing outside the organization's network.",
+    },
+    "SC.gratuitous_arp_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "Gratuitous ARP",
+        "description": "Whether the device sends gratuitous ARPs (enabled and disabled globally on IOS).",
+    },
+    "SC.ip_directed_broadcast": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "IP directed broadcast",
+        "description": "Whether any interface forwards IP directed broadcasts (a smurf-attack amplifier).",
+    },
+    "SC.cef_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Cisco Express Forwarding",
+        "description": "Whether CEF is enabled (resilience against high-rate traffic that would otherwise be process-switched).",
+    },
+    "SC.auto_config_features": {
+        "type": "list",
+        "label": "Auto-configuration / zero-touch features",
+        "description": "Configuration auto-loading or zero-touch deployment features found (service config, boot network, CNS).",
+    },
+    "SC.nonsecure_services": {
+        "type": "list",
+        "label": "Unnecessary or nonsecure services",
+        "description": "Legacy services found enabled (finger, small servers, bootp server, HTTP server, rcmd, ...).",
+    },
+    "SC.aux_port_exec_disabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Auxiliary port disabled",
+        "description": "Whether the auxiliary line explicitly disables EXEC (no exec).",
+    },
+    "SC.ipv6_site_local_used": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "IPv6 site-local addresses",
+        "description": "Whether any deprecated IPv6 site-local (FEC0::/10) address is configured.",
+    },
+    "AU.log_timestamps": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Date/time stamps on log records",
+        "description": "Whether log records carry the date and time (not just uptime).",
+    },
+    "AU.login_failure_logging": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Failed logons logged",
+        "description": "Whether unsuccessful logon attempts generate audit records.",
+    },
+    "AU.login_success_logging": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Successful logons logged",
+        "description": "Whether successful logons generate audit records.",
+    },
+    "AU.logging_trap_level": {
+        "type": "scalar", "value_kind": "number", "worse": "lower",
+        "label": "Syslog severity sent to the log server",
+        "description": "Most detailed syslog severity level sent to remote hosts (0 emergencies ... 7 debugging; -1 = off).",
+    },
+    "AC.mgmt_line_timeout_minutes": {
+        "type": "scalar", "value_kind": "number", "worse": "higher_or_zero",
+        "label": "Idle timeout on every management line",
+        "description": "Longest idle timeout across the console and VTY lines (0 = never).",
+    },
+    "SC.http_mgmt_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "HTTP(S) management server",
+        "description": "Whether the device's HTTP or HTTPS management server is enabled.",
+    },
+    "AC.http_idle_timeout_seconds": {
+        "type": "scalar", "value_kind": "number", "worse": "higher_or_zero",
+        "label": "HTTP management idle timeout",
+        "description": "Idle timeout, in seconds, of HTTP(S) management sessions.",
+    },
+    "IA.ssh_root_login_denied": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Root login over SSH denied",
+        "description": "Whether SSH logon as root is denied outright.",
+    },
+    "SC.ssh_tcp_forwarding_disabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "SSH TCP forwarding disabled",
+        "description": "Whether TCP port forwarding through the SSH server is disabled.",
+    },
+    "SC.web_management_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "Web management (J-Web) enabled",
+        "description": "Whether a web-management service stanza is configured.",
+    },
+    "SC.ftp_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": True,
+        "label": "FTP service",
+        "description": "Whether the FTP management service is enabled.",
+    },
+    "CM.config_rollbacks": {
+        "type": "scalar", "value_kind": "number", "worse": "lower",
+        "label": "Stored configuration rollbacks",
+        "description": "How many previous configurations the device keeps for rollback.",
+    },
+    "AU.timezone_utc": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Time zone is UTC",
+        "description": "Whether the device clock (and so log time stamps) is set to UTC/GMT.",
+    },
+    "AC.ssh_connection_limit": {
+        "type": "scalar", "value_kind": "number", "worse": "higher_or_zero",
+        "label": "Concurrent SSH session limit",
+        "description": "Maximum number of simultaneous SSH management sessions.",
+    },
+    "AU.remote_syslog_changelog": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Configuration changes sent to a log server",
+        "description": "Whether an external syslog host receives change-log (or all) events at severity info or more detailed.",
+    },
+    "AU.remote_syslog_all_info": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "All events at info sent to a log server",
+        "description": "Whether an external syslog host receives facility any at severity info or more detailed.",
+    },
+    "AU.remote_syslog_all_any": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "All events at every severity sent to a log server",
+        "description": "Whether an external syslog host receives facility any, severity any.",
+    },
+    "AU.local_syslog_all_any": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "All events at every severity kept locally",
+        "description": "Whether a local syslog file captures facility any, severity any.",
+    },
+    "SC.snmpv3_auth_sha2": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Every SNMPv3 user authenticates with SHA-2",
+        "description": "Whether every configured SNMPv3 user authenticates with SHA-256 or stronger.",
+    },
+    "SC.snmpv3_priv_aes": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Every SNMPv3 user encrypts with AES",
+        "description": "Whether every configured SNMPv3 user uses AES privacy (encryption).",
+    },
+    "AC.login_lockout_seconds": {
+        "type": "scalar", "value_kind": "number", "worse": "lower",
+        "label": "Account lockout duration",
+        "description": "How long, in seconds, an account stays locked after too many failed logons.",
+    },
+    "SC.fips_mode_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "FIPS mode",
+        "description": "Whether the device runs in FIPS-CC mode (FIPS-validated cryptography only).",
+    },
+    "IA.ldap_uses_ldaps": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "Every LDAP server uses LDAPS",
+        "description": "Whether every configured LDAP authentication server connects over LDAPS.",
+    },
+    "AU.ntp_custom_servers": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "NTP uses the configured servers",
+        "description": "Whether NTP synchronizes with the explicitly configured servers (FortiOS type custom), not a vendor default pool.",
+    },
+    "CM.os_min_version_met": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "OS release at or above the STIG minimum",
+        "description": "Whether the configuration's software release is at least the STIG's minimum (Junos 12.1X46).",
+    },
+    "AU.ntp_sync_enabled": {
+        "type": "scalar", "value_kind": "bool", "insecure": False,
+        "label": "NTP synchronization enabled",
+        "description": "Whether clock synchronization over NTP is switched on.",
+    },
 }
 
 # Pseudo-field for KB patterns that mean "this line is not a security

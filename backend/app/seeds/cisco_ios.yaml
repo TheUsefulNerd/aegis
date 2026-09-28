@@ -180,6 +180,33 @@ entries:
   - {syntax_pattern: '^ip ssh server algorithm mac ', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
   - {syntax_pattern: '^ip ssh server algorithm encryption( (aes(128|192|256)-(ctr|cbc)|aes(128|256)-gcm(@openssh\.com)?))+$', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: true}
   - {syntax_pattern: '^ip ssh server algorithm encryption ', pattern_type: regex, canonical_field: SC.ssh_ciphers_fips_only, value: false}
+  # 2026-09-28, more STIG rules (RTR V3R5 / NDM V3R7 check text).
+  - {syntax_pattern: '^no ip gratuitous-arps$', pattern_type: regex, canonical_field: SC.gratuitous_arp_enabled, value: false}
+  - {syntax_pattern: '^ip gratuitous-arps\b', pattern_type: regex, canonical_field: SC.gratuitous_arp_enabled, value: true}
+  - {syntax_pattern: '^ip directed-broadcast\b', pattern_type: regex, canonical_field: SC.ip_directed_broadcast, value: true}
+  - {syntax_pattern: '^no ip cef$', pattern_type: regex, canonical_field: SC.cef_enabled, value: false}
+  - {syntax_pattern: '^ip cef\b', pattern_type: regex, canonical_field: SC.cef_enabled, value: true}
+  - {syntax_pattern: '^(service config|boot network \S+|cns (?:config|exec|image|trusted-server)\b.*)$', pattern_type: regex, canonical_field: SC.auto_config_features, value: "$1"}
+  - {syntax_pattern: '^(ip boot server|ip bootp server|ip dns server|ip identd|ip finger|ip http server|ip rcmd r(?:cp|sh)-enable|service finger|service (?:tcp|udp)-small-servers)\b', pattern_type: regex, canonical_field: SC.nonsecure_services, value: "$1"}
+  # Per-interface lines: vendor_defaults (interface_defaults below) decides
+  # the field from every interface; these only record the evidence lines.
+  - {syntax_pattern: '^no ip redirects$', pattern_type: regex, canonical_field: SC.icmp_redirects_all_disabled, value: true}
+  - {syntax_pattern: '^no ip unreachables$', pattern_type: regex, canonical_field: SC.icmp_unreachables_all_disabled, value: true}
+  - {syntax_pattern: '^no lldp run$', pattern_type: regex, canonical_field: SC.external_interface_lldp, value: false}
+  - {syntax_pattern: '^service timestamps log datetime\b', pattern_type: regex, canonical_field: AU.log_timestamps, value: true}
+  - {syntax_pattern: '^(service timestamps log uptime\b|no service timestamps( log)?$)', pattern_type: regex, canonical_field: AU.log_timestamps, value: false}
+  - {syntax_pattern: '^login on-failure log\b', pattern_type: regex, canonical_field: AU.login_failure_logging, value: true}
+  - {syntax_pattern: '^login on-success log\b', pattern_type: regex, canonical_field: AU.login_success_logging, value: true}
+  - {syntax_pattern: '^logging trap (emergencies|0)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 0}
+  - {syntax_pattern: '^logging trap (alerts|1)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 1}
+  - {syntax_pattern: '^logging trap (critical|2)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 2}
+  - {syntax_pattern: '^logging trap (errors|3)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 3}
+  - {syntax_pattern: '^logging trap (warnings|4)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 4}
+  - {syntax_pattern: '^logging trap (notifications|5)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 5}
+  - {syntax_pattern: '^logging trap (informational|6)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 6}
+  - {syntax_pattern: '^logging trap (debugging|7)$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: 7}
+  - {syntax_pattern: '^no logging trap$', pattern_type: regex, canonical_field: AU.logging_trap_level, value: -1}
+  - {syntax_pattern: '^ip http timeout-policy idle (\d+)', pattern_type: regex, canonical_field: AC.http_idle_timeout_seconds, value: "$1"}
 
 # What IOS / IOS-XE does when the config is silent (Cisco command references;
 # the CIS benchmark items exist precisely because these defaults are
@@ -198,6 +225,9 @@ defaults:
   - {field: AU.logging_enabled, value: false, note: "archive config-change logging is off by default"}
   - {field: AC.session_idle_timeout_minutes, value: 10, note: "exec-timeout defaults to 10 minutes"}
   - {field: SC.ssh_macs_fips_only, value: false, note: "without ip ssh server algorithm mac, the default MAC list includes hmac-sha1"}
+  - {field: SC.gratuitous_arp_enabled, value: true, note: "gratuitous ARP is enabled globally unless no ip gratuitous-arps"}
+  - {field: AU.login_failure_logging, value: false, note: "login on-failure log is off by default"}
+  - {field: AU.login_success_logging, value: false, note: "login on-success log is off by default"}
 
 # CIS 1.2.8 is about `line vty`: only VTY blocks decide the idle timeout
 # (`exec-timeout 0 0` on the console is a different item), and a VTY block
@@ -213,6 +243,26 @@ line_scoped:
     value_from: '^\s*exec-timeout (\d+)(?:\s+(\d+))?'   # minutes, optional seconds
     default: 10
     note: "only VTY lines count; a VTY block without exec-timeout runs at the 10-minute default"
+  # STIG V-215833 covers every management line, console included.
+  - field: AC.mgmt_line_timeout_minutes
+    block: '^line (con|vty) '
+    value_from: '^\s*exec-timeout (\d+)(?:\s+(\d+))?'
+    default: 10
+    note: "console and VTY lines; a line without exec-timeout runs at the 10-minute default"
+
+# Line presence decides these (vendor_defaults unit_facts).
+unit_facts:
+  - {field: SC.http_mgmt_enabled, value: true, any: '^ip http (secure-)?server$'}
+  - {field: SC.http_mgmt_enabled, value: false, all: ['^no ip http server$', '^no ip http secure-server$']}
+  - {field: SC.ipv6_site_local_used, value: true, any: '^ipv6 address [fF][eE][c-fC-F][0-9a-fA-F]?:'}
+
+# Every ipv6 address line in a full export is shown; none in FEC0::/10.
+absent_facts:
+  - field: SC.ipv6_site_local_used
+    value: false
+    lines: '^ipv6 address [0-9a-fA-F]*:[0-9a-fA-F:]*'
+    none_match: '^ipv6 address [fF][eE][c-fC-F][0-9a-fA-F]?:'
+    note: "no IPv6 address in the site-local FEC0::/10 range"
 
 interface_defaults:
   - field: SC.proxy_arp_enabled
@@ -247,3 +297,54 @@ interface_defaults:
     unless: '^\s*service-policy input \S+'
     unless_text: service-policy input
     note: "a control-plane block without service-policy input polices nothing"
+  # "On all EXTERNAL interfaces" checks (STIG RTR): AEGIS can't tell which
+  # interfaces are external, so every interface compliant is a PASS and any
+  # interface left at the default is unknown (when_missing: unknown), never
+  # a FAIL that might be about an internal interface.
+  - field: SC.icmp_redirects_all_disabled
+    value: false
+    unless: '^\s*no ip redirects\s*$'
+    skip: '^interface (Loopback|Null)'
+    when_missing: unknown
+    note: "every interface disables ICMP redirects"
+  - field: SC.icmp_unreachables_all_disabled
+    value: false
+    unless: '^\s*no ip unreachables\s*$'
+    skip: '^interface Loopback'
+    require_block: '^interface Null0\s*$'
+    when_missing: unknown
+    note: "every interface, Null0 included, disables ICMP unreachables"
+  - field: SC.proxy_arp_all_disabled
+    value: false
+    unless: '^\s*no ip proxy-arp\s*$'
+    skip: '^interface (Loopback|Null|Tunnel|Virtual-Template)'
+    when_missing: unknown
+    note: "every interface disables proxy ARP"
+  # CDP: `no cdp run` turns it off everywhere (the seed line decides);
+  # otherwise every interface needs `no cdp enable`. One interface's
+  # `no cdp enable` used to count for the whole device (found 2026-09-28:
+  # a false PASS of the hand-written STIG V-216675).
+  - field: SC.external_interface_cdp
+    value: true
+    unless: '^\s*no cdp enable\s*$'
+    skip: '^interface (Loopback|Null|Tunnel|Virtual-Template|Vlan)'
+    skip_if: '^no cdp run\s*$'
+    when_missing: unknown
+    note: "CDP runs on every interface without no cdp enable"
+  # LLDP is off unless `lldp run`; once on, it transmits on every interface
+  # without `no lldp transmit`.
+  - field: SC.external_interface_lldp
+    value: true
+    unless: '^\s*no lldp transmit\s*$'
+    skip: '^interface (Loopback|Null|Tunnel|Virtual-Template|Vlan)'
+    only_if: '^lldp run\s*$'
+    when_missing: unknown
+    note: "LLDP transmits on every interface without no lldp transmit"
+  # The aux port: `no exec` disables it; an enabled aux port may be a secured
+  # modem (the STIG allows that), so it is unknown, not a FAIL.
+  - field: SC.aux_port_exec_disabled
+    value: false
+    block: '^line aux '
+    unless: '^\s*no exec\s*$'
+    when_missing: unknown
+    note: "the aux line disables EXEC"

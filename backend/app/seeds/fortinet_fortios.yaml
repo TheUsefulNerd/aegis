@@ -49,6 +49,16 @@ entries:
   - {syntax_pattern: '^system password-policy set min-non-alphanumeric (\d+)', pattern_type: regex, canonical_field: IA.password_min_special, value: "$1"}
   - {syntax_pattern: '^system password-policy set change-8-characters enable\b', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: 8}
   - {syntax_pattern: '^system password-policy set change-8-characters disable\b', pattern_type: regex, canonical_field: IA.password_min_changed_chars, value: 0}
+  # 2026-09-28, more FortiGate NDM STIG rules (V1R5 check text).
+  - {syntax_pattern: '^system global set admin-lockout-threshold (\d+)', pattern_type: regex, canonical_field: AC.login_max_failed_attempts, value: "$1"}
+  - {syntax_pattern: '^system global set admin-lockout-duration (\d+)', pattern_type: regex, canonical_field: AC.login_lockout_seconds, value: "$1"}
+  - {syntax_pattern: '^system fips-cc set status enable\b', pattern_type: regex, canonical_field: SC.fips_mode_enabled, value: true}
+  - {syntax_pattern: '^system fips-cc set status disable\b', pattern_type: regex, canonical_field: SC.fips_mode_enabled, value: false}
+  - {syntax_pattern: '^system ntp set ntpsync enable\b', pattern_type: regex, canonical_field: AU.ntp_sync_enabled, value: true}
+  - {syntax_pattern: '^system ntp set ntpsync disable\b', pattern_type: regex, canonical_field: AU.ntp_sync_enabled, value: false}
+  - {syntax_pattern: '^system ntp set type custom\b', pattern_type: regex, canonical_field: AU.ntp_custom_servers, value: true}
+  - {syntax_pattern: '^system ntp set type fortiguard\b', pattern_type: regex, canonical_field: AU.ntp_custom_servers, value: false}
+  - {syntax_pattern: '^system ntp ntpserver edit \S+ set server "?([\w.:-]+)', pattern_type: regex, canonical_field: AU.ntp_servers, value: "$1"}
 
   - {syntax_pattern: '^access-list fortios-\S+ (permit|deny) ', pattern_type: regex, canonical_field: AC.acl_rules}
   - {syntax_pattern: '^firewall policy edit \S+ set (name|comments|srcintf|dstintf|srcaddr|dstaddr|action|schedule|service|status|nat|logtraffic) ', pattern_type: regex, canonical_field: NOT_SECURITY}
@@ -69,6 +79,25 @@ entries:
 defaults:
   - {field: AU.logging_host, value: [], note: "log syslogd setting is disabled, with no server, by default"}
   - {field: IA.password_policy_enabled, value: false, note: "config system password-policy is disabled by default"}
+  - {field: AC.login_lockout_seconds, value: 60, note: "admin-lockout-duration defaults to 60 seconds"}
+  - {field: AC.session_idle_timeout_minutes, value: 5, note: "admintimeout defaults to 5 minutes"}
+  - {field: SC.fips_mode_enabled, value: false, note: "FIPS-CC mode is disabled by default"}
+  - {field: AU.ntp_custom_servers, value: false, note: "NTP uses the FortiGuard servers (type fortiguard) by default"}
+
+# Every table entry must carry the lines (full export only).
+entry_scoped:
+  - field: IA.ldap_uses_ldaps
+    label: LDAP server
+    entry: '^user ldap edit (\S+) '
+    require: ['^set secure ldaps\b']
+    note: "every LDAP server connects with set secure ldaps"
+  # V-234201: security-level auth (or auth-priv) AND a SHA-2 auth-proto;
+  # the default sha (SHA-1) and no-auth-no-priv are hidden by `show`.
+  - field: SC.snmpv3_auth_sha2
+    label: SNMPv3 user
+    entry: '^system snmp user edit (\S+) '
+    require: ['^set security-level (auth-priv|auth-no-priv)\b', '^set auth-proto sha(256|384|512)\b']
+    note: "every SNMPv3 user authenticates with SHA-256 or stronger"
 
 # Explicit evidence from the whole export: administrative telnet is reachable
 # only through an interface's allowaccess list, so when every allowaccess

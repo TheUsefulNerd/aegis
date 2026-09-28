@@ -1,0 +1,548 @@
+{
+ "summary": {
+  "labelled": 56,
+  "correct": 41,
+  "false_pass": 0,
+  "false_fail": 0,
+  "undecided": 15,
+  "decided": 41,
+  "accuracy_when_decided": 1.0,
+  "coverage": 0.7321,
+  "mode": "ai_off",
+  "labels": "heldout_labels.yaml",
+  "run_at": "2026-09-28T07:44:56"
+ },
+ "rows": [
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.2.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "NIST-AC-17-2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-2.1.1.2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "NIST-SC-8",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.4.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-2.2.4",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.3.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-2.3.1.1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-3.1.1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-2.1.7",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-3.1.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.2.5",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.2.8",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "vendor_default",
+   "evidence": [
+    "line vty 0 2: (not set: cisco_ios default 10)",
+    "line vty 3 5: (not set: cisco_ios default 10)"
+   ]
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.5.2",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-1.5.3",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "STIG-V-216650",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "CIS-SUPPLEMENT-ACL-TELNET",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "tier1",
+   "evidence": [
+    "permit ip 10.1.30.0 0.0.0.255 any",
+    "permit ip host 10.10.30.2 host 10.10.30.1",
+    "permit ip any any",
+    "access-list 2001 permit icmp 10.100.0.0 0.0.255.255 any",
+    "access-list 2001 permit icmp any 10.100.0.0 0.0.255.255"
+   ]
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "ISO-A.8.20",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "tier1",
+   "evidence": [
+    "permit ip 10.1.30.0 0.0.0.255 any",
+    "permit ip host 10.10.30.2 host 10.10.30.1",
+    "permit ip any any",
+    "access-list 2001 permit icmp 10.100.0.0 0.0.255.255 any",
+    "access-list 2001 permit icmp any 10.100.0.0 0.0.255.255"
+   ]
+  },
+  {
+   "device": "heldout_01_cisco_ios_lhr_border_02.cfg",
+   "rule": "NIST-AC-4",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "tier1",
+   "evidence": [
+    "permit ip 10.1.30.0 0.0.0.255 any",
+    "permit ip host 10.10.30.2 host 10.10.30.1",
+    "permit ip any any",
+    "access-list 2001 permit icmp 10.100.0.0 0.0.255.255 any",
+    "access-list 2001 permit icmp any 10.100.0.0 0.0.255.255"
+   ]
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.2.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "NIST-AC-17-2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-2.1.1.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "NIST-SC-8",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.4.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-2.2.4",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.3.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-2.3.1.1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-3.1.1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-2.1.7",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-3.1.2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.2.5",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.2.8",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "vendor_default",
+   "evidence": [
+    "line vty 0 4: (not set: cisco_ios default 10)"
+   ]
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.5.2",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-1.5.3",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "STIG-V-216650",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "CIS-SUPPLEMENT-ACL-TELNET",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "ISO-A.8.20",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "NIST-AC-4",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_02_cisco_ios_as2border1.cfg",
+   "rule": "STIG-V-216662",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_03_junos_set_srx1.cfg",
+   "rule": "NIST-AC-17-2",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_03_junos_set_srx1.cfg",
+   "rule": "NIST-SC-8",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_03_junos_set_srx1.cfg",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_04_junos_qfx5200.conf",
+   "rule": "NIST-AC-17-2",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_04_junos_qfx5200.conf",
+   "rule": "NIST-SC-8",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  },
+  {
+   "device": "heldout_04_junos_qfx5200.conf",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_05_fortigate_fgvm.conf",
+   "rule": "NIST-AC-17-2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_05_fortigate_fgvm.conf",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_05_fortigate_fgvm.conf",
+   "rule": "NIST-AC-4",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "tier1",
+   "evidence": [
+    "access-list fortios-any permit tcp host hosts any eq 80"
+   ]
+  },
+  {
+   "device": "heldout_05_fortigate_fgvm.conf",
+   "rule": "ISO-A.8.20",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": "tier1",
+   "evidence": [
+    "access-list fortios-any permit tcp host hosts any eq 80"
+   ]
+  },
+  {
+   "device": "heldout_06_fortigate_fwf60d.conf",
+   "rule": "NIST-AC-17-2",
+   "expected": "PASS",
+   "got": "PASS",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_06_fortigate_fwf60d.conf",
+   "rule": "NIST-AU-4-1",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "vendor_default",
+   "evidence": null
+  },
+  {
+   "device": "heldout_06_fortigate_fwf60d.conf",
+   "rule": "NIST-AC-4",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_06_fortigate_fwf60d.conf",
+   "rule": "ISO-A.8.20",
+   "expected": "FAIL",
+   "got": "FAIL",
+   "outcome": "correct",
+   "source": "tier1",
+   "evidence": null
+  },
+  {
+   "device": "heldout_07_arista_eos_nyc_leaf_01.txt",
+   "rule": "NIST-AU-4-1",
+   "expected": "PASS",
+   "got": "NOT_EVALUATED",
+   "outcome": "undecided",
+   "source": null,
+   "evidence": []
+  }
+ ]
+}

@@ -50,7 +50,19 @@ entries:
   # One `macs X` line per algorithm in set form; the least secure line wins.
   - {syntax_pattern: '^set system services ssh macs (\[ )?(hmac-sha2-(256|512)(-etm@openssh\.com)? ?)+\]?$', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: true}
   - {syntax_pattern: '^set system services ssh macs ', pattern_type: regex, canonical_field: SC.ssh_macs_fips_only, value: false}
+  # 2026-09-28, more SRX NDM STIG rules (V3R3 check text).
+  - {syntax_pattern: '^set system services ssh root-login deny$', pattern_type: regex, canonical_field: IA.ssh_root_login_denied, value: true}
+  - {syntax_pattern: '^set system services ssh root-login (allow|deny-password)$', pattern_type: regex, canonical_field: IA.ssh_root_login_denied, value: false}
+  - {syntax_pattern: '^set system services ssh no-tcp-forwarding$', pattern_type: regex, canonical_field: SC.ssh_tcp_forwarding_disabled, value: true}
+  - {syntax_pattern: '^set system services ssh allow-tcp-forwarding$', pattern_type: regex, canonical_field: SC.ssh_tcp_forwarding_disabled, value: false}
+  - {syntax_pattern: '^set system services ssh connection-limit (\d+)$', pattern_type: regex, canonical_field: AC.ssh_connection_limit, value: "$1"}
+  - {syntax_pattern: '^set system services ftp\b', pattern_type: regex, canonical_field: SC.ftp_enabled, value: true}
+  - {syntax_pattern: '^set system max-configuration-rollbacks (\d+)$', pattern_type: regex, canonical_field: CM.config_rollbacks, value: "$1"}
 
+  # V-223236: Junos 12.1X46 or later. 13.x+ passes, 11.x and older fails;
+  # 12.x and build strings (e.g. 20200609.165031...) stay unknown.
+  - {syntax_pattern: '^set version (1[3-9]|[2-9]\d)\.\d', pattern_type: regex, canonical_field: CM.os_min_version_met, value: true}
+  - {syntax_pattern: '^set version (\d|1[01])\.\d', pattern_type: regex, canonical_field: CM.os_min_version_met, value: false}
   # Known non-security structure: instant, no AI call, no review item.
   - {syntax_pattern: '^set version ', pattern_type: regex, canonical_field: NOT_SECURITY}
   # Found by the live held-out run, where the AI misread both:
@@ -68,3 +80,36 @@ entries:
 # export, and only ever to FAIL a rule.
 defaults:
   - {field: AU.logging_host, value: [], note: "Junos sends syslog to no remote host unless system syslog host is set"}
+  - {field: IA.ssh_root_login_denied, value: false, note: "root-login defaults to allow (deny-password on newer releases), never deny"}
+  - {field: SC.ssh_tcp_forwarding_disabled, value: false, note: "SSH TCP forwarding is allowed unless no-tcp-forwarding"}
+  - {field: AC.ssh_connection_limit, value: 75, note: "the SSH connection-limit defaults to 75"}
+  - {field: AU.remote_syslog_changelog, value: false, note: "no syslog host by default"}
+  - {field: AU.remote_syslog_all_info, value: false, note: "no syslog host by default"}
+  - {field: AU.remote_syslog_all_any, value: false, note: "no syslog host by default"}
+  - {field: AU.local_syslog_all_any, value: false, note: "the default messages file logs any notice, not any any"}
+
+# A line present anywhere decides these (vendor_defaults unit_facts). Each
+# syslog line is `set system syslog host <addr> <facility> <severity>`; the
+# seed above already turns it into AU.logging_host, and one line resolves to
+# one field, so the facility/severity facts are read here.
+unit_facts:
+  - {field: AU.remote_syslog_changelog, value: true, any: '^set system syslog host \S+ (any|change-log) (info|any)$'}
+  - {field: AU.remote_syslog_all_info, value: true, any: '^set system syslog host \S+ any (info|any)$'}
+  - {field: AU.remote_syslog_all_any, value: true, any: '^set system syslog host \S+ any any$'}
+  - {field: AU.local_syslog_all_any, value: true, any: '^set system syslog file \S+ any any$'}
+  - {field: SC.web_management_enabled, value: true, any: '^set system services web-management\b'}
+  - {field: AU.timezone_utc, value: true, any: '^set system time-zone (UTC|GMT|Etc/UTC|Etc/GMT)$'}
+  - {field: AU.timezone_utc, value: false, any: '^set system time-zone \S+$'}
+
+# Every SNMPv3 user must be configured strongly (full export only).
+entry_scoped:
+  - field: SC.snmpv3_auth_sha2
+    label: SNMPv3 user
+    entry: '^set snmp v3 usm (?:local-engine|remote-engine \S+) user (\S+) '
+    require: ['^authentication-sha(256|384|512)\b']
+    note: "every SNMPv3 user authenticates with SHA-256 or stronger"
+  - field: SC.snmpv3_priv_aes
+    label: SNMPv3 user
+    entry: '^set snmp v3 usm (?:local-engine|remote-engine \S+) user (\S+) '
+    require: ['^privacy-aes128\b']
+    note: "every SNMPv3 user uses AES privacy"

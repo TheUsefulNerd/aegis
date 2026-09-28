@@ -20,6 +20,27 @@
 # FortiGate password rules require `set status enable` explicitly: the policy is
 # disabled by default, and sub-options can be present while it is off
 # (second review: a disabled policy with minimum-length 15 passed).
+# Added 2026-09-28 (checked against each rule's DISA check text):
+#   "on all EXTERNAL interfaces" rules PASS only when EVERY interface complies
+#   (AEGIS can't tell which are external) and are unknown otherwise, never a
+#   FAIL that might be about an internal interface. FAIL-only rules (the
+#   requirement is the absence of a line, so a PASS would rest on a default):
+#   V-216654, V-216649, V-215823, V-223237, V-223209.
+# Rejected on 2026-09-28:
+#   V-216656  ip mask-reply on EXTERNAL interfaces: found on an internal one
+#             would be a false FAIL, and absence is only the default
+#   V-216646  inactive interfaces: which are unused is not in the config
+#   V-215818 / V-216659 / V-216660  log-input on every deny of every applied
+#             ACL: needs an ACL-level predicate the engine does not have yet
+#   V-215855  backup on change: an EEM applet's actions can't be verified
+#   V-215841 / V-215842  SNMPv3 algorithms live in `show snmp user`, not the
+#             config
+#   V-223232 / V-223234 / V-234219  organization-defined values
+#   V-223185 / V-223199 / V-229015  console display settings the check
+#             leaves unspecified
+#   V-234202 / V-234184  runtime (`diagnose sys ntp status`) or GUI-only
+#   V-234211 / V-234212  "the management interface": which one is not in
+#             the config
 # Severity comes from the catalog (high/medium/low -> CAT I/II/III). A failed
 # rule shows its remediation template, or else DISA's own fix text.
 
@@ -203,6 +224,88 @@ benchmarks:
       check_sha: 990cbae544bb4e79
       remediation_template_ref: CIS-2.2.4
       note: 'title: ''at least two syslog servers''; check text: ''logging x.x.x.x / logging x.x.x.x'''
+    V-215817:
+      check_type: boolean
+      predicate:
+        field: AU.log_timestamps
+        equals: true
+      check_sha: 8af821dca6bcbf1a
+      control_family: AU
+      note: 'check text: ''service timestamps log datetime ...'''
+    V-215849:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.login_failure_logging
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.login_success_logging
+            equals: true
+      check_sha: 03e88774fa8d7f88
+      control_family: AU
+      note: 'check text: ''login on-failure log'' AND ''login on-success log'''
+    V-215823:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: SC.nonsecure_services
+            equals: false
+        - check_type: boolean
+          predicate:
+            field: SC.auto_config_features
+            equals: false
+        - check_type: boolean
+          predicate:
+            field: SC.pad_enabled
+            equals: false
+      check_sha: ad8ca2de7a3d7cfa
+      control_family: SC
+      note: 'check text: none of boot network / ip boot server / ip bootp server / ip dns server / ip identd / ip finger /
+        ip http server / ip rcmd / service config|finger|tcp-small-servers|udp-small-servers|pad (FAIL-only: absence is never
+        proven; call-home not checked because of the Smart Licensing exception)'
+    V-215837:
+      check_type: range
+      predicate:
+        field: AU.logging_trap_level
+        min: 2
+      check_sha: 9dfdfdcddcbc6d00
+      control_family: AU
+      note: 'check text: ''logging trap critical'' or a lesser severity (error ... informational); informational is the default
+        and not shown, so a silent config is unknown'
+    V-215833:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: range
+          predicate:
+            field: AC.mgmt_line_timeout_minutes
+            max: 5
+            exclusive_min: 0
+        - check_type: compound
+          predicate:
+            op: OR
+            conditions:
+            - check_type: boolean
+              predicate:
+                field: SC.http_mgmt_enabled
+                equals: false
+            - check_type: range
+              predicate:
+                field: AC.http_idle_timeout_seconds
+                min: 1
+                max: 300
+      check_sha: b8d424a8664f6224
+      control_family: AC
+      note: 'check text: ''exec-timeout 5 0'' on line con 0 and every line vty, AND the HTTP server off (no ip http server
+        / no ip http secure-server) or ''ip http timeout-policy idle 300'''
   Juniper_SRX_Services_Gateway_NDM:
     V-223188:
       check_type: range
@@ -297,6 +400,224 @@ benchmarks:
         equals: true
       check_sha: 18ccd252de1a273d
       note: 'check text: ''show system radius-server or show system tacplus-server'' (at least one server configured)'
+    V-223212:
+      check_type: boolean
+      predicate:
+        field: IA.ssh_root_login_denied
+        equals: true
+      check_sha: 23347f31550cb32b
+      control_family: IA
+      note: 'check text: ''system services ssh root-login deny'' (allow or deny-password = FAIL)'
+    V-223214:
+      check_type: boolean
+      predicate:
+        field: SC.ssh_tcp_forwarding_disabled
+        equals: true
+      check_sha: b4741e2a7d5f60cc
+      control_family: SC
+      note: 'check text: ''system services ssh no-tcp-forwarding'''
+    V-223237:
+      check_type: boolean
+      predicate:
+        field: SC.web_management_enabled
+        equals: false
+      check_sha: d8b77b94ccefca22
+      control_family: SC
+      note: 'check text: no ''system services web-management'' stanza (FAIL-only)'
+    V-223204:
+      check_type: range
+      predicate:
+        field: CM.config_rollbacks
+        min: 5
+      check_sha: 98e8e80e0f06343f
+      control_family: CM
+      note: 'check text: ''system max-configuration-rollbacks'' 5 or more'
+    V-223209:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AC.telnet_enabled
+            equals: false
+        - check_type: boolean
+          predicate:
+            field: SC.ftp_enabled
+            equals: false
+        - check_type: range
+          predicate:
+            field: IA.ssh_version
+            min: 2
+        - check_type: boolean
+          predicate:
+            field: AC.snmp_community_strings
+            equals: false
+      check_sha: 654e1fcc128cc28b
+      control_family: AC
+      note: 'check text: no telnet, FTP, SNMPv1/v2c communities or SSHv1 (FAIL-only: absence is never proven)'
+    V-223201:
+      check_type: boolean
+      predicate:
+        field: AU.timezone_utc
+        equals: true
+      check_sha: 2395afc837c49681
+      control_family: AU
+      note: 'check text: ''system time-zone UTC'' (UTC is the default and not shown: a silent config is unknown)'
+    V-223180:
+      check_type: range
+      predicate:
+        field: AC.ssh_connection_limit
+        min: 1
+        max: 10
+      check_sha: 880934572e59d58b
+      control_family: AC
+      note: 'check text: ''system services ssh connection-limit'' 10 or less (default 75)'
+    V-223194:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_all_info
+        equals: true
+      check_sha: ece5940334b2f07b
+      control_family: AU
+      note: 'check text: external ''syslog host X any info|any'''
+    V-223195:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_all_any
+        equals: true
+      check_sha: 29868ec0e381f50d
+      control_family: AU
+      note: 'check text: external ''syslog host X any any'''
+    V-223196:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_all_any
+        equals: true
+      check_sha: 29868ec0e381f50d
+      control_family: AU
+      note: 'check text: external ''syslog host X any any'''
+    V-223224:
+      check_type: boolean
+      predicate:
+        field: SC.snmpv3_auth_sha2
+        equals: true
+      check_sha: 2a3637e7fc67403c
+      control_family: SC
+      note: 'check text: every SNMPv3 user ''authentication-sha256'' or stronger (no v3 users: unknown)'
+    V-223226:
+      check_type: boolean
+      predicate:
+        field: SC.snmpv3_priv_aes
+        equals: true
+      check_sha: 87cc9212be934538
+      control_family: SC
+      note: 'check text: every SNMPv3 user ''privacy-aes128'' (no v3 users: unknown)'
+    V-223181:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_changelog
+        equals: true
+      check_sha: 10d0786ea5b96949
+      control_family: AU
+      note: 'check text: external ''syslog host X change-log|any info|any'''
+    V-223182:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_changelog
+        equals: true
+      check_sha: 10d0786ea5b96949
+      control_family: AU
+      note: 'check text: external ''syslog host X change-log|any info|any'''
+    V-223183:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_changelog
+        equals: true
+      check_sha: 10d0786ea5b96949
+      control_family: AU
+      note: 'check text: external ''syslog host X change-log|any info|any'''
+    V-223184:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_changelog
+        equals: true
+      check_sha: 10d0786ea5b96949
+      control_family: AU
+      note: 'check text: external ''syslog host X change-log|any info|any'''
+    V-223192:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_changelog
+        equals: true
+      check_sha: 10d0786ea5b96949
+      control_family: AU
+      note: 'check text: external ''syslog host X change-log|any info|any'''
+    V-223193:
+      check_type: boolean
+      predicate:
+        field: AU.remote_syslog_changelog
+        equals: true
+      check_sha: 10d0786ea5b96949
+      control_family: AU
+      note: 'check text: external ''syslog host X change-log|any info|any'''
+    V-223187:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.remote_syslog_all_any
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.local_syslog_all_any
+            equals: true
+      check_sha: fb08215ad497f100
+      control_family: AU
+      note: 'check text: a syslog host AND a syslog file capturing facility any, severity any'
+    V-223191:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.remote_syslog_all_any
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.local_syslog_all_any
+            equals: true
+      check_sha: bdd448ebe879c4f4
+      control_family: AU
+      note: 'check text: a syslog host AND a syslog file capturing facility any, severity any'
+    V-223197:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: boolean
+          predicate:
+            field: AU.remote_syslog_all_any
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.local_syslog_all_any
+            equals: true
+      check_sha: 0fbe02a65e0c7b51
+      control_family: AU
+      note: 'check text: a syslog host AND a syslog file capturing facility any, severity any'
+    V-223236:
+      check_type: boolean
+      predicate:
+        field: CM.os_min_version_met
+        equals: true
+      check_sha: dec7f142907215be
+      control_family: CM
+      note: 'check text: ''Junos 12.1 X46 or later'' (read from the config''s version line, written by the running release;
+        12.x and unparseable build strings stay unknown)'
   Fortinet_FortiGate_Firewall_NDM:
     V-234162:
       check_type: boolean
@@ -488,3 +809,178 @@ benchmarks:
       control_family: IA
       note: 'check text: ''set change-8-characters enable'' AND `config system password-policy / set status enable` (FortiOS
         default: disabled)'
+    V-234168:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: range
+          predicate:
+            field: AC.login_max_failed_attempts
+            min: 3
+            max: 3
+        - check_type: range
+          predicate:
+            field: AC.login_lockout_seconds
+            min: 900
+            max: 900
+      check_sha: 13ed9cc87ad1b290
+      control_family: AC
+      note: 'check text: ''set admin-lockout-threshold 3'' AND ''set admin-lockout-duration 900'''
+    V-234213:
+      check_type: range
+      predicate:
+        field: AC.session_idle_timeout_minutes
+        min: 10
+        max: 10
+      check_sha: e73f504918d8784f
+      control_family: AC
+      note: 'check text: ''set admintimeout 10'' (the check says exactly 10; the default is 5)'
+    V-234214:
+      check_type: range
+      predicate:
+        field: AC.session_idle_timeout_minutes
+        min: 10
+        max: 10
+      check_sha: e6b70bdd5458352e
+      control_family: AC
+      note: 'check text: ''set admintimeout 10'' (the check says exactly 10; the default is 5)'
+    V-234210:
+      check_type: boolean
+      predicate:
+        field: SC.fips_mode_enabled
+        equals: true
+      check_sha: bc80f356acf03fa1
+      control_family: SC
+      note: 'check text: FIPS-CC mode: enable (''config system fips-cc / set status enable'')'
+    V-234215:
+      check_type: boolean
+      predicate:
+        field: SC.fips_mode_enabled
+        equals: true
+      check_sha: a571798cc592cdfb
+      control_family: SC
+      note: 'check text: FIPS-CC mode: enable (session IDs from the FIPS RNG)'
+    V-234208:
+      check_type: boolean
+      predicate:
+        field: IA.ldap_uses_ldaps
+        equals: true
+      check_sha: 1416a568377917f7
+      control_family: IA
+      note: 'check text: every ''user ldap'' server ''set secure ldaps'' (no LDAP servers: unknown)'
+    V-234201:
+      check_type: boolean
+      predicate:
+        field: SC.snmpv3_auth_sha2
+        equals: true
+      check_sha: 285b616e4b2c3860
+      control_family: SC
+      note: 'check text: every SNMPv3 user ''set security-level auth|auth-priv'' AND ''set auth-proto sha256'' (no v3 users:
+        unknown)'
+    V-234183:
+      check_type: compound
+      predicate:
+        op: AND
+        conditions:
+        - check_type: range
+          predicate:
+            field: AU.ntp_servers
+            min: 2
+        - check_type: boolean
+          predicate:
+            field: AU.ntp_custom_servers
+            equals: true
+        - check_type: boolean
+          predicate:
+            field: AU.ntp_sync_enabled
+            equals: true
+      check_sha: d5d4dc8f75b4e9b8
+      control_family: AU
+      note: 'check text: two NTP servers (''set server'' x2) with ''set type custom'' and ''set ntpsync enable'''
+  Cisco_IOS_XE_Router_RTR:
+    V-216653:
+      check_type: boolean
+      predicate:
+        field: SC.gratuitous_arp_enabled
+        equals: false
+      check_sha: 1f42ca8243850d77
+      control_family: SC
+      note: 'check text: ''ip gratuitous-arps'' should not be found (enabled globally by default: FAIL unless no ip gratuitous-arps)'
+    V-216654:
+      check_type: boolean
+      predicate:
+        field: SC.ip_directed_broadcast
+        equals: false
+      check_sha: e76711206273a2f5
+      control_family: SC
+      note: 'check text: ''ip directed-broadcast'' must not be found on any interface (FAIL-only: disabled is the default,
+        never a PASS)'
+    V-216655:
+      check_type: boolean
+      predicate:
+        field: SC.icmp_unreachables_all_disabled
+        equals: true
+      check_sha: 86696cafecd80eb7
+      control_family: SC
+      note: 'check text: ''no ip unreachables'' on all external and null0 interfaces (PASS only when EVERY interface incl.
+        Null0 has it; otherwise unknown)'
+    V-216657:
+      check_type: boolean
+      predicate:
+        field: SC.icmp_redirects_all_disabled
+        equals: true
+      check_sha: 002cce5e4b0da256
+      control_family: SC
+      note: 'check text: ''no ip redirects'' on all external interfaces (PASS only when every interface has it; otherwise
+        unknown)'
+    V-216676:
+      check_type: boolean
+      predicate:
+        field: SC.proxy_arp_all_disabled
+        equals: true
+      check_sha: 887618a2aa8376c3
+      control_family: SC
+      note: 'check text: ''no ip proxy-arp'' on all external interfaces (PASS only when every interface has it; otherwise
+        unknown)'
+    V-216674:
+      check_type: boolean
+      predicate:
+        field: SC.external_interface_lldp
+        equals: false
+      check_sha: 31872a0f59eae967
+      control_family: SC
+      note: 'check text: LLDP off globally (no lldp run) or ''no lldp transmit'' on every interface once ''lldp run'' is on'
+    V-216661:
+      check_type: boolean
+      predicate:
+        field: SC.aux_port_exec_disabled
+        equals: true
+      check_sha: 3dc53f4c51f7885d
+      control_family: SC
+      note: 'check text: ''line aux 0 / no exec'' (an enabled aux port may be a secured modem: unknown, not FAIL)'
+    V-229031:
+      check_type: boolean
+      predicate:
+        field: SC.cef_enabled
+        equals: true
+      check_sha: c8c55bf1abecf41e
+      control_family: SC
+      note: 'check text: ''ip cef'' (no ip cef = FAIL)'
+    V-216649:
+      check_type: boolean
+      predicate:
+        field: SC.auto_config_features
+        equals: false
+      check_sha: b448314b69e5b88a
+      control_family: SC
+      note: 'check text: service config / boot network / cns config|exec|image must not be enabled (FAIL-only)'
+    V-230042:
+      check_type: boolean
+      predicate:
+        field: SC.ipv6_site_local_used
+        equals: false
+      check_sha: 15db7b724bccd88a
+      control_family: SC
+      note: 'check text: FEC0::/10 IPv6 addresses must not be defined (PASS when every ipv6 address line in a full export
+        is outside it)'
