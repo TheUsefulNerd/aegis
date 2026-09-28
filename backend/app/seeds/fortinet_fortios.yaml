@@ -115,4 +115,8 @@ absent_facts:
 # unconstrained (DISA step: "Verify Password scope is enabled for Admin";
 # final review). The FortiOS default scope is admin-password.
 unit_facts:
+  # A log server only receives logs when that log device is switched on;
+  # FortiOS defaults `log syslogd setting` to status disable (final review #4:
+  # a server with status disable passed AU-4(1)).
+  - {field: AU.logging_host, value: [], any: '^log (syslogd\d?|fortianalyzer\d?) setting set server ', none: '^log (syslogd\d?|fortianalyzer\d?) setting set status enable\b', note: "log server configured but the log device is not enabled"}
   - {field: IA.password_policy_enabled, value: false, any: '^system password-policy set apply-to (?!.*\badmin-password\b)', note: "policy scope excludes admin passwords"}

@@ -231,11 +231,19 @@ def _split_cli(raw_text: str) -> list:
             # Delimiter is one char, or the two-char caret form `^C`.
             delim = m.group(2) + m.group(3) if m.group(2) == "^" and m.group(3) else m.group(2)
             rest = stripped[m.start(2) + len(delim):]
-            units.append(f"banner {m.group(1)} {delim}")
-            if delim not in rest:  # multi-line banner: skip until the closing delimiter
+            if delim in rest:
+                text = rest.split(delim)[0]
+            else:  # multi-line banner: skip until the closing delimiter
+                body = []
                 while i < len(lines) and delim not in lines[i]:
+                    body.append(lines[i])
                     i += 1
+                if i < len(lines):
+                    body.append(lines[i].split(delim)[0])
                 i += 1
+                text = "".join(body)
+            if text.strip():  # an empty banner is no banner (final review #4)
+                units.append(f"banner {m.group(1)} {delim}")
             continue
         units.append(stripped)
     return units

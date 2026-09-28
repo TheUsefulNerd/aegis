@@ -141,6 +141,8 @@ entries:
   - {syntax_pattern: '^no service password-encryption$', pattern_type: regex, canonical_field: IA.password_encryption_enabled, value: false}
   - {syntax_pattern: '^enable password ', pattern_type: regex, canonical_field: AC.privileged_password_type, value: enable_password}
   - {syntax_pattern: '^ip ssh version 1$', pattern_type: regex, canonical_field: IA.ssh_version, value: 1}
+  # `no ip ssh version 2` returns to 1.99 compatibility mode (v1 allowed).
+  - {syntax_pattern: '^no ip ssh version 2$', pattern_type: regex, canonical_field: IA.ssh_version, value: 1}
   - {syntax_pattern: '^no ip source-route$', pattern_type: regex, canonical_field: SC.ip_source_routing_enabled, value: false}
   - {syntax_pattern: '^ip source-route$', pattern_type: regex, canonical_field: SC.ip_source_routing_enabled, value: true}
   - {syntax_pattern: '^no service pad$', pattern_type: regex, canonical_field: SC.pad_enabled, value: false}
@@ -252,6 +254,11 @@ line_scoped:
 
 # Line presence decides these (vendor_defaults unit_facts).
 unit_facts:
+  # Every stored local password, not just the enable secret, must use an
+  # approved salted KDF (type 8 or 9) for IA-5(1)(d) (final review #4:
+  # `username admin password 0 ...` passed).
+  - {field: IA.local_passwords_strong, value: false, any: '^username \S+ (.* )?(password|secret [0-7]) ', note: "a local user password is plaintext, type 7 or type 5"}
+  - {field: IA.local_passwords_strong, value: true, none: '^username \S+ (.* )?(password|secret [0-7]) ', note: "every local user uses secret type 8 or 9, or there are none"}
   # `no logging on` stops every syslog destination, whatever hosts are
   # listed (final review: two `logging host` lines still passed V-220139).
   - {field: AU.logging_host, value: [], any: '^no logging on$', note: "no logging on disables all syslog output"}

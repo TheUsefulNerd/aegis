@@ -23,7 +23,9 @@ framework: NIST
 standard_version: "SP 800-53 Rev 5 (draft slice)"
 rules:
   - id: NIST-AC-17-2
-    title: "Remote access sessions must be protected using encryption (AC-17(2))"
+    # Checks the Telnet part of AC-17(2) only; unencrypted HTTP management is
+    # covered by SC-8 / the web-management fields, not here (final review #4).
+    title: "Remote access must not use unencrypted Telnet (AC-17(2), Telnet check)"
     control_family: AC
     check_type: boolean
     predicate: { field: AC.telnet_enabled, equals: false }
@@ -44,8 +46,13 @@ rules:
   - id: NIST-IA-5-1-d
     title: "Passwords stored with an approved salted key-derivation function (IA-5(1)(d))"
     control_family: IA
-    check_type: set-membership
-    predicate: { field: AC.privileged_password_type, mode: all_in, values: ["secret_type_8", "secret_type_9"] }
+    check_type: compound
+    # Enable secret AND every local user password (final review #4).
+    predicate:
+      op: AND
+      conditions:
+        - { check_type: set-membership, predicate: { field: AC.privileged_password_type, mode: all_in, values: ["secret_type_8", "secret_type_9"] } }
+        - { check_type: boolean, predicate: { field: IA.local_passwords_strong, equals: true } }
     severity: CAT_II
     remediation_template_ref: CIS-1.4.1
     # Rev 5 IA-5(1)(d) requires passwords be stored using an approved salted

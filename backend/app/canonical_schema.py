@@ -112,6 +112,13 @@ FIELD_METADATA = {
         "label": "Log access restricted",
         "description": "Whether access to stored audit logs and logging configuration is itself restricted to authorized administrators.",
     },
+    "IA.local_passwords_strong": {
+        "type": "scalar",
+        "value_kind": "bool",
+        "insecure": False,
+        "label": "Local user passwords strongly hashed",
+        "description": "Whether every locally stored user password uses an approved salted key-derivation function (Cisco secret type 8 or 9).",
+    },
     "AU.ntp_keys_configured": {
         "type": "scalar",
         "value_kind": "bool",

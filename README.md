@@ -75,7 +75,7 @@ backend/
     catalog/            imported DISA STIG releases (stig_sync.py) + sources.yaml
     seeds/*.yaml        one file per vendor: fingerprint + Tier-1 patterns
   eval/                 golden set, verdict ground truth, injection probe (+ results/)
-  tests/                304 offline tests (no API keys, LLM/embedder mocked)
+  tests/                314 offline tests (no API keys, LLM/embedder mocked)
   requirements.txt      pinned runtime deps; requirements-dev.txt adds pytest
 frontend/               Next.js console: Overview, Analyze, Review queue, Insights
 samples/                demo configs (see below)
@@ -190,7 +190,7 @@ The first run's misses were real gaps, now fixed as vendor data: console `exec-t
 
 Several automated STIG rules share one check: 8 Cisco NDM rules rest on archive config-change logging and 10 FortiGate rules on event logging, because DISA asks the same device setting under different audit requirements. Most of the rest need organisational evidence (documented procedures, key management), runtime state, or knowing which interfaces are external, and stay manual. Mappings that could produce a false PASS were rejected and are recorded with the reason in `catalog/mapping_draft.yaml`. CIS and ISO content is licensed and cannot be imported this way, so those rules stay hand-written with their section cited.
 
-**Adversarial reviews.** Two independent adversarial reviews tried to make AEGIS report PASS on configs that don't support it. The first (Sept 25) found several false-PASS paths; the second (Sept 27, after the numbers above) found 7 more, 5 on CAT I controls:
+**Adversarial reviews.** Four independent adversarial review rounds tried to make AEGIS report PASS on configs that don't support it. The first (Sept 25) found several false-PASS paths; the second (Sept 27, after the numbers above) found 7 more, 5 on CAT I controls:
 - an interface QoS `service-policy` read as control-plane protection;
 - one VTY block with `access-class` hiding another without it;
 - `exec-timeout 10 3000` read as 10 minutes;
@@ -199,6 +199,8 @@ Several automated STIG rules share one check: 8 Cisco NDM rules rest on archive 
 - a FortiGate policy with several source addresses read by the first one only.
 
 It also found a FortiGate password policy passing while switched off. All are fixed, each repro is a regression test (`tests/test_second_review.py`), and both label sets still score 0 wrong verdicts after the fixes.
+
+Two more rounds on Sept 28 found further paths, all fixed the same day and kept as regression tests (`tests/test_final_review.py`): Cisco `no logging on`, a bare `ntp authenticate`, Junos `inactive:`/`deactivate` statements, a FortiGate password policy not applied to admins, a FortiGate log server whose logging is disabled, weak local user passwords under IA-5(1)(d), ACLs applied only outbound, time-ranged or out-of-sequence denies, and an empty banner. NIST-AC-17-2 is titled as what it checks: the Telnet part of AC-17(2).
 
 **Prompt injection** (`backend/eval/injection_corpus.yaml`, `python -m eval.injection_probe`): the gate catches 32/32 variants in its tuning set and **12/20 in a held-out set written afterwards and never tuned against**, with **0 false positives** on 416 real config lines. End to end, **0 of 52** attack lines reach the AI, because free-text fields are never sent to it. The held-out number is the honest one for the gate on its own; the structural rule is what makes it safe.
 

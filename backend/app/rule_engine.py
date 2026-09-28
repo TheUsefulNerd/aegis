@@ -195,6 +195,7 @@ _TRAILERS = ("log", "log-input", "established", "time-range", "dscp", "precedenc
 _IPV4 = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 _GROUP_RE = re.compile(r"^\s*(?:access-list\s+(\S+)|\[([^\]]+)\])", re.IGNORECASE)
 _ACTION_RE = re.compile(r"\b(permit|deny)\b", re.IGNORECASE)
+_SEQ_RE = re.compile(r"^\s*(?:\[[^\]]+\]\s*)?(\d+)\s+(?:permit|deny)\b", re.IGNORECASE)
 
 
 class _Unparsed(Exception):
@@ -328,6 +329,10 @@ def _parse_acl_line(line: str):
             dst, dst_ports = "any", None  # standard ACL: source only
     except _Unparsed as e:
         return {**base, "unparsed": str(e)}
+    if "time-range" in (t.lower() for t in toks):
+        # Active only during its time range: it can't be counted on to deny
+        # (final review #4), so it is read as not understood.
+        return {**base, "unparsed": "time-range: not always active"}
     return {**base, "protocol": proto, "src": src, "src_ports": src_ports, "dst": dst, "dst_ports": dst_ports,
             "src_any": src == "any"}
 
@@ -397,6 +402,12 @@ def _eval_ordered_first_match(predicate: dict, fields: dict) -> EvalResult:
             groups.setdefault(p["group"], []).append(p)
     if not groups:
         return EvalResult(NOT_EVALUATED, {"reason": "no ACL line could be parsed", "raw_rules": rules})
+    for g, entries in groups.items():
+        # IOS evaluates a named ACL by sequence number, not by where the line
+        # sits in the file (final review #4: `20 deny` listed before `10 permit`).
+        seqs = [_SEQ_RE.match(p["raw"]) for p in entries]
+        if all(seqs):
+            groups[g] = [p for _, p in sorted(zip((int(m.group(1)) for m in seqs), entries), key=lambda x: x[0])]
     # AC.acl_bindings present (even empty) means the vendor says which lists
     # are in force (Cisco: ip access-group / access-class / traffic-filter).
     bindings = fields.get("AC.acl_bindings")

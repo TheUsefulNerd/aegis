@@ -28,7 +28,9 @@ entries:
   - {syntax_pattern: '^set system services ssh protocol-version v1\b', pattern_type: regex, canonical_field: IA.ssh_version, value: 1}
   - {syntax_pattern: '^set system services web-management https\b', pattern_type: regex, canonical_field: SC.webgui_protocol, value: true}
   - {syntax_pattern: '^set system services web-management http( |$)', pattern_type: regex, canonical_field: SC.webgui_protocol, value: false}
-  - {syntax_pattern: '^set system syslog host ([\w.:-]+)', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
+  # A host only receives messages for the facilities listed under it (final
+  # review #4: a bare `host X` sends nothing).
+  - {syntax_pattern: '^set system syslog host ([\w.:-]+) (?!source-address|port|structured-data|match|routing-instance)\S+ \S+', pattern_type: regex, canonical_field: AU.logging_host, value: "$1"}
   - {syntax_pattern: '^set system syslog (host|file) ', pattern_type: regex, canonical_field: AU.logging_enabled, value: true}
   - {syntax_pattern: '^set system login message ', pattern_type: regex, canonical_field: AC.login_banner_configured, value: true}
   - {syntax_pattern: '^set system login class \S+ idle-timeout (\d+)', pattern_type: regex, canonical_field: AC.session_idle_timeout_minutes, value: "$1"}

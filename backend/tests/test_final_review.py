@@ -82,3 +82,82 @@ def test_verify_of_an_empty_attestation_file_fails(tmp_path):
     p = tmp_path / "empty.json"
     p.write_text(json.dumps([]))
     assert cli.main(["verify", str(p), "--fingerprint", "0" * 16]) == 1
+
+
+# ---- final review #4 (2026-09-28 evening) ----
+
+FORTI_LOG = """#config-version=FGVM64-7.2.5-FW-build1517:opmode=0:vdom=0
+config system global
+    set hostname "fw1"
+end
+config log syslogd setting
+    set status disable
+    set server "10.1.1.1"
+end
+config firewall policy
+end
+"""
+
+
+def test_fortigate_log_server_counts_only_when_enabled(client):
+    assert _verdicts(client, FORTI_LOG, "f.conf")["NIST-AU-4-1"] != "PASS"
+    assert _verdicts(client, FORTI_LOG.replace("    set status disable\n", ""), "f2.conf")["NIST-AU-4-1"] != "PASS"
+    on = _verdicts(client, FORTI_LOG.replace("set status disable", "set status enable"), "f3.conf")
+    assert on["NIST-AU-4-1"] == "PASS"
+
+
+def test_ia_5_1_d_covers_local_user_passwords(client):
+    for weak in ("username admin privilege 15 password 0 [REDACTED:CLI_PASSWORD]\n",
+                 "username admin password 7 [REDACTED:TYPE7_PASSWORD]\n",
+                 "username admin secret 5 [REDACTED:USER_SECRET_HASH]\n"):
+        assert _verdicts(client, BASE + weak)["NIST-IA-5-1-d"] != "PASS", weak
+    assert _verdicts(client, BASE + "username admin secret 9 [REDACTED:USER_SECRET_HASH]\n")["NIST-IA-5-1-d"] == "PASS"
+
+
+def test_crlf_config_is_recognized(client):
+    body = client.post("/ingest", files={"file": ("crlf.cfg", io.BytesIO(BASE.replace("\n", "\r\n").encode()), "text/plain")}).json()
+    assert body["vendor"] == "cisco_ios"
+
+
+def test_coverage_counts_the_hand_written_rtr_rules(client):
+    rtr = next(b for b in client.get("/frameworks/coverage").json()["benchmarks"] if b["name"] == "Cisco_IOS_XE_Router_RTR")
+    assert rtr["automated"] >= 15
+
+
+ACL_RULES = ["CIS-SUPPLEMENT-ACL-TELNET", "NIST-AC-4", "ISO-A.8.20"]
+
+
+def test_acl_applied_only_outbound_is_not_inbound_protection(client):
+    cfg = BASE + ("access-list 101 deny tcp any any eq 23\naccess-list 101 permit ip any any\n"
+                  "interface Gi1\n ip access-group 101 out\n")
+    got = _verdicts(client, cfg)
+    assert all(got[r] != "PASS" for r in ACL_RULES)
+
+
+def test_time_ranged_deny_is_not_always_active(client):
+    cfg = BASE + ("access-list 101 deny tcp any any eq 23 time-range NEVER\naccess-list 101 permit ip any any\n"
+                  "interface Gi1\n ip access-group 101 in\n")
+    got = _verdicts(client, cfg)
+    assert all(got[r] != "PASS" for r in ACL_RULES)
+
+
+def test_named_acl_is_evaluated_by_sequence_number(client):
+    cfg = BASE + ("ip access-list extended E\n 20 deny tcp any any eq telnet\n 10 permit ip any any\n"
+                  "interface Gi1\n ip access-group E in\n")
+    got = _verdicts(client, cfg)
+    assert all(got[r] != "PASS" for r in ACL_RULES)
+
+
+def test_empty_banner_is_no_banner(client):
+    assert _verdicts(client, BASE + "banner login ^C^C\n")["CIS-1.3.2"] != "PASS"
+    assert _verdicts(client, BASE + "banner login ^C\nAuthorized access only\n^C\n")["CIS-1.3.2"] == "PASS"
+
+
+def test_no_ip_ssh_version_2_is_not_v2(client):
+    assert _verdicts(client, BASE + "no ip ssh version 2\n")["CIS-2.1.1.2"] != "PASS"
+
+
+def test_junos_syslog_host_without_facility_sends_nothing(client):
+    raw = open(os.path.join(SAMPLES, "heldout", "heldout_03_junos_set_srx1.cfg"), encoding="utf-8").read()
+    assert _verdicts(client, raw + "set system syslog host 10.1.1.1\n", "j.cfg")["NIST-AU-4-1"] != "PASS"
+    assert _verdicts(client, raw + "set system syslog host 10.1.1.1 any info\n", "j2.cfg")["NIST-AU-4-1"] == "PASS"

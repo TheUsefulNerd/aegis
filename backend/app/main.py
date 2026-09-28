@@ -99,7 +99,9 @@ def ingest(file: UploadFile, request: Request, db: Session = Depends(get_db)):
     raw_bytes = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(raw_bytes) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, f"config file larger than {MAX_UPLOAD_BYTES} bytes")
-    raw_text = raw_bytes.decode("utf-8", errors="replace")
+    # CRLF exports (Windows copies) must parse like LF ones (final review #4:
+    # a CRLF Cisco config fingerprinted as `unknown`).
+    raw_text = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
     # Fingerprint of exactly what was uploaded, printed on the report so an
     # auditor can tie a report to one specific config export.
     input_sha256 = hashlib.sha256(raw_bytes).hexdigest()
@@ -291,7 +293,10 @@ def _acl_bindings(unit_list: list) -> list:
     out = []
     for u in unit_list:
         m = _ACL_BIND_RE.match(u)
-        if m and m.group(1) not in out:
+        # Inbound only: the ACL rules judge what may reach the device or the
+        # network through it; a list applied `out` filters the other way
+        # (final review #4).
+        if m and m.group(2).lower() == "in" and m.group(1) not in out:
             out.append(m.group(1))
     return out
 
@@ -597,7 +602,8 @@ def framework_coverage(db: Session = Depends(get_db)):
     hand = {}
     for r in db.query(Rule).filter(Rule.framework == "STIG").all():
         if r.standard_version.startswith("Cisco IOS XE Router RTR STIG") and "catalog" not in (r.standard_version or ""):
-            hand.setdefault("Cisco_IOS_XE_Router_RTR", []).append(r.standard_ref)
+            # catalog V-ids are bare (`V-216650`); hand rules may carry a prefix
+            hand.setdefault("Cisco_IOS_XE_Router_RTR", []).append(r.standard_ref.removeprefix("STIG-"))
     return {"benchmarks": catalog_rules.coverage(hand),
             "rules_evaluated_total": db.query(Rule).count()}
 

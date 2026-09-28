@@ -159,11 +159,17 @@ def apply(vendor: str, confidence: str, raw_text: str, fields: dict, provenance:
         if field in filled:
             continue
         us = units or []
+        if d.get("none") and any(re.match(d["none"], u) for u in us):
+            continue  # a line the fact must not see is present
         if "any" in d:
             hits = [u for u in us if re.match(d["any"], u)]
-        else:
+        elif "all" in d:
             per = [[u for u in us if re.match(rx, u)] for rx in d["all"]]
             hits = [h[0] for h in per] if all(per) else []
+        elif d.get("none") and confidence == "high":
+            hits = [f"(no line in this full export matches {d['none']})"]  # explicit absence
+        else:
+            hits = []
         if not hits:
             continue
         fields[field] = d["value"]
